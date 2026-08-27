@@ -1,0 +1,147 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+ html,body{margin:0;height:100%;background:#111;color:#eee;font-family:sans-serif;overflow:hidden}
+ #home,#result{padding:16px;overflow-y:auto;height:100%;box-sizing:border-box}
+ #editor{position:fixed;inset:0}
+ canvas{display:block;touch-action:none}
+ #top{position:fixed;top:0;left:0;right:0;background:#000c;padding:10px;text-align:center;font-size:14px;z-index:5}
+ #zoom{position:fixed;right:10px;bottom:90px;display:flex;flex-direction:column;gap:8px;z-index:5}
+ #zoom button{width:44px;height:44px;font-size:20px;border:0;border-radius:8px;background:#333;color:#fff}
+ pre{white-space:pre-wrap;font-size:12px}
+ input,select{margin:8px 0}
+</style></head><body>
+
+<div id="home">
+ <h3>LUX FACE PRO-скан</h3>
+ <p>Выбери фото АНФАС. Дальше расставь 41 точку крестиком.</p>
+ <input type="file" id="file" accept="image/*"><br>
+ <label>Агрегация p:
+  <select id="p"><option>1</option><option>0.5</option><option>0.3</option><option selected>0.2</option><option>0</option><option>-1</option></select>
+ </label>
+</div>
+
+<div id="editor" style="display:none">
+ <div id="top">Точка <span id="num"></span>: <b id="name"></b></div>
+ <canvas id="cv"></canvas>
+ <div id="zoom"><button id="zin">+</button><button id="zout">−</button></div>
+</div>
+
+<div id="result" style="display:none"><pre id="rep"></pre></div>
+
+<script>
+const TG=window.Telegram.WebApp; TG.ready(); TG.expand();
+const POINTS=[["hair","Линия роста волос (середина)"],["glab","Глабелла (между бровями)"],
+["tempR","Висок правый"],["tempL","Висок левый"],
+["browRi","Бровь прав. внутр."],["browRp","Бровь прав. пик"],["browRo","Бровь прав. внешн."],
+["browLi","Бровь лев. внутр."],["browLp","Бровь лев. пик"],["browLo","Бровь лев. внешн."],
+["eyeRo","Глаз прав. внешн."],["eyeRi","Глаз прав. внутр."],["eyeRu","Глаз прав. верх.веко"],["eyeRl","Глаз прав. ниж.веко"],["eyeRc","Глаз прав. радужка"],
+["eyeLo","Глаз лев. внешн."],["eyeLi","Глаз лев. внутр."],["eyeLu","Глаз лев. верх.веко"],["eyeLl","Глаз лев. ниж.веко"],["eyeLc","Глаз лев. радужка"],
+["nas","Назион (переносица)"],["ntip","Кончик носа"],["noseR","Крыло носа прав."],["noseL","Крыло носа лев."],["sub","Субназале (основание носа)"],
+["mouR","Рот прав. уголок"],["mouL","Рот лев. уголок"],["lt","Верхняя губа"],["st","Линия губ"],["lb","Низ нижней губы"],
+["chin","Подбородок (низ)"],["gonR","Угол челюсти прав."],["gonL","Угол челюсти лев."],["jawR","Челюсть прав. середина"],["jawL","Челюсть лев. середина"],
+["zygR","Скула прав."],["zygL","Скула лев."],["bizR","Ширина лица прав."],["bizL","Ширина лица лев."],["chkR","Щёка прав."],["chkL","Щёка лев."]];
+
+let img=null, placed=[], idx=0, PVAL=0.2;
+let view={scale:1,ox:0,oy:0};
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+let dpr=window.devicePixelRatio||1, cw=0, ch=0;
+
+document.getElementById('file').onchange=e=>{
+ const f=e.target.files[0]; if(!f)return;
+ PVAL=parseFloat(document.getElementById('p').value);
+ const r=new FileReader();
+ r.onload=ev=>{img=new Image(); img.onload=()=>{start();}; img.src=ev.target.result;};
+ r.readAsDataURL(f);
+};
+
+function start(){
+ document.getElementById('home').style.display='none';
+ document.getElementById('editor').style.display='block';
+ resize(); placed=[]; idx=0; fit();
+ TG.BackButton.show(); TG.BackButton.onClick(undo);
+ setPoint(); draw();
+ TG.MainButton.show(); TG.MainButton.onClick(place);
+}
+function resize(){
+ cw=innerWidth; ch=innerHeight;
+ cv.width=cw*dpr; cv.height=ch*dpr; cv.style.width=cw+'px'; cv.style.height=ch+'px';
+}
+function fit(){ view.scale=Math.min(cw/img.width,ch/img.height); view.ox=(cw-img.width*view.scale)/2; view.oy=(ch-img.height*view.scale)/2; }
+function setPoint(){ document.getElementById('num').textContent=(idx+1)+"/"+POINTS.length; document.getElementById('name').textContent=POINTS[idx][1]; TG.MainButton.setText("Поставить точку "+(idx+1)); }
+
+function draw(){
+ ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,cw,ch);
+ ctx.save(); ctx.translate(view.ox,view.oy); ctx.scale(view.scale,view.scale); ctx.drawImage(img,0,0); ctx.restore();
+ for(let i=0;i<placed.length;i++){ const p=placed[i]; const x=p.x*img.width*view.scale+view.ox, y=p.y*img.height*view.scale+view.oy;
+   ctx.fillStyle='#f33'; ctx.beginPath(); ctx.arc(x,y,4,0,7); ctx.fill();
+   ctx.fillStyle='#fff'; ctx.font='10px sans'; ctx.fillText(i+1,x+5,y-5); }
+ // крестик
+ ctx.strokeStyle='#0f0'; ctx.lineWidth=1.5; ctx.beginPath();
+ ctx.moveTo(cw/2-14,ch/2); ctx.lineTo(cw/2+14,ch/2); ctx.moveTo(cw/2,ch/2-14); ctx.lineTo(cw/2,ch/2+14); ctx.stroke();
+}
+function place(){
+ const nx=((cw/2)-view.ox)/view.scale/img.width, ny=((ch/2)-view.oy)/view.scale/img.height;
+ placed.push({x:nx,y:ny}); idx++;
+ if(idx>=POINTS.length){ finish(); } else { setPoint(); draw(); }
+}
+function undo(){ if(idx>0){ idx--; placed.pop(); setPoint(); draw(); } }
+
+// pan + pinch
+let ptrs=new Map(), pan=null, pinch=null;
+cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,[e.clientX,e.clientY]);
+ if(ptrs.size==1)pan={x:e.clientX,y:e.clientY,ox:view.ox,oy:view.oy};
+ else if(ptrs.size==2){const a=[...ptrs.values()];pinch={d:Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]),s:view.scale};}});
+cv.addEventListener('pointermove',e=>{if(!ptrs.has(e.pointerId))return;ptrs.set(e.pointerId,[e.clientX,e.clientY]);
+ if(ptrs.size==1&&pan){view.ox=pan.ox+(e.clientX-pan.x);view.oy=pan.oy+(e.clientY-pan.y);}
+ else if(ptrs.size==2&&pinch){const a=[...ptrs.values()];const d=Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]);view.scale=Math.max(0.1,Math.min(20,pinch.s*d/pinch.d));}
+ draw();});
+cv.addEventListener('pointerup',e=>{ptrs.delete(e.pointerId);if(ptrs.size==1){const a=[...ptrs.values()][0];pan={x:a[0],y:a[1],ox:view.ox,oy:view.oy};pinch=null;}else if(ptrs.size==0)pan=null;});
+document.getElementById('zin').onclick=()=>{view.scale=Math.min(20,view.scale*1.3);draw();};
+document.getElementById('zout').onclick=()=>{view.scale=Math.max(0.1,view.scale/1.3);draw();};
+
+// ---------- математика ----------
+function sc(v,lo,hi,m){ if(v>=lo&&v<=hi)return 100; const d=v<lo?lo-v:v-hi; return Math.max(0,100-100*d/m); }
+function pmean(xs,p){ xs=xs.map(x=>Math.max(0.1,x)); if(Math.abs(p)<1e-9)return Math.exp(xs.reduce((a,x)=>a+Math.log(x),0)/xs.length); return Math.pow(xs.reduce((a,x)=>a+Math.pow(x,p),0)/xs.length,1/p); }
+function d(a,b){ return Math.hypot(a.x-b.x,a.y-b.y); }
+function ang(a,b,c){ const v1=[a.x-b.x,a.y-b.y],v2=[c.x-b.x,c.y-b.y]; const n=Math.hypot(...v1)*Math.hypot(...v2); if(!n)return 0; return Math.deg?0:Math.acos(Math.max(-1,Math.min(1,(v1[0]*v2[0]+v1[1]*v2[1])/n)))*180/Math.PI; }
+
+function finish(){
+ const W=img.width,H=img.height; const P={}; POINTS.forEach((pt,i)=>{P[pt[0]]={x:placed[i].x*W,y:placed[i].y*H};});
+ const bizy=d(P.bizR,P.bizL), eyew=(d(P.eyeRo,P.eyeRi)+d(P.eyeLo,P.eyeLi))/2;
+ const rows=[]; const scs=[];
+ const up=d(P.hair,P.nas), mid=d(P.nas,P.sub), low=d(P.sub,P.chin), tt=up+mid+low;
+ rows.push("Thirds: "+(100*up/tt).toFixed0? "":"");
+ rows.push("• Thirds: "+Math.round(100*up/tt)+"/"+Math.round(100*mid/tt)+"/"+Math.round(100*low/tt)+"% | ~33/33/33");
+ const M=[["Canthal tilt",5.2,8.5,6,"°",(ang(P.eyeRi,P.eyeRo,{x:P.eyeRo.x,y:P.eyeRi.y})+ang(P.eyeLi,P.eyeLo,{x:P.eyeLo.y? P.eyeLo.x:P.eyeLo.x,y:P.eyeLi.y}))/2|| (Math.atan2(P.eyeRi.y-P.eyeRo.y,Math.abs(P.eyeRo.x-P.eyeRi.x))+Math.atan2(P.eyeLi.y-P.eyeLo.y,Math.abs(P.eyeLo.x-P.eyeLi.x)))*90/Math.PI],
+ ];
+ // проще и честнее — считаем напрямую:
+ const lines=[]; const S=[];
+ function add(name,val,lo,hi,m,u){ const s=sc(val,lo,hi,m); S.push(s); lines.push("• "+name+": "+val.toFixed(2)+u+" | "+lo+"–"+hi+" | "+Math.round(s)+"/100"); }
+ const ct=( (Math.atan2(P.eyeRi.y-P.eyeRo.y,Math.abs(P.eyeRo.x-P.eyeRi.x)) + Math.atan2(P.eyeLi.y-P.eyeLo.y,Math.abs(P.eyeLo.x-P.eyeLi.x)))/2 )*180/Math.PI;
+ add("Canthal tilt",ct,5.2,8.5,6,"°");
+ add("Eye aspect ratio",(d(P.eyeRo,P.eyeRi)/Math.max(1,d(P.eyeRu,P.eyeRl))+d(P.eyeLo,P.eyeLi)/Math.max(1,d(P.eyeLu,P.eyeLl)))/2,2.8,3.6,0.9,"");
+ add("Eye spacing",d(P.eyeRi,P.eyeLi)/Math.max(1,eyew),0.93,1.04,0.15,"");
+ add("IPD/eye",d(P.eyeRc,P.eyeLc)/Math.max(1,eyew),1.9,2.2,0.4,"");
+ add("FWHR",bizy/Math.max(1,d(P.nas,P.lt)),1.9,2.06,0.35,"");
+ add("Total FWHR",d(P.hair,P.chin)/bizy,1.33,1.38,0.15,"");
+ add("Mouth/Nose",d(P.mouR,P.mouL)/Math.max(1,d(P.noseR,P.noseL)),1.38,1.53,0.3,"");
+ add("Lip ratio",d(P.st,P.lb)/Math.max(1,d(P.lt,P.st)),1.4,2.0,0.6,"");
+ add("Chin/Philtrum",d(P.lb,P.chin)/Math.max(1,d(P.sub,P.lt)),2.05,2.55,0.7,"");
+ add("Bigonial %",100*d(P.gonR,P.gonL)/bizy,85.5,92,8,"%");
+ add("Bitemporal %",100*d(P.tempR,P.tempL)/bizy,84,95,8,"%");
+ add("Lower face %",100*d(P.sub,P.chin)/d(P.hair,P.chin),30.6,34,5,"%");
+ add("Brow position",(Math.abs(P.eyeRu.y-P.browRp.y)+Math.abs(P.eyeLu.y-P.browLp.y))/2/Math.max(1,(d(P.eyeRu,P.eyeRl)+d(P.eyeLu,P.eyeLl))/2),0,0.65,0.5,"");
+ const sym=100-(Math.abs(d(P.eyeRo,P.eyeRi)-d(P.eyeLo,P.eyeLi))/Math.max(1,eyew)*100+Math.abs(d(P.gonR,P.chin)-d(P.gonL,P.chin))/Math.max(1,d(P.gonR,P.chin))*100)/2;
+ add("Symmetry",sym,90,97,7,"%");
+ const g=pmean(S,PVAL), psl=Math.max(1,Math.min(8,g/10-2));
+ let out="📊 LUX PRO (p="+PVAL+", 41 точка): "+g.toFixed(1)+"/100\n⭐ PSL: "+psl.toFixed(1)+"/8\n\n"+lines.join("\n");
+ document.getElementById('editor').style.display='none';
+ document.getElementById('result').style.display='block';
+ document.getElementById('rep').textContent=out;
+ TG.MainButton.setText("Отправить боту");
+ TG.MainButton.offClick(place); TG.MainButton.onClick(()=>{ TG.sendData(JSON.stringify({t:"lux",text:out})); TG.close(); });
+}
+</script></body></html>
