@@ -8,35 +8,34 @@ html,body{margin:0;height:100%;overflow:hidden;color:var(--txt);font:15px/1.45 -
 background:radial-gradient(1200px 600px at 80% -10%,#2a3bff22,transparent),radial-gradient(900px 500px at -10% 110%,#8b5bff22,transparent),linear-gradient(160deg,var(--bg1),var(--bg2))}
 .screen{position:fixed;inset:0;display:flex;flex-direction:column}
 #home,#result{overflow-y:auto;padding:20px}
-h1{font-size:24px;font-weight:800;margin:2px 0;background:linear-gradient(90deg,var(--acc),var(--acc2));-webkit-background-clip:text;background-clip:text;color:transparent}
-.sub{color:var(--mut);font-size:13px}
+h1{font-size:24px;font-weight:800;margin:2px 0;background:linear-gradient(90deg,var(--acc),var(--acc2));-webkit-background-clip:text;color:transparent}
+.sub{color:var(--mut);font-size:12.5px}
 .card{background:var(--card);border:1px solid var(--line);backdrop-filter:blur(14px);border-radius:20px;padding:16px;margin-bottom:14px;box-shadow:0 8px 30px #0006}
-.btn{display:block;width:100%;border:0;border-radius:14px;padding:15px;font-size:16px;font-weight:700;color:#fff;
-background:linear-gradient(90deg,var(--acc),var(--acc2));box-shadow:0 6px 20px #5b8cff44;margin-top:10px}
+.btn{display:block;width:100%;border:0;border-radius:14px;padding:15px;font-size:16px;font-weight:700;color:#fff;background:linear-gradient(90deg,var(--acc),var(--acc2));box-shadow:0 6px 20px #5b8cff44;margin-top:10px}
 input[type=file]{width:100%;color:var(--mut)}
-select{background:#1b2233;color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:9px;font-size:14px}
-#editor{background:#000}
-canvas#cv{position:absolute;inset:0;touch-action:none}
+select{background:#1b2233;color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:9px}
+#editor{background:#000}canvas#cv{position:absolute;inset:0;touch-action:none}
 #top{position:absolute;top:0;left:0;right:0;padding:12px 14px;z-index:5;background:linear-gradient(#000d,#0000)}
-#pname{font-weight:800;font-size:16px}
-#pdesc{color:#cdd6e4;font-size:12.5px;margin-top:2px}
+#pname{font-weight:800;font-size:16px}#pdesc{color:#cdd6e4;font-size:12.5px;margin-top:2px}
 #ring{position:absolute;right:12px;top:12px;width:46px;height:46px;z-index:6}
 #guide{position:absolute;left:10px;top:70px;width:100px;height:126px;background:#0009;border:1px solid var(--line);border-radius:14px;z-index:5}
 #bar{position:absolute;left:0;right:0;bottom:0;padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px;z-index:6;background:linear-gradient(#0000,#000d)}
 #bar button{flex:1;border:0;border-radius:14px;padding:13px 0;font-size:17px;color:#fff;background:#1b2233cc;border:1px solid var(--line)}
 #bar button.main{flex:2;background:linear-gradient(90deg,var(--acc),var(--acc2));font-weight:800}
-.mrow{display:flex;justify-content:space-between;gap:8px;padding:8px 2px;border-bottom:1px solid var(--line);font-size:13.5px}
-.chip{padding:2px 10px;border-radius:20px;font-weight:800;font-size:12.5px}
+.mhead{display:flex;justify-content:space-between;font-size:13.5px;font-weight:600}
+.gauge{position:relative;height:10px;border-radius:6px;margin:7px 0 3px}
+.gauge i{position:absolute;top:-3px;width:4px;height:16px;background:#fff;border-radius:2px;box-shadow:0 0 8px #fff}
+.chip{padding:2px 10px;border-radius:20px;font-weight:800;font-size:12px}
+.mblock{padding:9px 0;border-bottom:1px solid var(--line)}
 </style></head><body>
 
 <div class="screen" id="home">
- <h1>LUX FACE PRO</h1>
- <div class="sub">Ручные точки → точный пиксельный расчёт. Фото не покидает телефон.</div>
+ <h1>LUX FACE PRO</h1><div class="sub">Ручные точки → пиксельный расчёт + наглядные шкалы. Фото не покидает телефон.</div>
  <div class="card"><div class="sub" style="margin-bottom:8px">1 · Фото АНФАС: ровно, без улыбки, лоб открыт</div><input type="file" id="file" accept="image/*"></div>
  <div class="card"><label class="sub">Строгость (p)</label><br>
   <select id="p"><option>1</option><option>0.5</option><option>0.3</option><option selected>0.2</option><option>0</option><option>-1</option></select>
   <div class="sub" style="margin-top:8px">p=1 мягко · 0.2 баланс · −1 беспощадно</div></div>
- <div class="card sub" style="margin:0">2 · Тяни фото пальцем, зум <b>+/−</b>, наводи <b style="color:var(--ok)">крестик</b> и жми <b>ТОЧКА</b>. Слева схема-подсказка. <b>⟲</b> — отменить.</div>
+ <div class="card sub" style="margin:0">2 · Тяни фото, зум +/−, наводи <b style="color:var(--ok)">крестик</b> → <b>ТОЧКА</b>. ⟲ отменить. Слева схема. Звуки подскажут.</div>
 </div>
 
 <div class="screen" id="editor" style="display:none">
@@ -44,9 +43,7 @@ canvas#cv{position:absolute;inset:0;touch-action:none}
  <div id="top"><div id="pname"></div><div id="pdesc"></div></div>
  <svg id="ring" viewBox="0 0 46 46"><circle cx="23" cy="23" r="20" fill="none" stroke="#ffffff22" stroke-width="4"/><circle id="ringv" cx="23" cy="23" r="20" fill="none" stroke="url(#g)" stroke-width="4" stroke-linecap="round" stroke-dasharray="125.6" stroke-dashoffset="125.6" transform="rotate(-90 23 23)"/><defs><linearGradient id="g"><stop offset="0" stop-color="#5b8cff"/><stop offset="1" stop-color="#8b5bff"/></linearGradient></defs></svg>
  <canvas id="guide" width="100" height="126"></canvas>
- <div id="bar">
-  <button id="undo">⟲</button><button id="zout">−</button><button id="zin">+</button><button class="main" id="place">ТОЧКА</button>
- </div>
+ <div id="bar"><button id="undo">⟲</button><button id="zout">−</button><button id="zin">+</button><button class="main" id="place">ТОЧКА</button></div>
 </div>
 
 <div class="screen" id="result" style="display:none"><div id="rep"></div></div>
@@ -55,33 +52,33 @@ canvas#cv{position:absolute;inset:0;touch-action:none}
 "use strict";
 const TG=window.Telegram&&window.Telegram.WebApp; if(TG){TG.ready();TG.expand();}
 const hapt=()=>{if(TG&&TG.HapticFeedback)TG.HapticFeedback.impactOccurred('light');};
+// ---- звук ----
+let AC=null;function ac(){if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume();return AC;}
+function tone(f,d,t,g){try{const a=ac(),o=a.createOscillator(),gn=a.createGain();o.type=t||'sine';o.frequency.value=f;gn.gain.value=g||.12;o.connect(gn);gn.connect(a.destination);o.start();gn.gain.exponentialRampToValueAtTime(.0001,a.currentTime+d);o.stop(a.currentTime+d);}catch(e){}}
+const sndPlace=()=>tone(880,.07),sndUndo=()=>tone(320,.08),sndDone=()=>[523,659,784,1046].forEach((f,i)=>setTimeout(()=>tone(f,.12),i*90));
+
 const PT=[
-["hair","Линия роста волос","середина лба у волос",.5,.06],["hairR","Волосы прав.","край линии справа",.32,.10],["hairL","Волосы лев.","край линии слева",.68,.10],
-["glab","Глабелла","между бровями",.5,.33],["foreR","Лоб прав.","середина лба справа",.30,.24],["foreL","Лоб лев.","середина лба слева",.70,.24],
-["tempR","Висок прав.","край лба",.16,.32],["tempL","Висок лев.","край лба",.84,.32],
-["browRi","Бровь прав. внутр.","у переносицы",.36,.36],["browRp","Бровь прав. пик","верх брови",.32,.34],["browRo","Бровь прав. внешн.","хвост",.22,.36],
-["browLi","Бровь лев. внутр.","у переносицы",.64,.36],["browLp","Бровь лев. пик","верх брови",.68,.34],["browLo","Бровь лев. внешн.","хвост",.78,.36],
-["eyeRo","Глаз прав. внешн.","внешний уголок",.24,.45],["eyeRi","Глаз прав. внутр.","внутренний уголок",.40,.45],["eyeRu","Прав. верх.веко","середина",.32,.43],["eyeRl","Прав. ниж.веко","середина",.32,.47],["eyeRc","Прав. зрачок","центр",.32,.45],
-["eyeLo","Глаз лев. внешн.","внешний уголок",.76,.45],["eyeLi","Глаз лев. внутр.","внутренний уголок",.60,.45],["eyeLu","Лев. верх.веко","середина",.68,.43],["eyeLl","Лев. ниж.веко","середина",.68,.47],["eyeLc","Лев. зрачок","центр",.68,.45],
-["undR","Под глазом прав.","нижний край орбиты",.32,.50],["undL","Под глазом лев.","нижний край орбиты",.68,.50],
-["nas","Назион","переносица",.5,.42],["nbr","Спинка носа","середина спинки",.5,.50],["ntip","Кончик носа","выступающая точка",.5,.60],["noseR","Крыло прав.","край ноздри",.42,.62],["noseL","Крыло лев.","край ноздри",.58,.62],["sub","Субназале","основание носа",.5,.66],
-["mouR","Рот прав. уголок","",.34,.76],["mouL","Рот лев. уголок","",.66,.76],["lt","Верхняя губа","лук Купидона",.5,.73],["st","Линия губ","стык по центру",.5,.76],["lb","Низ нижней губы","",.5,.80],
-["bizR","Ширина прав.","максимум",.13,.50],["bizL","Ширина лев.","максимум",.87,.50],
-["zygR","Скула прав.","выступающая",.18,.57],["zygL","Скула лев.","выступающая",.82,.57],
-["chkR","Щёка прав.","середина",.26,.64],["chkL","Щёка лев.","середина",.74,.64],
-["holR","Впадина прав.","под скулой",.30,.70],["holL","Впадина лев.","под скулой",.70,.70],
-["jawUpR","Челюсть верх прав.","",.20,.72],["jawUpL","Челюсть верх лев.","",.80,.72],
-["gonR","Угол челюсти прав.","нижний угол",.24,.80],["gonL","Угол челюсти лев.","нижний угол",.76,.80],
-["jawMidR","Челюсть сред прав.","",.32,.89],["jawMidL","Челюсть сред лев.","",.68,.89],
-["jawLowR","Челюсть низ прав.","",.41,.94],["jawLowL","Челюсть низ лев.","",.59,.94],
-["chin","Подбородок","низ",.5,.97]];
+["hair","Линия роста волос","середина лба у волос",.5,.06],["hairR","Волосы прав.","край",.32,.10],["hairL","Волосы лев.","край",.68,.10],["hairR2","Волосы прав.2","выше виска",.22,.14],["hairL2","Волосы лев.2","выше виска",.78,.14],
+["glab","Глабелла","между бровями",.5,.33],["foreR","Лоб прав.","",.30,.24],["foreL","Лоб лев.","",.70,.24],["foreMR","Лоб сред прав.","",.40,.20],["foreML","Лоб сред лев.","",.60,.20],
+["tempR","Висок прав.","",.16,.32],["tempL","Висок лев.","",.84,.32],
+["browRi","Бровь прав.внутр","",.36,.36],["browRp","Бровь прав.пик","",.32,.34],["browRo","Бровь прав.внешн","",.22,.36],
+["browLi","Бровь лев.внутр","",.64,.36],["browLp","Бровь лев.пик","",.68,.34],["browLo","Бровь лев.внешн","",.78,.36],
+["eyeRo","Глаз прав.внешн","",.24,.45],["eyeRi","Глаз прав.внутр","",.40,.45],["eyeRu","Прав.верх.веко","",.32,.43],["eyeRl","Прав.ниж.веко","",.32,.47],["eyeRc","Прав.зрачок","",.32,.45],
+["eyeLo","Глаз лев.внешн","",.76,.45],["eyeLi","Глаз лев.внутр","",.60,.45],["eyeLu","Лев.верх.веко","",.68,.43],["eyeLl","Лев.ниж.веко","",.68,.47],["eyeLc","Лев.зрачок","",.68,.45],
+["undR","Под глазом прав.","нижний край орбиты",.32,.50],["undL","Под глазом лев.","",.68,.50],
+["nas","Назион","переносица",.5,.42],["nbr","Спинка носа","",.5,.50],["ntip","Кончик носа","",.5,.60],["noseR","Крыло прав.","",.42,.62],["noseL","Крыло лев.","",.58,.62],["sub","Субназале","основание носа",.5,.66],
+["mouR","Рот прав.уголок","",.34,.76],["mouL","Рот лев.уголок","",.66,.76],["lt","Верхняя губа","",.5,.73],["st","Линия губ","",.5,.76],["lb","Низ нижней губы","",.5,.80],
+["bizUpR","Ширина верх прав.","",.15,.44],["bizUpL","Ширина верх лев.","",.85,.44],["bizR","Ширина прав.","максимум",.13,.50],["bizL","Ширина лев.","максимум",.87,.50],["bizLowR","Ширина низ прав.","",.16,.58],["bizLowL","Ширина низ лев.","",.84,.58],
+["zygR","Скула прав.","",.18,.57],["zygL","Скула лев.","",.82,.57],["chkR","Щёка прав.","",.26,.64],["chkL","Щёка лев.","",.74,.64],["holR","Впадина прав.","под скулой",.30,.70],["holL","Впадина лев.","",.70,.70],
+["jawUpR","Челюсть верх прав.","",.20,.72],["jawUpL","Челюсть верх лев.","",.80,.72],["gonR","Угол челюсти прав.","",.24,.80],["gonL","Угол челюсти лев.","",.76,.80],["jawMidR","Челюсть сред прав.","",.32,.89],["jawMidL","Челюсть сред лев.","",.68,.89],["jawLowR","Челюсть низ прав.","",.41,.94],["jawLowL","Челюсть низ лев.","",.59,.94],
+["chin","Подбородок","низ",.5,.97],["neckR","Шея прав.","",.32,1.0],["neckL","Шея лев.","",.68,1.0]];
 
 let img=null,placed=[],idx=0,PVAL=.2,view={s:1,ox:0,oy:0};
 const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
 const gd=document.getElementById('guide'),gctx=gd.getContext('2d');
 let dpr=devicePixelRatio||1,cw=0,ch=0;
 
-document.getElementById('file').onchange=e=>{const f=e.target.files[0];if(!f)return;
+document.getElementById('file').onchange=e=>{const f=e.target.files[0];if(!f)return;ac();
  PVAL=parseFloat(document.getElementById('p').value);
  const r=new FileReader();r.onload=ev=>{img=new Image();img.onload=start;img.src=ev.target.result;};r.readAsDataURL(f);};
 
@@ -92,26 +89,22 @@ function fit(){view.s=Math.min(cw/img.width,ch/img.height)*.9;view.ox=(cw-img.wi
 function setPoint(){const p=PT[idx];
  document.getElementById('pname').textContent=(idx+1)+"/"+PT.length+" · "+p[1];
  document.getElementById('pdesc').textContent=p[2]?("Куда: "+p[2]):"Наведи крестик на точку";
- document.getElementById('ringv').style.strokeDashoffset=125.6*(1-idx/PT.length);
- drawGuide();}
-function drawGuide(){gctx.clearRect(0,0,100,126);
- gctx.strokeStyle='#4a5570';gctx.lineWidth=1.5;
+ document.getElementById('ringv').style.strokeDashoffset=125.6*(1-idx/PT.length);drawGuide();}
+function drawGuide(){gctx.clearRect(0,0,100,126);gctx.strokeStyle='#4a5570';gctx.lineWidth=1.5;
  gctx.beginPath();gctx.ellipse(50,66,36,56,0,0,7);gctx.stroke();
  gctx.beginPath();gctx.ellipse(32,56,9,4,0,0,7);gctx.ellipse(68,56,9,4,0,0,7);gctx.stroke();
  gctx.beginPath();gctx.moveTo(50,60);gctx.lineTo(50,78);gctx.moveTo(38,96);gctx.quadraticCurveTo(50,100,62,96);gctx.stroke();
- const t=PT[idx],x=t[3]*100,y=t[4]*126;
- gctx.fillStyle='#ff5c7a';gctx.beginPath();gctx.arc(x,y,4,0,7);gctx.fill();
- gctx.strokeStyle='#ff5c7a';gctx.globalAlpha=.5;gctx.beginPath();gctx.arc(x,y,8,0,7);gctx.stroke();gctx.globalAlpha=1;}
+ const t=PT[idx],x=t[3]*100,y=t[4]*126;gctx.fillStyle='#ff5c7a';gctx.beginPath();gctx.arc(x,y,4,0,7);gctx.fill();
+ gctx.globalAlpha=.5;gctx.strokeStyle='#ff5c7a';gctx.beginPath();gctx.arc(x,y,8,0,7);gctx.stroke();gctx.globalAlpha=1;}
 function draw(){ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,cw,ch);
  ctx.save();ctx.translate(view.ox,view.oy);ctx.scale(view.s,view.s);ctx.drawImage(img,0,0);ctx.restore();
  for(let i=0;i<placed.length;i++){const p=placed[i],x=p.x*img.width*view.s+view.ox,y=p.y*img.height*view.s+view.oy;
-  ctx.fillStyle='#3ddc84';ctx.beginPath();ctx.arc(x,y,4,0,7);ctx.fill();
-  ctx.fillStyle='#fff';ctx.font='10px sans';ctx.fillText(i+1,x+6,y-6);}
+  ctx.fillStyle='#3ddc84';ctx.beginPath();ctx.arc(x,y,4,0,7);ctx.fill();ctx.fillStyle='#fff';ctx.font='10px sans';ctx.fillText(i+1,x+6,y-6);}
  ctx.strokeStyle='#3ddc84';ctx.lineWidth=1.5;ctx.shadowColor='#3ddc84';ctx.shadowBlur=8;ctx.beginPath();
  ctx.moveTo(cw/2-16,ch/2);ctx.lineTo(cw/2+16,ch/2);ctx.moveTo(cw/2,ch/2-16);ctx.lineTo(cw/2,ch/2+16);ctx.stroke();ctx.shadowBlur=0;}
-function place(){placed.push({x:((cw/2)-view.ox)/view.s/img.width,y:((ch/2)-view.oy)/view.s/img.height});hapt();idx++;
+function place(){placed.push({x:((cw/2)-view.ox)/view.s/img.width,y:((ch/2)-view.oy)/view.s/img.height});hapt();sndPlace();idx++;
  if(idx>=PT.length)finish();else{setPoint();draw();}}
-function undo(){if(idx>0){idx--;placed.pop();hapt();setPoint();draw();}}
+function undo(){if(idx>0){idx--;placed.pop();hapt();sndUndo();setPoint();draw();}}
 document.getElementById('place').onclick=place;
 document.getElementById('undo').onclick=undo;
 document.getElementById('zin').onclick=()=>{view.s=Math.min(30,view.s*1.3);draw();};
@@ -132,47 +125,53 @@ const sc=(v,lo,hi,m)=>{if(v>=lo&&v<=hi)return 100;const d=v<lo?lo-v:v-hi;return 
 const pmean=(xs,p)=>{xs=xs.map(x=>Math.max(.1,x));if(Math.abs(p)<1e-9)return Math.exp(xs.reduce((a,x)=>a+Math.log(x),0)/xs.length);return Math.pow(xs.reduce((a,x)=>a+Math.pow(x,p),0)/xs.length,1/p);};
 const D=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const ANG=(a,b,c)=>{const v1=[a.x-b.x,a.y-b.y],v2=[c.x-b.x,c.y-b.y];const n=Math.hypot(...v1)*Math.hypot(...v2);if(!n)return 0;return Math.acos(Math.max(-1,Math.min(1,(v1[0]*v2[0]+v1[1]*v2[1])/n)))*180/Math.PI;};
+function gauge(v,lo,hi,m){const k=3,rl=lo-k*m,rh=hi+k*m;let pos=Math.max(0,Math.min(1,(v-rl)/(rh-rl)));
+ const gs=(lo-rl)/(rh-rl)*100,ge=(hi-rl)/(rh-rl)*100;
+ const grad=`linear-gradient(90deg,var(--bad) 0%,var(--warn) ${(gs*.5).toFixed(1)}%,var(--ok) ${gs.toFixed(1)}%,var(--ok) ${ge.toFixed(1)}%,var(--warn) ${(100-(100-ge)*.5).toFixed(1)}%,var(--bad) 100%)`;
+ return{pos:(pos*100).toFixed(1),grad};}
 
 function finish(){
  const W=img.width,H=img.height,P={};PT.forEach((t,i)=>P[t[0]]={x:placed[i].x*W,y:placed[i].y*H});
  const bizy=D(P.bizR,P.bizL),eyew=(D(P.eyeRo,P.eyeRi)+D(P.eyeLo,P.eyeLi))/2,fh=D(P.hair,P.chin);
- const L=[],S=[];
- const add=(n,v,lo,hi,m,u)=>{const s=sc(v,lo,hi,m);S.push(s);L.push([n,v.toFixed(2)+u,lo+"–"+hi,Math.round(s)]);};
+ const L=[];const S=[];
+ const add=(n,v,lo,hi,m,u)=>{const s=sc(v,lo,hi,m);S.push(s);L.push([n,v,lo,hi,m,u,Math.round(s)]);};
  const up=D(P.hair,P.nas),mid=D(P.nas,P.sub),low=D(P.sub,P.chin),tt=up+mid+low;
  const ct=((Math.atan2(P.eyeRi.y-P.eyeRo.y,Math.abs(P.eyeRo.x-P.eyeRi.x))+Math.atan2(P.eyeLi.y-P.eyeLo.y,Math.abs(P.eyeLo.x-P.eyeLi.x)))/2)*180/Math.PI;
- add("Canthal tilt",ct,5.2,8.5,6,"°");
- add("Eye aspect",(D(P.eyeRo,P.eyeRi)/Math.max(1,D(P.eyeRu,P.eyeRl))+D(P.eyeLo,P.eyeLi)/Math.max(1,D(P.eyeLu,P.eyeLl)))/2,2.8,3.6,.9,"");
- add("Eye spacing",D(P.eyeRi,P.eyeLi)/Math.max(1,eyew),.93,1.04,.15,"");
- add("IPD/eye",D(P.eyeRc,P.eyeLc)/Math.max(1,eyew),1.9,2.2,.4,"");
- add("Fifths",eyew/(bizy/5),.9,1.1,.2,"");
- add("FWHR",bizy/Math.max(1,D(P.nas,P.lt)),1.9,2.06,.35,"");
- add("Total FWHR",fh/bizy,1.33,1.38,.15,"");
- add("Midface",bizy/Math.max(1,D(P.nas,P.sub)),1.5,1.7,.25,"");
- add("Mouth/Nose",D(P.mouR,P.mouL)/Math.max(1,D(P.noseR,P.noseL)),1.38,1.53,.3,"");
- add("Nose W/H",D(P.noseR,P.noseL)/Math.max(1,D(P.nas,P.ntip)),.62,.88,.2,"");
- add("Lip ratio",D(P.st,P.lb)/Math.max(1,D(P.lt,P.st)),1.4,2,.6,"");
- add("Chin/Philtrum",D(P.lb,P.chin)/Math.max(1,D(P.sub,P.lt)),2.05,2.55,.7,"");
- add("Bigonial %",100*D(P.gonR,P.gonL)/bizy,85.5,92,8,"%");
- add("Bitemporal %",100*D(P.tempR,P.tempL)/bizy,84,95,8,"%");
- add("Lower face %",100*low/fh,30.6,34,5,"%");
- add("Brow position",(Math.abs(P.eyeRu.y-P.browRp.y)+Math.abs(P.eyeLu.y-P.browLp.y))/2/Math.max(1,(D(P.eyeRu,P.eyeRl)+D(P.eyeLu,P.eyeLl))/2),0,.65,.5,"");
+ add("Canthal tilt",ct,5.2,8.5,9,"°");
+ add("Eye aspect",(D(P.eyeRo,P.eyeRi)/Math.max(1,D(P.eyeRu,P.eyeRl))+D(P.eyeLo,P.eyeLi)/Math.max(1,D(P.eyeLu,P.eyeLl)))/2,2.8,3.6,1.3,"");
+ add("Eye spacing",D(P.eyeRi,P.eyeLi)/Math.max(1,eyew),.93,1.04,.22,"");
+ add("IPD/eye",D(P.eyeRc,P.eyeLc)/Math.max(1,eyew),1.9,2.2,.6,"");
+ add("Fifths",eyew/(bizy/5),.9,1.1,.3,"");
+ add("FWHR",bizy/Math.max(1,D(P.nas,P.lt)),1.9,2.06,.5,"");
+ add("Total FWHR",fh/bizy,1.33,1.38,.22,"");
+ add("Midface",bizy/Math.max(1,D(P.nas,P.sub)),1.5,1.7,.35,"");
+ add("Mouth/Nose",D(P.mouR,P.mouL)/Math.max(1,D(P.noseR,P.noseL)),1.38,1.53,.45,"");
+ add("Nose W/H",D(P.noseR,P.noseL)/Math.max(1,D(P.nas,P.ntip)),.62,.88,.3,"");
+ add("Lip ratio",D(P.st,P.lb)/Math.max(1,D(P.lt,P.st)),1.4,2,.9,"");
+ add("Chin/Philtrum",D(P.lb,P.chin)/Math.max(1,D(P.sub,P.lt)),2.05,2.55,1,"");
+ add("Bigonial %",100*D(P.gonR,P.gonL)/bizy,85.5,92,12,"%");
+ add("Bitemporal %",100*D(P.tempR,P.tempL)/bizy,84,95,12,"%");
+ add("Lower face %",100*low/fh,30.6,34,7,"%");
+ add("Neck width %",100*D(P.neckR,P.neckL)/bizy,90,100,14,"%");
+ add("Brow position",(Math.abs(P.eyeRu.y-P.browRp.y)+Math.abs(P.eyeLu.y-P.browLp.y))/2/Math.max(1,(D(P.eyeRu,P.eyeRl)+D(P.eyeLu,P.eyeLl))/2),0,.65,.8,"");
  const bt=((Math.atan2(P.browRp.y-P.browRi.y,Math.abs(P.browRo.x-P.browRi.x))+Math.atan2(P.browLp.y-P.browLi.y,Math.abs(P.browLo.x-P.browLi.x)))/2)*180/Math.PI;
- add("Brow tilt",bt,5,13,6,"°");
- add("Cheekbone pos",100*((P.zygR.y+P.zygL.y)/2-P.hair.y)/fh,81,100,15,"%");
- add("Cheek sculpt",100*(bizy-D(P.holR,P.holL))/bizy,10,18,8,"%");
- add("Jaw frontal °",ANG(P.gonR,P.chin,P.gonL),84.5,95,10,"°");
- add("Jawline def",(ANG(P.gonR,P.jawMidR,P.jawLowR)+ANG(P.gonL,P.jawMidL,P.jawLowL))/2,160,178,15,"°");
- const sym=100-( Math.abs(D(P.eyeRo,P.eyeRi)-D(P.eyeLo,P.eyeLi))/Math.max(1,eyew)*100
-  +Math.abs(D(P.gonR,P.chin)-D(P.gonL,P.chin))/Math.max(1,D(P.gonR,P.chin))*100
-  +Math.abs(D(P.bizR,P.zygR)-D(P.bizL,P.zygL))/Math.max(1,D(P.bizR,P.zygR))*100 )/3;
- add("Symmetry",sym,90,97,7,"%");
+ add("Brow tilt",bt,5,13,9,"°");
+ add("Cheekbone pos",100*((P.zygR.y+P.zygL.y)/2-P.hair.y)/fh,81,100,22,"%");
+ add("Cheek sculpt",100*(bizy-D(P.holR,P.holL))/bizy,10,18,12,"%");
+ add("Jaw frontal °",ANG(P.gonR,P.chin,P.gonL),84.5,95,14,"°");
+ add("Jawline def",(ANG(P.gonR,P.jawMidR,P.jawLowR)+ANG(P.gonL,P.jawMidL,P.jawLowL))/2,160,178,22,"°");
+ const sym=100-(Math.abs(D(P.eyeRo,P.eyeRi)-D(P.eyeLo,P.eyeLi))/Math.max(1,eyew)*100+Math.abs(D(P.gonR,P.chin)-D(P.gonL,P.chin))/Math.max(1,D(P.gonR,P.chin))*100+Math.abs(D(P.bizR,P.zygR)-D(P.bizL,P.zygL))/Math.max(1,D(P.bizR,P.zygR))*100)/3;
+ add("Symmetry",sym,90,97,10,"%");
  const g=pmean(S,PVAL),psl=Math.max(1,Math.min(8,g/10-2));
  let html='<h1>'+g.toFixed(1)+' / 100</h1><div class="sub">⭐ PSL '+psl.toFixed(1)+'/8 · p='+PVAL+' · Thirds '+Math.round(100*up/tt)+'/'+Math.round(100*mid/tt)+'/'+Math.round(100*low/tt)+'% · точек '+PT.length+'</div><div class="card" style="margin-top:14px">';
- L.forEach(r=>{const c=r[3]>=80?'var(--ok)':r[3]>=50?'var(--warn)':'var(--bad)';
-  html+='<div class="mrow"><span>'+r[0]+' <span class="sub">'+r[1]+' · идеал '+r[2]+'</span></span><span class="chip" style="background:'+c+'22;color:'+c+'">'+r[3]+'</span></div>';});
+ L.forEach(r=>{const gz=gauge(r[1],r[2],r[3],r[4]);const c=r[6]>=80?'var(--ok)':r[6]>=50?'var(--warn)':'var(--bad)';
+  html+='<div class="mblock"><div class="mhead"><span>'+r[0]+'</span><span class="chip" style="background:'+c+'22;color:'+c+'">'+r[6]+'</span></div>'
+   +'<div class="gauge" style="background:'+gz.grad+'"><i style="left:'+gz.pos+'%"></i></div>'
+   +'<div class="sub">'+r[1].toFixed(2)+r[5]+' · идеал '+r[2]+'–'+r[3]+'</div></div>';});
  html+='</div>';
+ sndDone();
  document.getElementById('editor').style.display='none';
  const R=document.getElementById('result');R.style.display='block';document.getElementById('rep').innerHTML=html;
- const txt="📊 LUX PRO: "+g.toFixed(1)+"/100 | PSL "+psl.toFixed(1)+"/8\n"+L.map(r=>"• "+r[0]+": "+r[1]+" | "+r[3]+"/100").join("\n");
+ const txt="📊 LUX PRO: "+g.toFixed(1)+"/100 | PSL "+psl.toFixed(1)+"/8\n"+L.map(r=>"• "+r[0]+": "+r[1].toFixed(2)+r[5]+" | "+r[6]+"/100").join("\n");
  if(TG){TG.MainButton.show();TG.MainButton.setText("Отправить боту");TG.MainButton.onClick(()=>{TG.sendData(JSON.stringify({t:"lux",text:txt}));TG.close();});}}
 </script></body></html>
