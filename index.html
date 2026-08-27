@@ -4,77 +4,80 @@
 <style>
 :root{--bg1:#0b0f1a;--bg2:#141a2e;--card:rgba(255,255,255,.06);--line:rgba(255,255,255,.1);--txt:#f2f5fa;--mut:#93a0b4;--acc:#5b8cff;--acc2:#8b5bff;--ok:#3ddc84;--warn:#ffd166;--bad:#ff5c7a}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
-html,body{margin:0;height:100%;overflow:hidden;color:var(--txt);font:15px/1.45 -apple-system,Roboto,sans-serif;
-background:radial-gradient(1200px 600px at 80% -10%,#2a3bff22,transparent),radial-gradient(900px 500px at -10% 110%,#8b5bff22,transparent),linear-gradient(160deg,var(--bg1),var(--bg2))}
+html,body{margin:0;height:100%;overflow:hidden;color:var(--txt);font:15px/1.45 -apple-system,Roboto,sans-serif;background:linear-gradient(160deg,var(--bg1),var(--bg2))}
 .screen{position:fixed;inset:0;display:flex;flex-direction:column}
-#home,#result{overflow-y:auto;padding:20px}
-h1{font-size:24px;font-weight:800;margin:2px 0;background:linear-gradient(90deg,var(--acc),var(--acc2));-webkit-background-clip:text;color:transparent}
+#home{overflow-y:auto;padding:20px}
+h1{font-size:24px;font-weight:800;background:linear-gradient(90deg,var(--acc),var(--acc2));-webkit-background-clip:text;color:transparent}
 .sub{color:var(--mut);font-size:12.5px}
-.card{background:var(--card);border:1px solid var(--line);backdrop-filter:blur(14px);border-radius:20px;padding:16px;margin-bottom:14px;box-shadow:0 8px 30px #0006}
-.btn{display:block;width:100%;border:0;border-radius:14px;padding:15px;font-size:16px;font-weight:700;color:#fff;background:linear-gradient(90deg,var(--acc),var(--acc2));box-shadow:0 6px 20px #5b8cff44;margin-top:10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px;margin-bottom:14px}
 input[type=file]{width:100%;color:var(--mut)}
 select{background:#1b2233;color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:9px}
 #editor{background:#000}canvas#cv{position:absolute;inset:0;touch-action:none}
 #top{position:absolute;top:0;left:0;right:0;padding:12px 14px;z-index:5;background:linear-gradient(#000d,#0000)}
-#pname{font-weight:800;font-size:16px}#pdesc{color:#cdd6e4;font-size:12.5px;margin-top:2px}
-#ring{position:absolute;right:12px;top:12px;width:46px;height:46px;z-index:6}
+#pname{font-weight:800}#pdesc{color:#cdd6e4;font-size:12.5px}
 #guide{position:absolute;left:10px;top:70px;width:100px;height:126px;background:#0009;border:1px solid var(--line);border-radius:14px;z-index:5}
-#bar{position:absolute;left:0;right:0;bottom:0;padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px;z-index:6;background:linear-gradient(#0000,#000d)}
+#bar{position:absolute;left:0;right:0;bottom:0;padding:10px 12px;display:flex;gap:8px;z-index:6;background:linear-gradient(#0000,#000d)}
 #bar button{flex:1;border:0;border-radius:14px;padding:13px 0;font-size:17px;color:#fff;background:#1b2233cc;border:1px solid var(--line)}
 #bar button.main{flex:2;background:linear-gradient(90deg,var(--acc),var(--acc2));font-weight:800}
+#result{overflow:hidden}
+#rcv{width:100%;height:42vh;background:#000;flex:none}
+#mlist{flex:1;overflow-y:auto;padding:12px 16px 90px}
+.mrow{padding:10px 2px;border-bottom:1px solid var(--line)}
 .mhead{display:flex;justify-content:space-between;font-size:13.5px;font-weight:600}
-.gauge{position:relative;height:10px;border-radius:6px;margin:7px 0 3px}
-.gauge i{position:absolute;top:-3px;width:4px;height:16px;background:#fff;border-radius:2px;box-shadow:0 0 8px #fff}
+.gauge{position:relative;height:9px;border-radius:6px;margin:7px 0 3px}
+.gauge i{position:absolute;top:-3px;width:4px;height:15px;background:#fff;border-radius:2px;box-shadow:0 0 8px #fff}
 .chip{padding:2px 10px;border-radius:20px;font-weight:800;font-size:12px}
-.mblock{padding:9px 0;border-bottom:1px solid var(--line)}
+#send{position:fixed;left:16px;right:16px;bottom:12px;border:0;border-radius:14px;padding:15px;font-weight:800;color:#fff;background:linear-gradient(90deg,var(--acc),var(--acc2));z-index:9}
 </style></head><body>
 
 <div class="screen" id="home">
- <h1>LUX FACE PRO</h1><div class="sub">Ручные точки → пиксельный расчёт + наглядные шкалы. Фото не покидает телефон.</div>
- <div class="card"><div class="sub" style="margin-bottom:8px">1 · Фото АНФАС: ровно, без улыбки, лоб открыт</div><input type="file" id="file" accept="image/*"></div>
+ <h1>LUX FACE PRO</h1><div class="sub">Ручные точки → расчёт + презентация на фото.</div>
+ <div class="card"><div class="sub" style="margin-bottom:8px">1 · Фото АНФАС</div><input type="file" id="file" accept="image/*"></div>
  <div class="card"><label class="sub">Строгость (p)</label><br>
-  <select id="p"><option>1</option><option>0.5</option><option>0.3</option><option selected>0.2</option><option>0</option><option>-1</option></select>
-  <div class="sub" style="margin-top:8px">p=1 мягко · 0.2 баланс · −1 беспощадно</div></div>
- <div class="card sub" style="margin:0">2 · Тяни фото, зум +/−, наводи <b style="color:var(--ok)">крестик</b> → <b>ТОЧКА</b>. ⟲ отменить. Слева схема. Звуки подскажут.</div>
+  <select id="p"><option>1</option><option>0.5</option><option>0.3</option><option selected>0.2</option><option>0</option><option>-1</option></select></div>
+ <div class="card sub" style="margin:0">2 · Зум +/−, крестик → ТОЧКА, ⟲ отменить.</div>
 </div>
 
 <div class="screen" id="editor" style="display:none">
  <canvas id="cv"></canvas>
  <div id="top"><div id="pname"></div><div id="pdesc"></div></div>
- <svg id="ring" viewBox="0 0 46 46"><circle cx="23" cy="23" r="20" fill="none" stroke="#ffffff22" stroke-width="4"/><circle id="ringv" cx="23" cy="23" r="20" fill="none" stroke="url(#g)" stroke-width="4" stroke-linecap="round" stroke-dasharray="125.6" stroke-dashoffset="125.6" transform="rotate(-90 23 23)"/><defs><linearGradient id="g"><stop offset="0" stop-color="#5b8cff"/><stop offset="1" stop-color="#8b5bff"/></linearGradient></defs></svg>
  <canvas id="guide" width="100" height="126"></canvas>
  <div id="bar"><button id="undo">⟲</button><button id="zout">−</button><button id="zin">+</button><button class="main" id="place">ТОЧКА</button></div>
 </div>
 
-<div class="screen" id="result" style="display:none"><div id="rep"></div></div>
+<div class="screen" id="result" style="display:none">
+ <canvas id="rcv"></canvas>
+ <div id="mlist"></div>
+ <button id="send">Отправить боту</button>
+</div>
 
 <script>
 "use strict";
 const TG=window.Telegram&&window.Telegram.WebApp; if(TG){TG.ready();TG.expand();}
 const hapt=()=>{if(TG&&TG.HapticFeedback)TG.HapticFeedback.impactOccurred('light');};
-// ---- звук ----
 let AC=null;function ac(){if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume();return AC;}
-function tone(f,d,t,g){try{const a=ac(),o=a.createOscillator(),gn=a.createGain();o.type=t||'sine';o.frequency.value=f;gn.gain.value=g||.12;o.connect(gn);gn.connect(a.destination);o.start();gn.gain.exponentialRampToValueAtTime(.0001,a.currentTime+d);o.stop(a.currentTime+d);}catch(e){}}
+function tone(f,d){try{const a=ac(),o=a.createOscillator(),g=a.createGain();o.frequency.value=f;g.gain.value=.12;o.connect(g);g.connect(a.destination);o.start();g.gain.exponentialRampToValueAtTime(.0001,a.currentTime+d);o.stop(a.currentTime+d);}catch(e){}}
 const sndPlace=()=>tone(880,.07),sndUndo=()=>tone(320,.08),sndDone=()=>[523,659,784,1046].forEach((f,i)=>setTimeout(()=>tone(f,.12),i*90));
 
 const PT=[
-["hair","Линия роста волос","середина лба у волос",.5,.06],["hairR","Волосы прав.","край",.32,.10],["hairL","Волосы лев.","край",.68,.10],["hairR2","Волосы прав.2","выше виска",.22,.14],["hairL2","Волосы лев.2","выше виска",.78,.14],
+["hair","Линия роста волос","середина лба",.5,.06],["hairR","Волосы прав.","",.32,.10],["hairL","Волосы лев.","",.68,.10],["hairR2","Волосы прав.2","",.22,.14],["hairL2","Волосы лев.2","",.78,.14],
 ["glab","Глабелла","между бровями",.5,.33],["foreR","Лоб прав.","",.30,.24],["foreL","Лоб лев.","",.70,.24],["foreMR","Лоб сред прав.","",.40,.20],["foreML","Лоб сред лев.","",.60,.20],
 ["tempR","Висок прав.","",.16,.32],["tempL","Висок лев.","",.84,.32],
 ["browRi","Бровь прав.внутр","",.36,.36],["browRp","Бровь прав.пик","",.32,.34],["browRo","Бровь прав.внешн","",.22,.36],
 ["browLi","Бровь лев.внутр","",.64,.36],["browLp","Бровь лев.пик","",.68,.34],["browLo","Бровь лев.внешн","",.78,.36],
 ["eyeRo","Глаз прав.внешн","",.24,.45],["eyeRi","Глаз прав.внутр","",.40,.45],["eyeRu","Прав.верх.веко","",.32,.43],["eyeRl","Прав.ниж.веко","",.32,.47],["eyeRc","Прав.зрачок","",.32,.45],
 ["eyeLo","Глаз лев.внешн","",.76,.45],["eyeLi","Глаз лев.внутр","",.60,.45],["eyeLu","Лев.верх.веко","",.68,.43],["eyeLl","Лев.ниж.веко","",.68,.47],["eyeLc","Лев.зрачок","",.68,.45],
-["undR","Под глазом прав.","нижний край орбиты",.32,.50],["undL","Под глазом лев.","",.68,.50],
-["nas","Назион","переносица",.5,.42],["nbr","Спинка носа","",.5,.50],["ntip","Кончик носа","",.5,.60],["noseR","Крыло прав.","",.42,.62],["noseL","Крыло лев.","",.58,.62],["sub","Субназале","основание носа",.5,.66],
+["undR","Под глазом прав.","",.32,.50],["undL","Под глазом лев.","",.68,.50],
+["nas","Назион","",.5,.42],["nbr","Спинка носа","",.5,.50],["ntip","Кончик носа","",.5,.60],["noseR","Крыло прав.","",.42,.62],["noseL","Крыло лев.","",.58,.62],["sub","Субназале","",.5,.66],
 ["mouR","Рот прав.уголок","",.34,.76],["mouL","Рот лев.уголок","",.66,.76],["lt","Верхняя губа","",.5,.73],["st","Линия губ","",.5,.76],["lb","Низ нижней губы","",.5,.80],
-["bizUpR","Ширина верх прав.","",.15,.44],["bizUpL","Ширина верх лев.","",.85,.44],["bizR","Ширина прав.","максимум",.13,.50],["bizL","Ширина лев.","максимум",.87,.50],["bizLowR","Ширина низ прав.","",.16,.58],["bizLowL","Ширина низ лев.","",.84,.58],
-["zygR","Скула прав.","",.18,.57],["zygL","Скула лев.","",.82,.57],["chkR","Щёка прав.","",.26,.64],["chkL","Щёка лев.","",.74,.64],["holR","Впадина прав.","под скулой",.30,.70],["holL","Впадина лев.","",.70,.70],
+["bizUpR","Ширина верх прав.","",.15,.44],["bizUpL","Ширина верх лев.","",.85,.44],["bizR","Ширина прав.","",.13,.50],["bizL","Ширина лев.","",.87,.50],["bizLowR","Ширина низ прав.","",.16,.58],["bizLowL","Ширина низ лев.","",.84,.58],
+["zygR","Скула прав.","",.18,.57],["zygL","Скула лев.","",.82,.57],["chkR","Щёка прав.","",.26,.64],["chkL","Щёка лев.","",.74,.64],["holR","Впадина прав.","",.30,.70],["holL","Впадина лев.","",.70,.70],
 ["jawUpR","Челюсть верх прав.","",.20,.72],["jawUpL","Челюсть верх лев.","",.80,.72],["gonR","Угол челюсти прав.","",.24,.80],["gonL","Угол челюсти лев.","",.76,.80],["jawMidR","Челюсть сред прав.","",.32,.89],["jawMidL","Челюсть сред лев.","",.68,.89],["jawLowR","Челюсть низ прав.","",.41,.94],["jawLowL","Челюсть низ лев.","",.59,.94],
-["chin","Подбородок","низ",.5,.97],["neckR","Шея прав.","",.32,1.0],["neckL","Шея лев.","",.68,1.0]];
+["chin","Подбородок","",.5,.97],["neckR","Шея прав.","",.32,1.0],["neckL","Шея лев.","",.68,1.0]];
 
-let img=null,placed=[],idx=0,PVAL=.2,view={s:1,ox:0,oy:0};
+let img=null,placed=[],idx=0,PVAL=.2,view={s:1,ox:0,oy:0},METS=[],P={};
 const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+const rcv=document.getElementById('rcv'),rctx=rcv.getContext('2d');
 const gd=document.getElementById('guide'),gctx=gd.getContext('2d');
 let dpr=devicePixelRatio||1,cw=0,ch=0;
 
@@ -82,96 +85,92 @@ document.getElementById('file').onchange=e=>{const f=e.target.files[0];if(!f)ret
  PVAL=parseFloat(document.getElementById('p').value);
  const r=new FileReader();r.onload=ev=>{img=new Image();img.onload=start;img.src=ev.target.result;};r.readAsDataURL(f);};
 
-function start(){document.getElementById('home').style.display='none';document.getElementById('editor').style.display='block';
- resize();placed=[];idx=0;fit();setPoint();draw();}
+function start(){home.style.display='none';editor.style.display='block';resize();placed=[];idx=0;fit();setPoint();draw();}
 function resize(){cw=innerWidth;ch=innerHeight;cv.width=cw*dpr;cv.height=ch*dpr;cv.style.width=cw+'px';cv.style.height=ch+'px';}
 function fit(){view.s=Math.min(cw/img.width,ch/img.height)*.9;view.ox=(cw-img.width*view.s)/2;view.oy=(ch-img.height*view.s)/2;}
-function setPoint(){const p=PT[idx];
- document.getElementById('pname').textContent=(idx+1)+"/"+PT.length+" · "+p[1];
- document.getElementById('pdesc').textContent=p[2]?("Куда: "+p[2]):"Наведи крестик на точку";
- document.getElementById('ringv').style.strokeDashoffset=125.6*(1-idx/PT.length);drawGuide();}
+function setPoint(){const p=PT[idx];pname.textContent=(idx+1)+"/"+PT.length+" · "+p[1];pdesc.textContent=p[2]?("Куда: "+p[2]):"Наведи крестик";drawGuide();}
 function drawGuide(){gctx.clearRect(0,0,100,126);gctx.strokeStyle='#4a5570';gctx.lineWidth=1.5;
  gctx.beginPath();gctx.ellipse(50,66,36,56,0,0,7);gctx.stroke();
  gctx.beginPath();gctx.ellipse(32,56,9,4,0,0,7);gctx.ellipse(68,56,9,4,0,0,7);gctx.stroke();
- gctx.beginPath();gctx.moveTo(50,60);gctx.lineTo(50,78);gctx.moveTo(38,96);gctx.quadraticCurveTo(50,100,62,96);gctx.stroke();
- const t=PT[idx],x=t[3]*100,y=t[4]*126;gctx.fillStyle='#ff5c7a';gctx.beginPath();gctx.arc(x,y,4,0,7);gctx.fill();
- gctx.globalAlpha=.5;gctx.strokeStyle='#ff5c7a';gctx.beginPath();gctx.arc(x,y,8,0,7);gctx.stroke();gctx.globalAlpha=1;}
+ const t=PT[idx];gctx.fillStyle='#ff5c7a';gctx.beginPath();gctx.arc(t[3]*100,t[4]*126,4,0,7);gctx.fill();}
 function draw(){ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,cw,ch);
  ctx.save();ctx.translate(view.ox,view.oy);ctx.scale(view.s,view.s);ctx.drawImage(img,0,0);ctx.restore();
  for(let i=0;i<placed.length;i++){const p=placed[i],x=p.x*img.width*view.s+view.ox,y=p.y*img.height*view.s+view.oy;
-  ctx.fillStyle='#3ddc84';ctx.beginPath();ctx.arc(x,y,4,0,7);ctx.fill();ctx.fillStyle='#fff';ctx.font='10px sans';ctx.fillText(i+1,x+6,y-6);}
- ctx.strokeStyle='#3ddc84';ctx.lineWidth=1.5;ctx.shadowColor='#3ddc84';ctx.shadowBlur=8;ctx.beginPath();
- ctx.moveTo(cw/2-16,ch/2);ctx.lineTo(cw/2+16,ch/2);ctx.moveTo(cw/2,ch/2-16);ctx.lineTo(cw/2,ch/2+16);ctx.stroke();ctx.shadowBlur=0;}
+  ctx.fillStyle='#3ddc84';ctx.beginPath();ctx.arc(x,y,4,0,7);ctx.fill();}
+ ctx.strokeStyle='#3ddc84';ctx.lineWidth=1.5;ctx.beginPath();
+ ctx.moveTo(cw/2-16,ch/2);ctx.lineTo(cw/2+16,ch/2);ctx.moveTo(cw/2,ch/2-16);ctx.lineTo(cw/2,ch/2+16);ctx.stroke();}
 function place(){placed.push({x:((cw/2)-view.ox)/view.s/img.width,y:((ch/2)-view.oy)/view.s/img.height});hapt();sndPlace();idx++;
  if(idx>=PT.length)finish();else{setPoint();draw();}}
 function undo(){if(idx>0){idx--;placed.pop();hapt();sndUndo();setPoint();draw();}}
-document.getElementById('place').onclick=place;
-document.getElementById('undo').onclick=undo;
-document.getElementById('zin').onclick=()=>{view.s=Math.min(30,view.s*1.3);draw();};
-document.getElementById('zout').onclick=()=>{view.s=Math.max(.05,view.s/1.3);draw();};
-
-let ptrs=new Map(),pan=null,pinch=null;
-cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,[e.clientX,e.clientY]);
- if(ptrs.size==1)pan={x:e.clientX,y:e.clientY,ox:view.ox,oy:view.oy};
- else if(ptrs.size==2){const a=[...ptrs.values()];pinch={d:Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]),s:view.s};}});
-cv.addEventListener('pointermove',e=>{if(!ptrs.has(e.pointerId))return;ptrs.set(e.pointerId,[e.clientX,e.clientY]);
- if(ptrs.size==1&&pan){view.ox=pan.ox+e.clientX-pan.x;view.oy=pan.oy+e.clientY-pan.y;}
- else if(ptrs.size==2&&pinch){const a=[...ptrs.values()];view.s=Math.max(.05,Math.min(30,pinch.s*Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1])/pinch.d));}
- draw();});
-cv.addEventListener('pointerup',e=>{ptrs.delete(e.pointerId);
- if(ptrs.size==1){const a=[...ptrs.values()][0];pan={x:a[0],y:a[1],ox:view.ox,oy:view.oy};pinch=null;}else if(!ptrs.size)pan=null;});
+place.onclick=place; undoBtn.onclick=undo;
+zin.onclick=()=>{view.s=Math.min(30,view.s*1.3);draw();};
+zout.onclick=()=>{view.s=Math.max(.05,view.s/1.3);draw();};
 
 const sc=(v,lo,hi,m)=>{if(v>=lo&&v<=hi)return 100;const d=v<lo?lo-v:v-hi;return Math.max(0,100-100*d/m);};
 const pmean=(xs,p)=>{xs=xs.map(x=>Math.max(.1,x));if(Math.abs(p)<1e-9)return Math.exp(xs.reduce((a,x)=>a+Math.log(x),0)/xs.length);return Math.pow(xs.reduce((a,x)=>a+Math.pow(x,p),0)/xs.length,1/p);};
 const D=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const ANG=(a,b,c)=>{const v1=[a.x-b.x,a.y-b.y],v2=[c.x-b.x,c.y-b.y];const n=Math.hypot(...v1)*Math.hypot(...v2);if(!n)return 0;return Math.acos(Math.max(-1,Math.min(1,(v1[0]*v2[0]+v1[1]*v2[1])/n)))*180/Math.PI;};
+const col=s=>s>=80?'#3ddc84':s>=50?'#ffd166':'#ff5c7a';
 function gauge(v,lo,hi,m){const k=3,rl=lo-k*m,rh=hi+k*m;let pos=Math.max(0,Math.min(1,(v-rl)/(rh-rl)));
  const gs=(lo-rl)/(rh-rl)*100,ge=(hi-rl)/(rh-rl)*100;
- const grad=`linear-gradient(90deg,var(--bad) 0%,var(--warn) ${(gs*.5).toFixed(1)}%,var(--ok) ${gs.toFixed(1)}%,var(--ok) ${ge.toFixed(1)}%,var(--warn) ${(100-(100-ge)*.5).toFixed(1)}%,var(--bad) 100%)`;
- return{pos:(pos*100).toFixed(1),grad};}
+ return{pos:(pos*100).toFixed(1),grad:`linear-gradient(90deg,var(--bad) 0%,var(--warn) ${(gs*.5).toFixed(1)}%,var(--ok) ${gs.toFixed(1)}%,var(--ok) ${ge.toFixed(1)}%,var(--warn) ${(100-(100-ge)*.5).toFixed(1)}%,var(--bad) 100%)`};}
 
 function finish(){
- const W=img.width,H=img.height,P={};PT.forEach((t,i)=>P[t[0]]={x:placed[i].x*W,y:placed[i].y*H});
+ const W=img.width,H=img.height;P={};PT.forEach((t,i)=>P[t[0]]={x:placed[i].x*W,y:placed[i].y*H});
  const bizy=D(P.bizR,P.bizL),eyew=(D(P.eyeRo,P.eyeRi)+D(P.eyeLo,P.eyeLi))/2,fh=D(P.hair,P.chin);
- const L=[];const S=[];
- const add=(n,v,lo,hi,m,u)=>{const s=sc(v,lo,hi,m);S.push(s);L.push([n,v,lo,hi,m,u,Math.round(s)]);};
+ METS=[];const S=[];
+ const add=(n,v,lo,hi,m,u,segs)=>{const s=sc(v,lo,hi,m);S.push(s);METS.push({n,v,lo,hi,m,u,s:Math.round(s),segs});};
  const up=D(P.hair,P.nas),mid=D(P.nas,P.sub),low=D(P.sub,P.chin),tt=up+mid+low;
  const ct=((Math.atan2(P.eyeRi.y-P.eyeRo.y,Math.abs(P.eyeRo.x-P.eyeRi.x))+Math.atan2(P.eyeLi.y-P.eyeLo.y,Math.abs(P.eyeLo.x-P.eyeLi.x)))/2)*180/Math.PI;
- add("Canthal tilt",ct,5.2,8.5,9,"°");
- add("Eye aspect",(D(P.eyeRo,P.eyeRi)/Math.max(1,D(P.eyeRu,P.eyeRl))+D(P.eyeLo,P.eyeLi)/Math.max(1,D(P.eyeLu,P.eyeLl)))/2,2.8,3.6,1.3,"");
- add("Eye spacing",D(P.eyeRi,P.eyeLi)/Math.max(1,eyew),.93,1.04,.22,"");
- add("IPD/eye",D(P.eyeRc,P.eyeLc)/Math.max(1,eyew),1.9,2.2,.6,"");
- add("Fifths",eyew/(bizy/5),.9,1.1,.3,"");
- add("FWHR",bizy/Math.max(1,D(P.nas,P.lt)),1.9,2.06,.5,"");
- add("Total FWHR",fh/bizy,1.33,1.38,.22,"");
- add("Midface",bizy/Math.max(1,D(P.nas,P.sub)),1.5,1.7,.35,"");
- add("Mouth/Nose",D(P.mouR,P.mouL)/Math.max(1,D(P.noseR,P.noseL)),1.38,1.53,.45,"");
- add("Nose W/H",D(P.noseR,P.noseL)/Math.max(1,D(P.nas,P.ntip)),.62,.88,.3,"");
- add("Lip ratio",D(P.st,P.lb)/Math.max(1,D(P.lt,P.st)),1.4,2,.9,"");
- add("Chin/Philtrum",D(P.lb,P.chin)/Math.max(1,D(P.sub,P.lt)),2.05,2.55,1,"");
- add("Bigonial %",100*D(P.gonR,P.gonL)/bizy,85.5,92,12,"%");
- add("Bitemporal %",100*D(P.tempR,P.tempL)/bizy,84,95,12,"%");
- add("Lower face %",100*low/fh,30.6,34,7,"%");
- add("Neck width %",100*D(P.neckR,P.neckL)/bizy,90,100,14,"%");
- add("Brow position",(Math.abs(P.eyeRu.y-P.browRp.y)+Math.abs(P.eyeLu.y-P.browLp.y))/2/Math.max(1,(D(P.eyeRu,P.eyeRl)+D(P.eyeLu,P.eyeLl))/2),0,.65,.8,"");
+ add("Canthal tilt",ct,5.2,8.5,9,"°",[["eyeRo","eyeRi"],["eyeLo","eyeLi"]]);
+ add("Eye aspect",(D(P.eyeRo,P.eyeRi)/Math.max(1,D(P.eyeRu,P.eyeRl))+D(P.eyeLo,P.eyeLi)/Math.max(1,D(P.eyeLu,P.eyeLl)))/2,2.8,3.6,1.3,"",[["eyeRo","eyeRi"],["eyeRu","eyeRl"],["eyeLo","eyeLi"],["eyeLu","eyeLl"]]);
+ add("Eye spacing",D(P.eyeRi,P.eyeLi)/Math.max(1,eyew),.93,1.04,.22,"",[["eyeRi","eyeLi"]]);
+ add("IPD/eye",D(P.eyeRc,P.eyeLc)/Math.max(1,eyew),1.9,2.2,.6,"",[["eyeRc","eyeLc"]]);
+ add("Fifths",eyew/(bizy/5),.9,1.1,.3,"",[["eyeRo","eyeRi"],["bizR","bizL"]]);
+ add("FWHR",bizy/Math.max(1,D(P.nas,P.lt)),1.9,2.06,.5,"",[["bizR","bizL"],["nas","lt"]]);
+ add("Total FWHR",fh/bizy,1.33,1.38,.22,"",[["hair","chin"],["bizR","bizL"]]);
+ add("Midface",bizy/Math.max(1,D(P.nas,P.sub)),1.5,1.7,.35,"",[["bizR","bizL"],["nas","sub"]]);
+ add("Mouth/Nose",D(P.mouR,P.mouL)/Math.max(1,D(P.noseR,P.noseL)),1.38,1.53,.45,"",[["mouR","mouL"],["noseR","noseL"]]);
+ add("Nose W/H",D(P.noseR,P.noseL)/Math.max(1,D(P.nas,P.ntip)),.62,.88,.3,"",[["noseR","noseL"],["nas","ntip"]]);
+ add("Lip ratio",D(P.st,P.lb)/Math.max(1,D(P.lt,P.st)),1.4,2,.9,"",[["st","lb"],["lt","st"]]);
+ add("Chin/Philtrum",D(P.lb,P.chin)/Math.max(1,D(P.sub,P.lt)),2.05,2.55,1,"",[["lb","chin"],["sub","lt"]]);
+ add("Bigonial %",100*D(P.gonR,P.gonL)/bizy,85.5,92,12,"%",[["gonR","gonL"],["bizR","bizL"]]);
+ add("Bitemporal %",100*D(P.tempR,P.tempL)/bizy,84,95,12,"%",[["tempR","tempL"],["bizR","bizL"]]);
+ add("Lower face %",100*low/fh,30.6,34,7,"%",[["sub","chin"],["hair","chin"]]);
+ add("Neck width %",100*D(P.neckR,P.neckL)/bizy,90,100,14,"%",[["neckR","neckL"],["bizR","bizL"]]);
+ add("Brow position",(Math.abs(P.eyeRu.y-P.browRp.y)+Math.abs(P.eyeLu.y-P.browLp.y))/2/Math.max(1,(D(P.eyeRu,P.eyeRl)+D(P.eyeLu,P.eyeLl))/2),0,.65,.8,"",[["eyeRu","browRp"],["eyeLu","browLp"]]);
  const bt=((Math.atan2(P.browRp.y-P.browRi.y,Math.abs(P.browRo.x-P.browRi.x))+Math.atan2(P.browLp.y-P.browLi.y,Math.abs(P.browLo.x-P.browLi.x)))/2)*180/Math.PI;
- add("Brow tilt",bt,5,13,9,"°");
- add("Cheekbone pos",100*((P.zygR.y+P.zygL.y)/2-P.hair.y)/fh,81,100,22,"%");
- add("Cheek sculpt",100*(bizy-D(P.holR,P.holL))/bizy,10,18,12,"%");
- add("Jaw frontal °",ANG(P.gonR,P.chin,P.gonL),84.5,95,14,"°");
- add("Jawline def",(ANG(P.gonR,P.jawMidR,P.jawLowR)+ANG(P.gonL,P.jawMidL,P.jawLowL))/2,160,178,22,"°");
- const sym=100-(Math.abs(D(P.eyeRo,P.eyeRi)-D(P.eyeLo,P.eyeLi))/Math.max(1,eyew)*100+Math.abs(D(P.gonR,P.chin)-D(P.gonL,P.chin))/Math.max(1,D(P.gonR,P.chin))*100+Math.abs(D(P.bizR,P.zygR)-D(P.bizL,P.zygL))/Math.max(1,D(P.bizR,P.zygR))*100)/3;
- add("Symmetry",sym,90,97,10,"%");
- const g=pmean(S,PVAL),psl=Math.max(1,Math.min(8,g/10-2));
- let html='<h1>'+g.toFixed(1)+' / 100</h1><div class="sub">⭐ PSL '+psl.toFixed(1)+'/8 · p='+PVAL+' · Thirds '+Math.round(100*up/tt)+'/'+Math.round(100*mid/tt)+'/'+Math.round(100*low/tt)+'% · точек '+PT.length+'</div><div class="card" style="margin-top:14px">';
- L.forEach(r=>{const gz=gauge(r[1],r[2],r[3],r[4]);const c=r[6]>=80?'var(--ok)':r[6]>=50?'var(--warn)':'var(--bad)';
-  html+='<div class="mblock"><div class="mhead"><span>'+r[0]+'</span><span class="chip" style="background:'+c+'22;color:'+c+'">'+r[6]+'</span></div>'
-   +'<div class="gauge" style="background:'+gz.grad+'"><i style="left:'+gz.pos+'%"></i></div>'
-   +'<div class="sub">'+r[1].toFixed(2)+r[5]+' · идеал '+r[2]+'–'+r[3]+'</div></div>';});
- html+='</div>';
- sndDone();
- document.getElementById('editor').style.display='none';
- const R=document.getElementById('result');R.style.display='block';document.getElementById('rep').innerHTML=html;
- const txt="📊 LUX PRO: "+g.toFixed(1)+"/100 | PSL "+psl.toFixed(1)+"/8\n"+L.map(r=>"• "+r[0]+": "+r[1].toFixed(2)+r[5]+" | "+r[6]+"/100").join("\n");
- if(TG){TG.MainButton.show();TG.MainButton.setText("Отправить боту");TG.MainButton.onClick(()=>{TG.sendData(JSON.stringify({t:"lux",text:txt}));TG.close();});}}
+ add("Brow tilt",bt,5,13,9,"°",[["browRi","browRo"],["browLi","browLo"]]);
+ add("Cheekbone pos",100*((P.zygR.y+P.zygL.y)/2-P.hair.y)/fh,81,100,22,"%",[["zygR","zygL"]]);
+ add("Cheek sculpt",100*(bizy-D(P.holR,P.holL))/bizy,10,18,12,"%",[["bizR","bizL"],["holR","holL"]]);
+ add("Jaw frontal °",ANG(P.gonR,P.chin,P.gonL),84.5,95,14,"°",[["gonR","chin"],["gonL","chin"]]);
+ add("Jawline def",(ANG(P.gonR,P.jawMidR,P.jawLowR)+ANG(P.gonL,P.jawMidL,P.jawLowL))/2,160,178,22,"°",[["gonR","jawMidR"],["jawMidR","jawLowR"],["gonL","jawMidL"],["jawMidL","jawLowL"]]);
+ const sym=100-(Math.abs(D(P.eyeRo,P.eyeRi)-D(P.eyeLo,P.eyeLi))/Math.max(1,eyew)*100+Math.abs(D(P.gonR,P.chin)-D(P.gonL,P.chin))/Math.max(1,D(P.gonR,P.chin))*100)/2;
+ add("Symmetry",sym,90,97,10,"%",[["hair","chin"]]);
+ window._g=pmean(S,PVAL); window._psl=Math.max(1,Math.min(8,window._g/10-2)); window._thirds=[up,mid,low];
+ sndDone(); editor.style.display='none'; result.style.display='flex';
+ buildList(); showMetric(0);
+}
+function buildList(){
+ const g=window._g,t=window._thirds;
+ let html='<h1 style="padding:4px 0 0">'+g.toFixed(1)+' / 100</h1><div class="sub">⭐ PSL '+window._psl.toFixed(1)+'/8 · Thirds '+Math.round(100*t[0]/(t[0]+t[1]+t[2]))+'/'+Math.round(100*t[1]/(t[0]+t[1]+t[2]))+'/'+Math.round(100*t[2]/(t[0]+t[1]+t[2]))+'% · тапни метрику — увидишь линии на фото</div>';
+ METS.forEach((m,i)=>{const gz=gauge(m.v,m.lo,m.hi,m.m);const c=col(m.s);
+  html+='<div class="mrow" data-i="'+i+'"><div class="mhead"><span>'+m.n+'</span><span class="chip" style="background:'+c+'22;color:'+c+'">'+m.s+'</span></div><div class="gauge" style="background:'+gz.grad+'"><i style="left:'+gz.pos+'%"></i></div><div class="sub">'+m.v.toFixed(2)+m.u+' · идеал '+m.lo+'–'+m.hi+'</div></div>';});
+ mlist.innerHTML=html;
+ mlist.querySelectorAll('.mrow').forEach(el=>el.onclick=()=>{showMetric(+el.dataset.i);hapt();});
+}
+function showMetric(i){
+ const m=METS[i];
+ const w=rcv.clientWidth,h=rcv.clientHeight;rcv.width=w*dpr;rcv.height=h*dpr;
+ const s=Math.min(w/img.width,h/img.height),ox=(w-img.width*s)/2,oy=(h-img.height*s)/2;
+ rctx.setTransform(dpr,0,0,dpr,0,0);rctx.clearRect(0,0,w,h);
+ rctx.save();rctx.translate(ox,oy);rctx.scale(s,s);rctx.drawImage(img,0,0);rctx.restore();
+ const c=col(m.s);rctx.strokeStyle=c;rctx.lineWidth=2.5;rctx.shadowColor=c;rctx.shadowBlur=6;
+ (m.segs||[]).forEach(seg=>{const a=P[seg[0]],b=P[seg[1]];if(!a||!b)return;
+  rctx.beginPath();rctx.moveTo(a.x*s+ox,a.y*s+oy);rctx.lineTo(b.x*s+ox,b.y*s+oy);rctx.stroke();
+  rctx.fillStyle=c;rctx.beginPath();rctx.arc(a.x*s+ox,a.y*s+oy,3,0,7);rctx.fill();rctx.beginPath();rctx.arc(b.x*s+ox,b.y*s+oy,3,0,7);rctx.fill();});
+ rctx.shadowBlur=0;rctx.fillStyle=c;rctx.font='700 14px sans';rctx.fillText(m.n+' · '+m.s+'/100',10,20);
+}
+send.onclick=()=>{const txt="📊 LUX PRO: "+window._g.toFixed(1)+"/100 | PSL "+window._psl.toFixed(1)+"/8\n"+METS.map(m=>"• "+m.n+": "+m.v.toFixed(2)+m.u+" | "+m.s+"/100").join("\n");
+ if(TG){TG.sendData(JSON.stringify({t:"lux",text:txt}));TG.close();}};
 </script></body></html>
