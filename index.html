@@ -7,41 +7,50 @@
 <style>
 :root{
   --bg1:#0b0f1a; --bg2:#141a2e;
-  --card:rgba(255,255,255,.06); --line:rgba(255,255,255,.1);
+  --line:rgba(255,255,255,.1);
   --txt:#f2f5fa; --mut:#93a0b4;
   --acc:#5b8cff; --acc2:#8b5bff;
   --ok:#3ddc84; --warn:#ffd166; --bad:#ff5c7a;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
-html,body{margin:0;height:100%;overflow:hidden;color:var(--txt);
+html,body{
+  margin:0;height:100%;overflow:hidden;color:var(--txt);
   font:15px/1.45 -apple-system,Roboto,sans-serif;
-  background:linear-gradient(160deg,var(--bg1),var(--bg2))}
+  background:linear-gradient(160deg,var(--bg1),var(--bg2));
+}
 .screen{position:fixed;inset:0;display:flex;flex-direction:column}
-#home{overflow-y:auto;padding:20px}
+/* ---- главный экран (дизайн друга) ---- */
+#home{overflow-y:auto;background:#0a1230}
+.wrap{position:relative}
+.wrap>img{width:100%;display:block}
+.zone{position:absolute;opacity:0;border:0;background:none}
+#pval{position:absolute;color:#fff;font-size:12px;font-weight:800;text-shadow:0 0 6px #000}
+/* ---- общие ---- */
 h1{font-size:24px;font-weight:800;margin:2px 0;
   background:linear-gradient(90deg,var(--acc),var(--acc2));
   -webkit-background-clip:text;color:transparent}
 .sub{color:var(--mut);font-size:12.5px}
-.card{background:var(--card);border:1px solid var(--line);
-  border-radius:20px;padding:16px;margin-bottom:14px}
-input[type=file]{width:100%;color:var(--mut)}
-select{background:#1b2233;color:var(--txt);border:1px solid var(--line);
-  border-radius:10px;padding:9px}
+/* ---- редактор ---- */
 #editor{background:#000}
-#cv{position:absolute;inset:0;touch-action:none}
+canvas#cv{position:absolute;inset:0;touch-action:none}
 #top{position:absolute;top:0;left:0;right:0;padding:12px 14px;z-index:5;
   background:linear-gradient(#000d,#0000)}
 #pname{font-weight:800;font-size:16px}
 #pdesc{color:#cdd6e4;font-size:12.5px;margin-top:2px}
+#ring{position:absolute;right:12px;top:12px;width:46px;height:46px;z-index:6}
 #guide{position:absolute;left:10px;top:70px;width:100px;height:126px;
   background:#0009;border:1px solid var(--line);border-radius:14px;z-index:5}
-#bar{position:absolute;left:0;right:0;bottom:0;padding:10px 12px;
+#bar{position:absolute;left:0;right:0;bottom:0;
+  padding:10px 12px calc(10px + env(safe-area-inset-bottom));
   display:flex;gap:8px;z-index:6;background:linear-gradient(#0000,#000d)}
 #bar button{flex:1;border:0;border-radius:14px;padding:13px 0;font-size:17px;
   color:#fff;background:#1b2233cc;border:1px solid var(--line)}
 #bar button.main{flex:2;background:linear-gradient(90deg,var(--acc),var(--acc2));font-weight:800}
+/* ---- результат ---- */
 #result{overflow:hidden}
 #rcv{width:100%;height:42vh;background:#000;flex:none}
+#allBtn{position:absolute;top:8px;right:8px;z-index:9;border:0;border-radius:10px;
+  padding:8px 12px;background:#1b2233cc;color:#fff;border:1px solid var(--line);font-size:12px}
 #mlist{flex:1;overflow-y:auto;padding:12px 16px 90px}
 .mrow{padding:10px 2px;border-bottom:1px solid var(--line)}
 .mhead{display:flex;justify-content:space-between;font-size:13.5px;font-weight:600}
@@ -56,31 +65,36 @@ select{background:#1b2233;color:var(--txt);border:1px solid var(--line);
 </head>
 <body>
 
+<!-- ================= ЭКРАН 1: МЕНЮ (дизайн друга) ================= -->
 <div class="screen" id="home">
-  <h1>LUX FACE PRO</h1>
-  <div class="sub">Ручные точки → расчёт + презентация линиями на фото.</div>
-  <div class="card">
-    <div class="sub" style="margin-bottom:8px">1 · Фото АНФАС: ровно, без улыбки, лоб открыт</div>
-    <input type="file" id="file" accept="image/*">
-  </div>
-  <div class="card">
-    <label class="sub">Строгость (p)</label><br>
-    <select id="p">
+  <div class="wrap">
+    <img src="home.png" alt="">
+    <input type="file" id="file" accept="image/*" class="zone"
+      style="top:18.8%;left:19%;width:62%;height:4.5%">
+    <select id="p" class="zone" style="top:27%;left:6%;width:88%;height:15%">
       <option>1</option><option>0.5</option><option>0.3</option>
       <option selected>0.2</option><option>0</option><option>-1</option>
     </select>
-    <div class="sub" style="margin-top:8px">p=1 мягко · 0.2 баланс · −1 беспощадно</div>
-  </div>
-  <div class="card sub" style="margin:0">
-    2 · Тяни фото пальцем, зум +/−, наводи крестик → <b>ТОЧКА</b>. ⟲ — отменить. Слева схема-подсказка.
+    <div id="pval" style="top:29.5%;left:34%">0.2</div>
   </div>
 </div>
 
+<!-- ================= ЭКРАН 2: РЕДАКТОР ТОЧЕК ================= -->
 <div class="screen" id="editor" style="display:none">
   <canvas id="cv"></canvas>
   <div id="top"><div id="pname"></div><div id="pdesc"></div></div>
+  <svg id="ring" viewBox="0 0 46 46">
+    <circle cx="23" cy="23" r="20" fill="none" stroke="#ffffff22" stroke-width="4"/>
+    <circle id="ringv" cx="23" cy="23" r="20" fill="none" stroke="url(#g)"
+      stroke-width="4" stroke-linecap="round" stroke-dasharray="125.6"
+      stroke-dashoffset="125.6" transform="rotate(-90 23 23)"/>
+    <defs><linearGradient id="g">
+      <stop offset="0" stop-color="#5b8cff"/><stop offset="1" stop-color="#8b5bff"/>
+    </linearGradient></defs>
+  </svg>
   <canvas id="guide" width="100" height="126"></canvas>
   <div id="bar">
+    <button id="restart">↺</button>
     <button id="undo">⟲</button>
     <button id="zout">−</button>
     <button id="zin">+</button>
@@ -88,8 +102,10 @@ select{background:#1b2233;color:var(--txt);border:1px solid var(--line);
   </div>
 </div>
 
+<!-- ================= ЭКРАН 3: РЕЗУЛЬТАТ ================= -->
 <div class="screen" id="result" style="display:none">
   <canvas id="rcv"></canvas>
+  <button id="allBtn">ВСЕ ЛИНИИ</button>
   <div id="mlist"></div>
   <button id="send">Отправить боту</button>
 </div>
@@ -97,13 +113,16 @@ select{background:#1b2233;color:var(--txt);border:1px solid var(--line);
 <script>
 "use strict";
 
-/* ---------- Telegram + звук + вибрация ---------- */
+/* ============================================================
+   TELEGRAM + ЗВУК + ВИБРАЦИЯ
+============================================================ */
 var TG = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
 if (TG) { TG.ready(); TG.expand(); }
 
 function haptic() {
   if (TG && TG.HapticFeedback) TG.HapticFeedback.impactOccurred('light');
 }
+
 var audioCtx = null;
 function ensureAudio() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -131,18 +150,28 @@ function soundDone()  {
   });
 }
 
-/* ---------- DOM ---------- */
+/* ============================================================
+   DOM
+============================================================ */
 function byId(id) { return document.getElementById(id); }
 var elHome = byId('home'), elEditor = byId('editor'), elResult = byId('result');
-var elFile = byId('file'), elP = byId('p');
+var elFile = byId('file'), elP = byId('p'), elPval = byId('pval');
 var elCv = byId('cv'), ctx = elCv.getContext('2d');
 var elName = byId('pname'), elDesc = byId('pdesc');
+var elRing = byId('ringv');
 var elGuide = byId('guide'), gctx = elGuide.getContext('2d');
-var elUndo = byId('undo'), elZin = byId('zin'), elZout = byId('zout'), elPlace = byId('placeBtn');
+var elRestart = byId('restart'), elUndo = byId('undo');
+var elZin = byId('zin'), elZout = byId('zout'), elPlace = byId('placeBtn');
 var elRcv = byId('rcv'), rctx = elRcv.getContext('2d');
-var elList = byId('mlist'), elSend = byId('send');
+var elAll = byId('allBtn'), elList = byId('mlist'), elSend = byId('send');
 
-/* ---------- 65 точек: [ключ, имя, подсказка, x, y на схеме] ---------- */
+/* Картинка-гайд (лицо) для подсказки */
+var guideImg = new Image();
+guideImg.src = 'guide.png';
+
+/* ============================================================
+   65 ТОЧЕК: [ключ, имя, подсказка, x, y на схеме]
+============================================================ */
 var POINTS = [
 ["hair","Линия роста волос","середина лба у волос",.5,.06],
 ["hairR","Волосы прав.","край линии справа",.32,.10],
@@ -210,13 +239,30 @@ var POINTS = [
 ["neckL","Шея лев.","",.68,1.0]
 ];
 
-/* ---------- состояние ---------- */
+/* ============================================================
+   СОСТОЯНИЕ
+============================================================ */
 var img = null, placed = [], idx = 0, PVAL = 0.2;
 var view = { s: 1, ox: 0, oy: 0 };
 var dpr = window.devicePixelRatio || 1, cw = 0, ch = 0;
 var METRICS = [], PTS = {}, overall = 0, psl = 1, thirds = [0,0,0];
+var showAllOn = false;
 
-/* ---------- старт ---------- */
+/* Запоминание p */
+try {
+  var savedP = localStorage.getItem('luxp');
+  if (savedP !== null) { elP.value = savedP; }
+} catch (e) {}
+elPval.textContent = elP.value;
+
+elP.addEventListener('change', function () {
+  elPval.textContent = elP.value;
+  try { localStorage.setItem('luxp', elP.value); } catch (e) {}
+});
+
+/* ============================================================
+   СТАРТ / ВЫБОР ФОТО
+============================================================ */
 elFile.onchange = function (e) {
   var f = e.target.files[0];
   if (!f) return;
@@ -237,6 +283,7 @@ function startEditor() {
   resizeCanvas();
   placed = []; idx = 0;
   fitImage();
+  if (TG) { TG.BackButton.show(); }
   updatePointUI();
   drawEditor();
 }
@@ -254,23 +301,37 @@ function updatePointUI() {
   var p = POINTS[idx];
   elName.textContent = (idx + 1) + "/" + POINTS.length + " · " + p[1];
   elDesc.textContent = p[2] ? ("Куда: " + p[2]) : "Наведи крестик на точку";
+  elRing.style.strokeDashoffset = 125.6 * (1 - idx / POINTS.length);
   drawGuide();
+}
+
+/* ============================================================
+   ГАЙД: лицо + красная точка
+============================================================ */
+function guideXY(t) {
+  var x = 0.5 + (t[3] - 0.5) * 0.68;
+  var y = 0.25 + (t[4] - 0.06) * (0.975 - 0.25) / (0.97 - 0.06);
+  return [x, y];
 }
 function drawGuide() {
   gctx.clearRect(0, 0, 100, 126);
-  gctx.strokeStyle = '#4a5570'; gctx.lineWidth = 1.5;
-  gctx.beginPath(); gctx.ellipse(50, 66, 36, 56, 0, 0, 7); gctx.stroke();
-  gctx.beginPath(); gctx.ellipse(32, 56, 9, 4, 0, 0, 7); gctx.stroke();
-  gctx.beginPath(); gctx.ellipse(68, 56, 9, 4, 0, 0, 7); gctx.stroke();
-  gctx.beginPath(); gctx.moveTo(50, 60); gctx.lineTo(50, 78); gctx.stroke();
-  gctx.beginPath(); gctx.moveTo(38, 96); gctx.quadraticCurveTo(50, 100, 62, 96); gctx.stroke();
-  var t = POINTS[idx], x = t[3] * 100, y = t[4] * 126;
+  if (guideImg.complete && guideImg.naturalWidth > 0) {
+    gctx.drawImage(guideImg, 0, 0, 100, 126);
+  } else {
+    gctx.strokeStyle = '#4a5570'; gctx.lineWidth = 1.5;
+    gctx.beginPath(); gctx.ellipse(50, 66, 36, 56, 0, 0, 7); gctx.stroke();
+  }
+  var g = guideXY(POINTS[idx]);
   gctx.fillStyle = '#ff5c7a';
-  gctx.beginPath(); gctx.arc(x, y, 4, 0, 7); gctx.fill();
+  gctx.beginPath(); gctx.arc(g[0]*100, g[1]*126, 4, 0, 7); gctx.fill();
   gctx.globalAlpha = 0.5; gctx.strokeStyle = '#ff5c7a';
-  gctx.beginPath(); gctx.arc(x, y, 8, 0, 7); gctx.stroke();
+  gctx.beginPath(); gctx.arc(g[0]*100, g[1]*126, 8, 0, 7); gctx.stroke();
   gctx.globalAlpha = 1;
 }
+
+/* ============================================================
+   РЕДАКТОР: отрисовка
+============================================================ */
 function drawEditor() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, cw, ch);
@@ -290,12 +351,14 @@ function drawEditor() {
   ctx.strokeStyle = '#3ddc84'; ctx.lineWidth = 1.5;
   ctx.shadowColor = '#3ddc84'; ctx.shadowBlur = 8;
   ctx.beginPath();
-  ctx.moveTo(cw / 2 - 16, ch / 2); ctx.lineTo(cw / 2 + 16, ch / 2);
-  ctx.moveTo(cw / 2, ch / 2 - 16); ctx.lineTo(cw / 2, ch / 2 + 16);
+  ctx.moveTo(cw/2 - 16, ch/2); ctx.lineTo(cw/2 + 16, ch/2);
+  ctx.moveTo(cw/2, ch/2 - 16); ctx.lineTo(cw/2, ch/2 + 16);
   ctx.stroke(); ctx.shadowBlur = 0;
 }
 
-/* ---------- точки ---------- */
+/* ============================================================
+   ТОЧКИ: поставить / отменить / заново
+============================================================ */
 function placePoint() {
   placed.push({
     x: ((cw / 2) - view.ox) / view.s / img.width,
@@ -309,12 +372,20 @@ function placePoint() {
 function undoPoint() {
   if (idx > 0) { idx--; placed.pop(); haptic(); soundUndo(); updatePointUI(); drawEditor(); }
 }
+function restartPoints() {
+  placed = []; idx = 0; haptic(); soundUndo();
+  fitImage(); updatePointUI(); drawEditor();
+}
 elPlace.addEventListener('click', placePoint);
 elUndo.addEventListener('click', undoPoint);
+elRestart.addEventListener('click', restartPoints);
 elZin.addEventListener('click', function () { view.s = Math.min(30, view.s * 1.3); drawEditor(); });
 elZout.addEventListener('click', function () { view.s = Math.max(0.05, view.s / 1.3); drawEditor(); });
+if (TG) { TG.BackButton.onClick(undoPoint); }
 
-/* ---------- pan + pinch ---------- */
+/* ============================================================
+   PAN + PINCH
+============================================================ */
 var ptrs = new Map(), pan = null, pinch = null;
 elCv.addEventListener('pointerdown', function (e) {
   elCv.setPointerCapture(e.pointerId);
@@ -347,7 +418,9 @@ elCv.addEventListener('pointerup', function (e) {
   } else if (ptrs.size === 0) pan = null;
 });
 
-/* ---------- математика ---------- */
+/* ============================================================
+   МАТЕМАТИКА
+============================================================ */
 function score(v, lo, hi, m) {
   if (v >= lo && v <= hi) return 100;
   var d = v < lo ? lo - v : v - hi;
@@ -369,27 +442,29 @@ function angleAt(a, b, c) {
 }
 function colorOf(s) { return s >= 80 ? '#3ddc84' : s >= 50 ? '#ffd166' : '#ff5c7a'; }
 function gauge(v, lo, hi, m) {
-  var k = 3, rl = lo - k * m, rh = hi + k * m;
+  var k = 3, rl = lo - k*m, rh = hi + k*m;
   var pos = Math.max(0, Math.min(1, (v - rl) / (rh - rl)));
   var gs = (lo - rl) / (rh - rl) * 100, ge = (hi - rl) / (rh - rl) * 100;
   return {
     pos: (pos * 100).toFixed(1),
-    grad: 'linear-gradient(90deg,var(--bad) 0%,var(--warn) ' + (gs*0.5).toFixed(1) + '%,var(--ok) '
-      + gs.toFixed(1) + '%,var(--ok) ' + ge.toFixed(1) + '%,var(--warn) '
-      + (100 - (100-ge)*0.5).toFixed(1) + '%,var(--bad) 100%)'
+    grad: 'linear-gradient(90deg,var(--bad) 0%,var(--warn) ' + (gs*0.5).toFixed(1) +
+      '%,var(--ok) ' + gs.toFixed(1) + '%,var(--ok) ' + ge.toFixed(1) +
+      '%,var(--warn) ' + (100 - (100-ge)*0.5).toFixed(1) + '%,var(--bad) 100%)'
   };
 }
-
-/* ---------- расчёт ---------- */
-function addMetric(name, v, lo, hi, m, u, segs) {
+function addMetric(n, v, lo, hi, m, u, segs) {
   var s = score(v, lo, hi, m);
-  METRICS.push({ n: name, v: v, lo: lo, hi: hi, m: m, u: u, s: Math.round(s), segs: segs });
+  METRICS.push({ n:n, v:v, lo:lo, hi:hi, m:m, u:u, s:Math.round(s), segs:segs });
   return s;
 }
+
+/* ============================================================
+   РАСЧЁТ (30 метрик)
+============================================================ */
 function finish() {
   var W = img.width, H = img.height;
   PTS = {};
-  POINTS.forEach(function (t, i) { PTS[t[0]] = { x: placed[i].x * W, y: placed[i].y * H }; });
+  POINTS.forEach(function (t, i) { PTS[t[0]] = { x: placed[i].x*W, y: placed[i].y*H }; });
   var bizy = dist(PTS.bizR, PTS.bizL);
   var eyew = (dist(PTS.eyeRo, PTS.eyeRi) + dist(PTS.eyeLo, PTS.eyeLi)) / 2;
   var fh = dist(PTS.hair, PTS.chin);
@@ -411,15 +486,21 @@ function finish() {
   push(addMetric("Eye spacing", dist(PTS.eyeRi,PTS.eyeLi)/Math.max(1,eyew), .93, 1.04, .22, "", [["eyeRi","eyeLi"]]));
   push(addMetric("IPD/eye", dist(PTS.eyeRc,PTS.eyeLc)/Math.max(1,eyew), 1.9, 2.2, .6, "", [["eyeRc","eyeLc"]]));
   push(addMetric("Fifths", eyew/(bizy/5), .9, 1.1, .3, "", [["eyeRo","eyeRi"],["bizR","bizL"]]));
+  push(addMetric("Eye height/face", 100*((dist(PTS.eyeRu,PTS.eyeRl)+dist(PTS.eyeLu,PTS.eyeLl))/2)/fh, 8, 11, 4, "%", [["eyeRu","eyeRl"],["eyeLu","eyeLl"]]));
   push(addMetric("FWHR", bizy/Math.max(1,dist(PTS.nas,PTS.lt)), 1.9, 2.06, .5, "", [["bizR","bizL"],["nas","lt"]]));
   push(addMetric("Total FWHR", fh/bizy, 1.33, 1.38, .22, "", [["hair","chin"],["bizR","bizL"]]));
   push(addMetric("Midface", bizy/Math.max(1,dist(PTS.nas,PTS.sub)), 1.5, 1.7, .35, "", [["bizR","bizL"],["nas","sub"]]));
+  push(addMetric("Mid/Lower", mid/low, .9, 1.1, .25, "", [["nas","sub"],["sub","chin"]]));
+  push(addMetric("Nose length %", 100*dist(PTS.nas,PTS.sub)/fh, 26, 30, 6, "%", [["nas","sub"]]));
   push(addMetric("Mouth/Nose", dist(PTS.mouR,PTS.mouL)/Math.max(1,dist(PTS.noseR,PTS.noseL)), 1.38, 1.53, .45, "", [["mouR","mouL"],["noseR","noseL"]]));
   push(addMetric("Nose W/H", dist(PTS.noseR,PTS.noseL)/Math.max(1,dist(PTS.nas,PTS.ntip)), .62, .88, .3, "", [["noseR","noseL"],["nas","ntip"]]));
+  push(addMetric("Philtrum %", 100*dist(PTS.sub,PTS.lt)/fh, 8, 12, 5, "%", [["sub","lt"]]));
   push(addMetric("Lip ratio", dist(PTS.st,PTS.lb)/Math.max(1,dist(PTS.lt,PTS.st)), 1.4, 2, .9, "", [["st","lb"],["lt","st"]]));
   push(addMetric("Chin/Philtrum", dist(PTS.lb,PTS.chin)/Math.max(1,dist(PTS.sub,PTS.lt)), 2.05, 2.55, 1, "", [["lb","chin"],["sub","lt"]]));
+  push(addMetric("Chin width/mouth", dist(PTS.jawLowR,PTS.jawLowL)/Math.max(1,dist(PTS.mouR,PTS.mouL)), 1.0, 1.2, .3, "", [["jawLowR","jawLowL"],["mouR","mouL"]]));
   push(addMetric("Bigonial %", 100*dist(PTS.gonR,PTS.gonL)/bizy, 85.5, 92, 12, "%", [["gonR","gonL"],["bizR","bizL"]]));
   push(addMetric("Bitemporal %", 100*dist(PTS.tempR,PTS.tempL)/bizy, 84, 95, 12, "%", [["tempR","tempL"],["bizR","bizL"]]));
+  push(addMetric("Temple/Jaw taper", dist(PTS.tempR,PTS.tempL)/Math.max(1,dist(PTS.gonR,PTS.gonL)), 1.15, 1.3, .2, "", [["tempR","tempL"],["gonR","gonL"]]));
   push(addMetric("Lower face %", 100*low/fh, 30.6, 34, 7, "%", [["sub","chin"],["hair","chin"]]));
   push(addMetric("Neck width %", 100*dist(PTS.neckR,PTS.neckL)/bizy, 90, 100, 14, "%", [["neckR","neckL"],["bizR","bizL"]]));
   push(addMetric("Brow position",
@@ -443,19 +524,27 @@ function finish() {
   overall = pmean(S, PVAL);
   psl = Math.max(1, Math.min(8, overall / 10 - 2));
   soundDone();
+  if (TG) { TG.BackButton.hide(); }
   elEditor.style.display = 'none';
   elResult.style.display = 'flex';
   buildList();
   showMetric(0);
 }
 
-/* ---------- результат: список + шкалы ---------- */
+/* ============================================================
+   РЕЗУЛЬТАТ: список + вердикт + шкалы
+============================================================ */
 function buildList() {
   var tt = thirds[0] + thirds[1] + thirds[2];
+  var sorted = METRICS.slice().sort(function (a, b) { return b.s - a.s; });
+  var strong = sorted.slice(0, 3).map(function (m) { return m.n; }).join(', ');
+  var weak = sorted.slice(-3).reverse().map(function (m) { return m.n; }).join(', ');
   var html = '<h1 style="padding:4px 0 0">' + overall.toFixed(1) + ' / 100</h1>'
     + '<div class="sub">⭐ PSL ' + psl.toFixed(1) + '/8 · Thirds '
     + Math.round(100*thirds[0]/tt) + '/' + Math.round(100*thirds[1]/tt) + '/' + Math.round(100*thirds[2]/tt)
-    + '% · тапни метрику — линии на фото</div>';
+    + '%</div>'
+    + '<div class="sub" style="margin-top:6px">💪 Сильные: ' + strong + '<br>⚠️ Слабые: ' + weak + '</div>'
+    + '<div class="sub" style="margin-top:6px">Тапни метрику — линии на фото.</div>';
   METRICS.forEach(function (m, i) {
     var gz = gauge(m.v, m.lo, m.hi, m.m);
     var c = colorOf(m.s);
@@ -466,42 +555,71 @@ function buildList() {
       + '<div class="sub">' + m.v.toFixed(2) + m.u + ' · идеал ' + m.lo + '–' + m.hi + '</div></div>';
   });
   elList.innerHTML = html;
-  var rows = elList.querySelectorAll('.mrow');
-  rows.forEach(function (el) {
-    el.addEventListener('click', function () { showMetric(+el.getAttribute('data-i')); haptic(); });
+  elList.querySelectorAll('.mrow').forEach(function (el) {
+    el.addEventListener('click', function () {
+      showAllOn = false; elAll.textContent = 'ВСЕ ЛИНИИ';
+      showMetric(+el.getAttribute('data-i')); haptic();
+    });
   });
 }
 
-/* ---------- презентация: линии на фото ---------- */
-function showMetric(i) {
-  var m = METRICS[i];
+/* ============================================================
+   ПРЕЗЕНТАЦИЯ: линии на фото
+============================================================ */
+function fitResult() {
   var w = elRcv.clientWidth, h = elRcv.clientHeight;
   elRcv.width = w * dpr; elRcv.height = h * dpr;
   var s = Math.min(w / img.width, h / img.height);
-  var ox = (w - img.width * s) / 2, oy = (h - img.height * s) / 2;
+  return { w:w, h:h, s:s, ox:(w-img.width*s)/2, oy:(h-img.height*s)/2 };
+}
+function drawBase(f) {
   rctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  rctx.clearRect(0, 0, w, h);
-  rctx.save(); rctx.translate(ox, oy); rctx.scale(s, s);
+  rctx.clearRect(0, 0, f.w, f.h);
+  rctx.save(); rctx.translate(f.ox, f.oy); rctx.scale(f.s, f.s);
   rctx.drawImage(img, 0, 0); rctx.restore();
+}
+function drawSegs(f, m, width, shadow) {
   var c = colorOf(m.s);
-  rctx.strokeStyle = c; rctx.lineWidth = 2.5;
-  rctx.shadowColor = c; rctx.shadowBlur = 6;
+  rctx.strokeStyle = c; rctx.lineWidth = width;
+  if (shadow) { rctx.shadowColor = c; rctx.shadowBlur = 6; }
   (m.segs || []).forEach(function (seg) {
     var a = PTS[seg[0]], b = PTS[seg[1]];
     if (!a || !b) return;
     rctx.beginPath();
-    rctx.moveTo(a.x*s+ox, a.y*s+oy); rctx.lineTo(b.x*s+ox, b.y*s+oy);
+    rctx.moveTo(a.x*f.s+f.ox, a.y*f.s+f.oy);
+    rctx.lineTo(b.x*f.s+f.ox, b.y*f.s+f.oy);
     rctx.stroke();
     rctx.fillStyle = c;
-    rctx.beginPath(); rctx.arc(a.x*s+ox, a.y*s+oy, 3, 0, 7); rctx.fill();
-    rctx.beginPath(); rctx.arc(b.x*s+ox, b.y*s+oy, 3, 0, 7); rctx.fill();
+    rctx.beginPath(); rctx.arc(a.x*f.s+f.ox, a.y*f.s+f.oy, 3, 0, 7); rctx.fill();
+    rctx.beginPath(); rctx.arc(b.x*f.s+f.ox, b.y*f.s+f.oy, 3, 0, 7); rctx.fill();
   });
   rctx.shadowBlur = 0;
-  rctx.fillStyle = c; rctx.font = '700 14px sans';
+}
+function showMetric(i) {
+  var f = fitResult();
+  drawBase(f);
+  var m = METRICS[i];
+  drawSegs(f, m, 2.5, true);
+  rctx.fillStyle = colorOf(m.s); rctx.font = '700 14px sans';
   rctx.fillText(m.n + ' · ' + m.s + '/100', 10, 20);
 }
+function showAll() {
+  var f = fitResult();
+  drawBase(f);
+  METRICS.forEach(function (m) { drawSegs(f, m, 1.2, false); });
+  rctx.fillStyle = '#fff'; rctx.font = '700 14px sans';
+  rctx.fillText('Все измерения', 10, 20);
+}
+elAll.addEventListener('click', function () {
+  showAllOn = !showAllOn;
+  if (showAllOn) { elAll.textContent = 'ОДНА'; showAll(); }
+  else { elAll.textContent = 'ВСЕ ЛИНИИ'; showMetric(0); }
+  haptic();
+});
 
-/* ---------- отправка ---------- */
+/* ============================================================
+   ОТПРАВКА БОТУ
+============================================================ */
 elSend.addEventListener('click', function () {
   var txt = "📊 LUX PRO: " + overall.toFixed(1) + "/100 | PSL " + psl.toFixed(1) + "/8\n"
     + METRICS.map(function (m) {
