@@ -285,11 +285,16 @@ elCv.addEventListener('pointerup',function(e){ptrs.delete(e.pointerId);
  else if(ptrs.size===0)pan=null;});
 
 /* ================= МАТЕМАТИКА ================= */
-/* 1) гауссов штраф: никогда не жёсткий 0 */
-function smoothScore(v,lo,hi,m){
- if(v>=lo&&v<=hi)return 100;
- var d=v<lo?lo-v:v-hi, scale=Math.max(m,1e-6);
- return 100*Math.exp(-Math.pow(d/(1.5*scale),2));
+/* Штраф с оптимумом: 100 только в оптимуме, ~82 на краях диапазона, гауссов хвост снаружи */
+function smoothScore(v,lo,hi,m,opt){
+ if(opt==null)opt=(lo+hi)/2;
+ var wi=Math.max(hi-opt,opt-lo,1e-6);
+ if(v>=lo&&v<=hi){
+   var di=Math.abs(v-opt)/wi;
+   return 100-18*di*di;
+ }
+ var d=v<lo?lo-v:v-hi;
+ return 82*Math.exp(-Math.pow(d/(1.5*Math.max(m,1e-6)),2));
 }
 function pmean(xs,p){xs=xs.map(function(x){return Math.max(.1,x);});
  if(Math.abs(p)<1e-9)return Math.exp(xs.reduce(function(a,x){return a+Math.log(x);},0)/xs.length);
@@ -309,11 +314,16 @@ function gauge(v,lo,hi,m){var k=3,rl=lo-k*m,rh=hi+k*m;
  return{pos:(pos*100).toFixed(1),
   grad:'linear-gradient(90deg,var(--bad) 0%,var(--warn) '+(gs*.5).toFixed(1)+'%,var(--ok) '+gs.toFixed(1)+
   '%,var(--ok) '+ge.toFixed(1)+'%,var(--warn) '+(100-(100-ge)*.5).toFixed(1)+'%,var(--bad) 100%)'};}
-/* 2) вес метрики */
-function addMetric(cat,n,v,lo,hi,m,u,segs,w){var s=smoothScore(v,lo,hi,m);
- METRICS.push({i:METRICS.length,cat:cat,n:n,v:v,lo:lo,hi:hi,m:m,u:u,s:Math.round(s),segs:segs,weight:w||1});return s;}
+/* Оптимумы для асимметричных метрик; остальные — середина диапазона */
+var OPT={"Canthal tilt":7,"Symmetry":98,"Jawline def":172,"Cheek height index*":56,"Brow tilt":9,"Eye aspect":3.2};
+function addMetric(cat,n,v,lo,hi,m,u,segs,w){
+ var opt=OPT[n]!=null?OPT[n]:(lo+hi)/2;
+ var s=smoothScore(v,lo,hi,m,opt);
+ METRICS.push({i:METRICS.length,cat:cat,n:n,v:v,lo:lo,hi:hi,m:m,u:u,s:Math.round(s),segs:segs,weight:w||1});
+ return s;
+}
 
-/* 5) симметрия */
+/* ---------- симметрия ---------- */
 function computeSymmetry(bizy,fh){
  var cx=(PTS.hair.x+PTS.chin.x+PTS.nas.x+PTS.sub.x)/4;
  var pairs=[['eyeRo','eyeLo'],['eyeRi','eyeLi'],['eyeRc','eyeLc'],['browRp','browLp'],
@@ -326,7 +336,7 @@ function computeSymmetry(bizy,fh){
  var avg=devs.reduce(function(a,b){return a+b;},0)/devs.length*100;
  return Math.max(0,Math.min(100,100-avg*7));
 }
-/* 6) качество */
+/* ---------- качество фото ---------- */
 function computeQuality(bizy,fh){
  var faceFrac=fh/img.height;
  var roll=Math.abs(Math.atan2(PTS.eyeLc.y-PTS.eyeRc.y,PTS.eyeLc.x-PTS.eyeRc.x))*180/Math.PI;
@@ -342,7 +352,7 @@ function computeQuality(bizy,fh){
  return{conf:Math.max(40,Math.min(100,conf)),roll:roll,yaw:yaw,pitch:pitch,warns:warns};
 }
 
-/* 3) веса категорий */
+/* ---------- веса категорий ---------- */
 var CATW={"👁 Глаза":.18,"👃 Нос":.14,"👄 Рот":.12,"🦴 Челюсть":.20,"📐 Пропорции":.26,"🪞 Симметрия":.10};
 var CATS=["👁 Глаза","👃 Нос","👄 Рот","🦴 Челюсть","📐 Пропорции","🪞 Симметрия"];
 
@@ -412,7 +422,6 @@ function finish(){editorOn=false;
 
  QUAL=computeQuality(bizy,fh);
 
- /* двухслойная агрегация с весами метрик */
  CATSCORES={};
  CATS.forEach(function(c){var rows=METRICS.filter(function(m){return m.cat===c;});
   CATSCORES[c]=wpmean(rows.map(function(m){return[m.s,m.weight];}),PVAL);});
