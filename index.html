@@ -18,7 +18,9 @@ html,body{
   font:15px/1.45 -apple-system,Roboto,sans-serif;
   background:linear-gradient(160deg,var(--bg1),var(--bg2));
 }
-.screen{position:fixed;inset:0;display:flex;flex-direction:column}
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;animation:fadeIn .25s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 /* ---- меню ---- */
 #home{overflow-y:auto;background:#0a1230}
 .wrap{position:relative}
@@ -29,8 +31,10 @@ html,body{
 h1{font-size:24px;font-weight:800;margin:2px 0;
   background:linear-gradient(90deg,var(--acc),var(--acc2));
   -webkit-background-clip:text;color:transparent}
-h2.cat{font-size:15px;font-weight:800;margin:14px 0 4px;color:var(--txt)}
+h2.cat{font-size:15px;font-weight:800;margin:14px 0 4px}
 .sub{color:var(--mut);font-size:12.5px}
+button{transition:transform .12s ease}
+button:active{transform:scale(.95)}
 /* ---- редактор ---- */
 #editor{background:#000}
 canvas#cv{position:absolute;inset:0;touch-action:none}
@@ -39,6 +43,7 @@ canvas#cv{position:absolute;inset:0;touch-action:none}
 #pname{font-weight:800;font-size:16px}
 #pdesc{color:#cdd6e4;font-size:12.5px;margin-top:2px}
 #ring{position:absolute;right:12px;top:12px;width:46px;height:46px;z-index:6}
+#ringv{transition:stroke-dashoffset .3s ease}
 #guide{position:absolute;left:10px;top:70px;width:132px;height:166px;
   background:#0009;border:1px solid var(--line);border-radius:14px;z-index:5}
 #loupe{position:absolute;right:10px;top:70px;width:110px;height:110px;
@@ -56,7 +61,7 @@ canvas#cv{position:absolute;inset:0;touch-action:none}
   padding:8px 12px;background:#1b2233cc;color:#fff;border:1px solid var(--line);font-size:12px}
 #mlist{flex:1;overflow-y:auto;padding:12px 16px 90px}
 .mrow{padding:9px 10px;border:1px solid var(--line);border-radius:12px;margin-bottom:8px;
-  background:rgba(255,255,255,.03)}
+  background:rgba(255,255,255,.03);animation:rise .3s both}
 .mhead{display:flex;justify-content:space-between;font-size:13.5px;font-weight:600}
 .gauge{position:relative;height:9px;border-radius:6px;margin:7px 0 3px}
 .gauge i{position:absolute;top:-3px;width:4px;height:15px;background:#fff;
@@ -114,26 +119,47 @@ canvas#cv{position:absolute;inset:0;touch-action:none}
 
 <script>
 "use strict";
-/* ================= TELEGRAM / ЗВУК / ВИБРАЦИЯ ================= */
+/* ================= TELEGRAM ================= */
 var TG=(window.Telegram&&window.Telegram.WebApp)?window.Telegram.WebApp:null;
 if(TG){TG.ready();TG.expand();}
 function haptic(){if(TG&&TG.HapticFeedback)TG.HapticFeedback.impactOccurred('light');}
+
+/* ================= ЗВУК (реальный, с разблокировкой) ================= */
 var audioCtx=null;
 function ensureAudio(){
-  if(!audioCtx)audioCtx=new (window.AudioContext||window.webkitAudioContext)();
-  if(audioCtx.state==='suspended')audioCtx.resume();
+  if(!audioCtx){
+    var AC=window.AudioContext||window.webkitAudioContext;
+    if(AC)audioCtx=new AC();
+  }
   return audioCtx;
 }
-function tone(f,d){
-  try{
-    var a=ensureAudio(),o=a.createOscillator(),g=a.createGain();
-    o.frequency.value=f;g.gain.value=.12;o.connect(g);g.connect(a.destination);o.start();
-    g.gain.exponentialRampToValueAtTime(.0001,a.currentTime+d);o.stop(a.currentTime+d);
-  }catch(e){}
+function unlockAudio(){
+  var a=ensureAudio();
+  if(a&&a.state==='suspended'){a.resume();}
 }
-function soundPlace(){tone(880,.07);}
-function soundUndo(){tone(320,.08);}
-function soundDone(){[523,659,784,1046].forEach(function(f,i){setTimeout(function(){tone(f,.12);},i*90);});}
+/* Разблокируем звук первым же касанием где угодно */
+document.addEventListener('pointerdown',unlockAudio);
+document.addEventListener('touchstart',unlockAudio);
+
+function playTone(freq,dur,vol){
+  var a=ensureAudio();
+  if(!a)return;
+  function doPlay(){
+    try{
+      var o=a.createOscillator(),g=a.createGain();
+      o.type='sine';o.frequency.value=freq;
+      g.gain.setValueAtTime(vol||.15,a.currentTime);
+      g.gain.exponentialRampToValueAtTime(.0001,a.currentTime+dur);
+      o.connect(g);g.connect(a.destination);
+      o.start();o.stop(a.currentTime+dur);
+    }catch(e){}
+  }
+  if(a.state==='running')doPlay();
+  else a.resume().then(doPlay);
+}
+function soundPlace(){playTone(880,.08,.15);}
+function soundUndo(){playTone(320,.09,.15);}
+function soundDone(){[523,659,784,1046].forEach(function(f,i){setTimeout(function(){playTone(f,.14,.15);},i*90);});}
 
 /* ================= DOM ================= */
 function byId(id){return document.getElementById(id);}
@@ -149,95 +175,69 @@ var elZin=byId('zin'),elZout=byId('zout'),elPlace=byId('placeBtn');
 var elRcv=byId('rcv'),rctx=elRcv.getContext('2d');
 var elAll=byId('allBtn'),elList=byId('mlist'),elSend=byId('send');
 
+/* Бледная подложка-лицо (декор, не источник данных) */
 var guideImg=new Image();guideImg.src='guide.png';
 
-/* ================= 78 ТОЧЕК ================= */
+/* ================= 46 ТОЧЕК = ровно те, что нужны метрикам =================
+   [ключ, имя, описание, sx, sy]  — ЕДИНЫЙ источник для редактора, гайда, результата */
 var POINTS=[
 ["hair","Линия роста волос","Середина лба, где начинаются волосы",.5,.06],
-["hairR","Волосы прав.","Линия волос справа, над виском",.32,.10],
-["hairL","Волосы лев.","Линия волос слева, над виском",.68,.10],
-["hairR2","Волосы прав.2","Выше виска, край линии",.22,.14],
-["hairL2","Волосы лев.2","Выше виска, край линии",.78,.14],
-["glab","Глабелла","Ровно между бровями, выпуклая точка",.5,.33],
-["foreR","Лоб прав.","Середина правой половины лба",.30,.24],
-["foreL","Лоб лев.","Середина левой половины лба",.70,.24],
-["foreMR","Лоб сред прав.","Между глабеллой и правым краем",.40,.20],
-["foreML","Лоб сред лев.","Между глабеллой и левым краем",.60,.20],
-["tempR","Висок прав.","Край лба у виска, где лицо сужается",.16,.32],
-["tempL","Висок лев.","Край лба у виска",.84,.32],
-["browRi","Бровь прав. внутр.","Начало брови у переносицы",.36,.36],
-["browRm","Бровь прав. середина","Между началом и пиком",.34,.35],
-["browRp","Бровь прав. пик","Самая высокая точка брови",.32,.34],
-["browRo","Бровь прав. внешн.","Кончик (хвост) брови",.22,.36],
-["browLi","Бровь лев. внутр.","Начало брови у переносицы",.64,.36],
-["browLm","Бровь лев. середина","Между началом и пиком",.66,.35],
-["browLp","Бровь лев. пик","Самая высокая точка брови",.68,.34],
-["browLo","Бровь лев. внешн.","Кончик (хвост) брови",.78,.36],
+["nas","Назион","Переносица, где нос начинается между глаз",.5,.42],
+["sub","Субназале","Основание носа, стык с верхней губой",.5,.66],
+["chin","Подбородок","Самая нижняя точка подбородка",.5,.97],
 ["eyeRo","Глаз прав. внешн.","Внешний уголок правого глаза",.24,.45],
-["eyeRi","Глаз прав. внутр.","Внутренний уголок, у переносицы",.40,.45],
-["eyeRu","Прав. верх. веко","Середина верхнего века",.32,.43],
-["eyeRl","Прав. ниж. веко","Середина нижнего века",.32,.47],
+["eyeRi","Глаз прав. внутр.","Внутренний уголок правого глаза",.40,.45],
+["eyeRu","Прав. верх. веко","Середина верхнего века правого глаза",.32,.43],
+["eyeRl","Прав. ниж. веко","Середина нижнего века правого глаза",.32,.47],
 ["eyeRc","Прав. зрачок","Центр зрачка правого глаза",.32,.45],
 ["eyeLo","Глаз лев. внешн.","Внешний уголок левого глаза",.76,.45],
-["eyeLi","Глаз лев. внутр.","Внутренний уголок, у переносицы",.60,.45],
-["eyeLu","Лев. верх. веко","Середина верхнего века",.68,.43],
-["eyeLl","Лев. ниж. веко","Середина нижнего века",.68,.47],
+["eyeLi","Глаз лев. внутр.","Внутренний уголок левого глаза",.60,.45],
+["eyeLu","Лев. верх. веко","Середина верхнего века левого глаза",.68,.43],
+["eyeLl","Лев. ниж. веко","Середина нижнего века левого глаза",.68,.47],
 ["eyeLc","Лев. зрачок","Центр зрачка левого глаза",.68,.45],
-["undR","Под глазом прав.","Нижний край орбиты, под глазом",.32,.50],
-["undL","Под глазом лев.","Нижний край орбиты, под глазом",.68,.50],
-["nas","Назион","Переносица, где нос начинается между глаз",.5,.42],
-["nbr2","Переносица верх","Чуть ниже назиона, на спинке",.5,.46],
-["nbr","Спинка носа","Середина спинки носа",.5,.50],
-["ntip","Кончик носа","Самая выступающая точка носа",.5,.60],
-["col","Колумелла","Между кончиком и основанием носа",.5,.63],
+["browRi","Бровь прав. внутр.","Начало правой брови у переносицы",.36,.36],
+["browRp","Бровь прав. пик","Самая высокая точка правой брови",.32,.34],
+["browRo","Бровь прав. внешн.","Кончик (хвост) правой брови",.22,.36],
+["browLi","Бровь лев. внутр.","Начало левой брови у переносицы",.64,.36],
+["browLp","Бровь лев. пик","Самая высокая точка левой брови",.68,.34],
+["browLo","Бровь лев. внешн.","Кончик (хвост) левой брови",.78,.36],
+["bizR","Шилица прав.","Максимум ширины лица справа",.13,.50],
+["bizL","Ширина лев.","Максимум ширины лица слева",.87,.50],
+["tempR","Висок прав.","Край лба у виска справа",.16,.32],
+["tempL","Висок лев.","Край лба у виска слева",.84,.32],
 ["noseR","Крыло прав.","Внешний край правой ноздри",.42,.62],
 ["noseL","Крыло лев.","Внешний край левой ноздри",.58,.62],
-["sub","Субназале","Основание носа, стык с верхней губой",.5,.66],
-["mouR","Рот прав. уголок","Правый уголок губ",.34,.76],
-["mouL","Рот лев. уголок","Левый уголок губ",.66,.76],
-["mouRt","Уголок прав. верх","Верхняя кромка правого уголка",.34,.75],
-["mouRb","Уголок прав. низ","Нижняя кромка правого уголка",.34,.77],
-["mouLt","Уголок лев. верх","Верхняя кромка левого уголка",.66,.75],
-["mouLb","Уголок лев. низ","Нижняя кромка левого уголка",.66,.77],
-["lt","Верхняя губа","Лук Купидона, верхний край",.5,.73],
+["ntip","Кончик носа","Самая выступающая точка носа",.5,.60],
+["lt","Верхняя губа","Лук Купидона, верхний край губ",.5,.73],
 ["st","Линия губ","Стык губ по центру",.5,.76],
 ["lb","Низ нижней губы","Нижний край нижней губы",.5,.80],
-["bizUpR","Ширина верх прав.","Выше максимума ширины",.15,.44],
-["bizUpL","Ширина верх лев.","Выше максимума ширины",.85,.44],
-["bizR","Ширина прав.","Максимум ширины лица справа",.13,.50],
-["bizL","Ширина лев.","Максимум ширины лица слева",.87,.50],
-["bizLowR","Ширина низ прав.","Ниже максимума ширины",.16,.58],
-["bizLowL","Ширина низ лев.","Ниже максимума ширины",.84,.58],
+["mouR","Рот прав. уголок","Правый уголок губ",.34,.76],
+["mouL","Рот лев. уголок","Левый уголок губ",.66,.76],
+["gonR","Угол челюсти прав.","Нижний угол челюсти справа",.24,.80],
+["gonL","Угол челюсти лев.","Нижний угол челюсти слева",.76,.80],
+["jawMidR","Челюсть сред прав.","Середина дуги челюсти справа",.32,.89],
+["jawMidL","Челюсть сред лев.","Середина дуги челюсти слева",.68,.89],
+["jawLowR","Челюсть низ прав.","Нижняя часть дуги справа",.41,.94],
+["jawLowL","Челюсть низ лев.","Нижняя часть дуги слева",.59,.94],
 ["zygR","Скула прав.","Выступающая точка правой скулы",.18,.57],
 ["zygL","Скула лев.","Выступающая точка левой скулы",.82,.57],
-["chkR","Щёка прав.","Середина правой щеки",.26,.64],
-["chkL","Щёка лев.","Середина левой щеки",.74,.64],
-["holR","Впадина прав.","Под скулой, щёчная впадина",.30,.70],
-["holL","Впадина лев.","Под скулой, щёчная впадина",.70,.70],
-["jawUpR","Челюсть верх прав.","Верхняя часть дуги челюсти",.20,.72],
-["jawUpL","Челюсть верх лев.","Верхняя часть дуги челюсти",.80,.72],
-["gonR","Угол челюсти прав.","Нижний угол челюсти (гоний)",.24,.80],
-["gonL","Угол челюсти лев.","Нижний угол челюсти (гоний)",.76,.80],
-["jawMidR","Челюсть сред прав.","Середина дуги челюсти",.32,.89],
-["jawMidL","Челюсть сред лев.","Середина дуги челюсти",.68,.89],
-["jawLowR","Челюсть низ прав.","Нижняя часть дуги",.41,.94],
-["jawLowL","Челюсть низ лев.","Нижняя часть дуги",.59,.94],
-["jawLowMid","Челюсть низ центр","Между подбородком и углом",.5,.955],
-["chin","Подбородок","Самая нижняя точка подбородка",.5,.97],
-["chinR","Подбородок прав.","Правый край подбородка",.44,.95],
-["chinL","Подбородок лев.","Левый край подбородка",.56,.95],
+["holR","Впадина прав.","Щёчная впадина под скулой справа",.30,.70],
+["holL","Впадина лев.","Щёчная впадина под скулой слева",.70,.70],
 ["neckR","Шея прав.","Правый край шеи",.32,1.0],
 ["neckL","Шея лев.","Левый край шеи",.68,1.0],
-["neckR2","Шея прав.2","Ниже, правый край",.30,1.0],
-["neckL2","Шея лев.2","Ниже, левый край",.70,1.0]
+["chinR","Подбородок прав.","Правый край подбородка",.44,.95],
+["chinL","Подбородок лев.","Левый край подбородка",.56,.95]
 ];
+/* Быстрый доступ по ключу (тот же источник) */
+var SCH={};
+POINTS.forEach(function(p){SCH[p[0]]={x:p[3],y:p[4]};});
 
 /* ================= СОСТОЯНИЕ ================= */
 var img=null,placed=[],idx=0,PVAL=.2;
 var view={s:1,ox:0,oy:0};
 var dpr=window.devicePixelRatio||1,cw=0,ch=0;
 var METRICS=[],PTS={},overall=0,psl=1,thirds=[0,0,0];
-var showAllOn=false;
+var showAllOn=false,editorOn=false,animId=null;
 
 try{var sp=localStorage.getItem('luxp');if(sp!==null)elP.value=sp;}catch(e){}
 elPval.textContent=elP.value;
@@ -249,15 +249,18 @@ elP.addEventListener('change',function(){
 /* ================= СТАРТ ================= */
 elFile.onchange=function(e){
   var f=e.target.files[0];if(!f)return;
-  ensureAudio();PVAL=parseFloat(elP.value);
+  unlockAudio();PVAL=parseFloat(elP.value);
   var r=new FileReader();
   r.onload=function(ev){img=new Image();img.onload=startEditor;img.src=ev.target.result;};
   r.readAsDataURL(f);
 };
 function startEditor(){
   elHome.style.display='none';elEditor.style.display='block';
+  editorOn=true;
   resizeCanvas();placed=[];idx=0;fitImage();
-  updatePointUI();drawEditor();
+  updatePointUI();
+  playTone(660,.06,.1); /* тест-клик: звук работает */
+  if(!animId)animId=requestAnimationFrame(loop);
 }
 function resizeCanvas(){
   cw=window.innerWidth;ch=window.innerHeight;
@@ -274,42 +277,71 @@ function updatePointUI(){
   elName.textContent=(idx+1)+"/"+POINTS.length+" · "+p[1];
   elDesc.textContent=p[2];
   elRing.style.strokeDashoffset=125.6*(1-idx/POINTS.length);
-  drawGuide();
 }
 
-/* ================= ГАЙД (лицо крупнее, точка мельче) ================= */
-function guideXY(t){
-  var x=.5+(t[3]-.5)*.68;
-  var y=.25+(t[4]-.06)*(.975-.25)/(.97-.06);
-  return[x,y];
+/* ================= ЦИКЛ АНИМАЦИИ РЕДАКТОРА ================= */
+function loop(ts){
+  if(!editorOn){animId=null;return;}
+  drawEditor(ts);
+  drawGuide(ts);
+  drawLoupe();
+  animId=requestAnimationFrame(loop);
 }
-function drawGuide(){
+
+/* ================= ГАЙД: вектор из ТОГО ЖЕ источника ================= */
+function drawGuide(ts){
+  var t=(ts||0)/1000;
   gctx.clearRect(0,0,100,126);
+  /* бледная фотка-подложка (декор) */
   if(guideImg.complete&&guideImg.naturalWidth>0){
-    gctx.drawImage(guideImg,0,0,100,126);
-  }else{
-    gctx.strokeStyle='#4a5570';gctx.lineWidth=1.5;
-    gctx.beginPath();gctx.ellipse(50,66,36,56,0,0,7);gctx.stroke();
+    gctx.globalAlpha=.22;gctx.drawImage(guideImg,0,0,100,126);gctx.globalAlpha=1;
   }
-  var g=guideXY(POINTS[idx]);
+  gctx.strokeStyle='#5a6residual';
+  gctx.strokeStyle='#5a6a8a';gctx.lineWidth=1.2;
+  /* овал лица из hair/chin/biz */
+  var cx=(SCH.bizR.x+SCH.bizL.x)/2*100, cy=(SCH.hair.y+SCH.chin.y)/2*126;
+  var rx=(SCH.bizL.x-SCH.bizR.x)/2*100, ry=(SCH.chin.y-SCH.hair.y)/2*126;
+  gctx.beginPath();gctx.ellipse(cx,cy,rx,ry,0,0,7);gctx.stroke();
+  /* глаза */
+  function eye(a,b,u,l){
+    var ex=(SCH[a].x+SCH[b].x)/2*100, ey=(SCH[u].y+SCH[l].y)/2*126;
+    var erx=Math.abs(SCH[b].x-SCH[a].x)/2*100, ery=Math.abs(SCH[l].y-SCH[u].y)/2*126;
+    gctx.beginPath();gctx.ellipse(ex,ey,erx,ery,0,0,7);gctx.stroke();
+  }
+  eye('eyeRo','eyeRi','eyeRu','eyeRl');
+  eye('eyeLo','eyeLi','eyeLu','eyeLl');
+  /* брови */
+  function brow(i,p,o){
+    gctx.beginPath();
+    gctx.moveTo(SCH[i].x*100,SCH[i].y*126);
+    gctx.quadraticCurveTo(SCH[p].x*100,SCH[p].y*126,SCH[o].x*100,SCH[o].y*126);
+    gctx.stroke();
+  }
+  brow('browRi','browRp','browRo');brow('browLi','browLp','browLo');
+  /* нос */
+  gctx.beginPath();gctx.moveTo(SCH.nas.x*100,SCH.nas.y*126);gctx.lineTo(SCH.ntip.x*100,SCH.ntip.y*126);gctx.stroke();
+  gctx.beginPath();gctx.moveTo(SCH.noseR.x*100,SCH.noseR.y*126);gctx.quadraticCurveTo(SCH.ntip.x*100,(SCH.ntip.y+.03)*126,SCH.noseL.x*100,SCH.noseL.y*126);gctx.stroke();
+  /* рот */
+  gctx.beginPath();gctx.moveTo(SCH.mouR.x*100,SCH.mouR.y*126);gctx.quadraticCurveTo(SCH.st.x*100,SCH.st.y*126,SCH.mouL.x*100,SCH.mouL.y*126);gctx.stroke();
+  /* челюсть */
+  gctx.beginPath();gctx.moveTo(SCH.gonR.x*100,SCH.gonR.y*126);
+  gctx.quadraticCurveTo(SCH.chin.x*100,(SCH.chin.y+.02)*126,SCH.gonL.x*100,SCH.gonL.y*126);gctx.stroke();
+  /* ПУЛЬСИРУЮЩАЯ точка текущей цели — из того же SCH */
+  var g=SCH[POINTS[idx][0]];
+  var pulse=3+Math.sin(t*6)*1.2;
   gctx.fillStyle='#ff5c7a';
-  gctx.beginPath();gctx.arc(g[0]*100,g[1]*126,2.5,0,7);gctx.fill();
+  gctx.beginPath();gctx.arc(g.x*100,g.y*126,2.5,0,7);gctx.fill();
   gctx.globalAlpha=.5;gctx.strokeStyle='#ff5c7a';
-  gctx.beginPath();gctx.arc(g[0]*100,g[1]*126,5,0,7);gctx.stroke();
+  gctx.beginPath();gctx.arc(g.x*100,g.y*126,pulse+3,0,7);gctx.stroke();
   gctx.globalAlpha=1;
 }
 
-/* ================= ЛУПА (зум под крестиком) ================= */
+/* ================= ЛУПА ================= */
 function drawLoupe(){
   var L=110;
   lctx.setTransform(1,0,0,1,0,0);
   lctx.clearRect(0,0,L,L);
   var wx=((cw/2)-view.ox)/view.s, wy=((ch/2)-view.oy)/view.s;
-  var zoom=6*view.s;
-  lctx.save();
-  lctx.translate(L/2,L/2);lctx.scale(zoom/ (cw/img.width) * (cw/img.width) /1,1);
-  lctx.restore();
-  // проще: рисуем с фикс-масштабом относительно изображения
   var sc=L/(img.width*0.14);
   lctx.save();
   lctx.translate(L/2,L/2);lctx.scale(sc,sc);lctx.translate(-wx,-wy);
@@ -321,7 +353,8 @@ function drawLoupe(){
 }
 
 /* ================= РЕДАКТОР ================= */
-function drawEditor(){
+function drawEditor(ts){
+  var t=(ts||0)/1000;
   ctx.setTransform(dpr,0,0,dpr,0,0);
   ctx.clearRect(0,0,cw,ch);
   ctx.save();ctx.translate(view.ox,view.oy);ctx.scale(view.s,view.s);
@@ -331,13 +364,13 @@ function drawEditor(){
     ctx.fillStyle='#3ddc84';ctx.beginPath();ctx.arc(x,y,4,0,7);ctx.fill();
     ctx.fillStyle='#fff';ctx.font='10px sans';ctx.fillText(i+1,x+6,y-6);
   }
+  var pulse=8+Math.sin(t*6)*3;
   ctx.strokeStyle='#3ddc84';ctx.lineWidth=1.5;
-  ctx.shadowColor='#3ddc84';ctx.shadowBlur=8;
+  ctx.shadowColor='#3ddc84';ctx.shadowBlur=pulse;
   ctx.beginPath();
   ctx.moveTo(cw/2-16,ch/2);ctx.lineTo(cw/2+16,ch/2);
   ctx.moveTo(cw/2,ch/2-16);ctx.lineTo(cw/2,ch/2+16);
   ctx.stroke();ctx.shadowBlur=0;
-  drawLoupe();
 }
 
 /* ================= ТОЧКИ ================= */
@@ -348,22 +381,22 @@ function placePoint(){
   });
   haptic();soundPlace();idx++;
   if(idx>=POINTS.length)finish();
-  else{updatePointUI();drawEditor();}
+  else updatePointUI();
 }
 function undoPoint(){
-  if(idx>0){idx--;placed.pop();haptic();soundUndo();updatePointUI();drawEditor();}
+  if(idx>0){idx--;placed.pop();haptic();soundUndo();updatePointUI();}
 }
 function restartPoints(){
   placed=[];idx=0;haptic();soundUndo();
-  fitImage();updatePointUI();drawEditor();
+  fitImage();updatePointUI();
 }
 elPlace.addEventListener('click',placePoint);
 elUndo.addEventListener('click',undoPoint);
 elRestart.addEventListener('click',restartPoints);
-elZin.addEventListener('click',function(){view.s=Math.min(30,view.s*1.3);drawEditor();});
-elZout.addEventListener('click',function(){view.s=Math.max(.05,view.s/1.3);drawEditor();});
+elZin.addEventListener('click',function(){view.s=Math.min(30,view.s*1.3);});
+elZout.addEventListener('click',function(){view.s=Math.max(.05,view.s/1.3);});
 
-/* ================= PAN+PINCH (с фиксом залипания) ================= */
+/* ================= PAN+PINCH ================= */
 var ptrs=new Map(),pan=null,pinch=null;
 function resetPointers(){ptrs.clear();pan=null;pinch=null;}
 window.addEventListener('blur',resetPointers);
@@ -388,7 +421,6 @@ elCv.addEventListener('pointermove',function(e){
     var d=Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]);
     view.s=Math.max(.05,Math.min(30,pinch.s*d/pinch.d));
   }
-  drawEditor();
 });
 elCv.addEventListener('pointerup',function(e){
   ptrs.delete(e.pointerId);
@@ -432,12 +464,13 @@ function gauge(v,lo,hi,m){
 }
 function addMetric(cat,n,v,lo,hi,m,u,segs){
   var s=score(v,lo,hi,m);
-  METRICS.push({cat:cat,n:n,v:v,lo:lo,hi:hi,m:m,u:u,s:Math.round(s),segs:segs});
+  METRICS.push({i:METRICS.length,cat:cat,n:n,v:v,lo:lo,hi:hi,m:m,u:u,s:Math.round(s),segs:segs});
   return s;
 }
 
-/* ================= РАСЧЁТ (~32 метрики) ================= */
+/* ================= РАСЧЁТ ================= */
 function finish(){
+  editorOn=false;
   var W=img.width,H=img.height;PTS={};
   POINTS.forEach(function(t,i){PTS[t[0]]={x:placed[i].x*W,y:placed[i].y*H};});
   var bizy=dist(PTS.bizR,PTS.bizL);
@@ -505,7 +538,7 @@ function finish(){
   buildList();showMetric(0);
 }
 
-/* ================= РЕЗУЛЬТАТ (группировка) ================= */
+/* ================= РЕЗУЛЬТАТ ================= */
 var CATS=["👁 Глаза","👃 Нос","👄 Рот","🦴 Челюсть","📐 Пропорции","🪞 Симметрия"];
 function buildList(){
   var tt=thirds[0]+thirds[1]+thirds[2];
@@ -521,11 +554,10 @@ function buildList(){
     var rows=METRICS.filter(function(m){return m.cat===cat;});
     if(!rows.length)return;
     html+='<h2 class="cat">'+cat+'</h2>';
-    rows.forEach(function(m){
-      var gi=METRICS.indexOf(m);
+    rows.forEach(function(m,ri){
       var gz=gauge(m.v,m.lo,m.hi,m.m);
       var c=colorOf(m.s);
-      html+='<div class="mrow" data-i="'+gi+'">'
+      html+='<div class="mrow" data-i="'+m.i+'" style="animation-delay:'+(ri*0.04)+'s">'
         +'<div class="mhead"><span>'+m.n+'</span>'
         +'<span class="chip" style="background:'+c+'22;color:'+c+'">'+m.s+'</span></div>'
         +'<div class="gauge" style="background:'+gz.grad+'"><i style="left:'+gz.pos+'%"></i></div>'
