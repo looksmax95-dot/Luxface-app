@@ -5,181 +5,127 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-:root{
-  --bg1:#0b0f1a; --bg2:#141a2e;
-  --line:rgba(255,255,255,.1);
-  --txt:#f2f5fa; --mut:#93a0b4;
-  --acc:#5b8cff; --acc2:#8b5bff;
-  --ok:#3ddc84; --warn:#ffd166; --bad:#ff5c7a;
-}
+:root{--bg1:#0b0f1a;--bg2:#141a2e;--line:rgba(255,255,255,.1);--txt:#f2f5fa;--mut:#93a0b4;
+--acc:#5b8cff;--acc2:#8b5bff;--ok:#3ddc84;--warn:#ffd166;--bad:#ff5c7a}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
-html,body{
-  margin:0;height:100%;overflow:hidden;color:var(--txt);
-  font:15px/1.45 -apple-system,Roboto,sans-serif;
-  background:linear-gradient(160deg,var(--bg1),var(--bg2));
-}
+html,body{margin:0;height:100%;overflow:hidden;color:var(--txt);
+font:15px/1.45 -apple-system,Roboto,sans-serif;background:linear-gradient(160deg,var(--bg1),var(--bg2))}
 .screen{position:fixed;inset:0;display:flex;flex-direction:column;animation:fadeIn .25s ease}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-/* ---- меню ---- */
 #home{overflow-y:auto;background:#0a1230}
-.wrap{position:relative}
-.wrap>img{width:100%;display:block}
+.wrap{position:relative}.wrap>img{width:100%;display:block}
 .zone{position:absolute;opacity:0;border:0;background:none}
 #pval{position:absolute;color:#fff;font-size:12px;font-weight:800;text-shadow:0 0 6px #000}
-/* ---- общее ---- */
-h1{font-size:24px;font-weight:800;margin:2px 0;
-  background:linear-gradient(90deg,var(--acc),var(--acc2));
-  -webkit-background-clip:text;color:transparent}
+h1{font-size:24px;font-weight:800;margin:2px 0;background:linear-gradient(90deg,var(--acc),var(--acc2));
+-webkit-background-clip:text;color:transparent}
 h2.cat{font-size:15px;font-weight:800;margin:14px 0 4px}
 .sub{color:var(--mut);font-size:12.5px}
-button{transition:transform .12s ease}
-button:active{transform:scale(.95)}
-/* ---- редактор ---- */
-#editor{background:#000}
-canvas#cv{position:absolute;inset:0;touch-action:none}
-#top{position:absolute;top:0;left:0;right:0;padding:12px 14px;z-index:5;
-  background:linear-gradient(#000d,#0000)}
-#pname{font-weight:800;font-size:16px}
-#pdesc{color:#cdd6e4;font-size:12.5px;margin-top:2px}
+button{transition:transform .12s ease}button:active{transform:scale(.95)}
+#editor{background:#000}canvas#cv{position:absolute;inset:0;touch-action:none}
+#top{position:absolute;top:0;left:0;right:0;padding:12px 14px;z-index:5;background:linear-gradient(#000d,#0000)}
+#pname{font-weight:800;font-size:16px}#pdesc{color:#cdd6e4;font-size:12.5px;margin-top:2px}
 #ring{position:absolute;right:12px;top:12px;width:46px;height:46px;z-index:6}
 #ringv{transition:stroke-dashoffset .3s ease}
-#guide{position:absolute;left:10px;top:70px;width:132px;height:166px;
-  background:#0009;border:1px solid var(--line);border-radius:14px;z-index:5}
-#loupe{position:absolute;right:10px;top:70px;width:110px;height:110px;
-  background:#000c;border:1px solid var(--acc);border-radius:12px;z-index:5}
-#bar{position:absolute;left:0;right:0;bottom:0;
-  padding:10px 12px calc(10px + env(safe-area-inset-bottom));
-  display:flex;gap:8px;z-index:6;background:linear-gradient(#0000,#000d)}
-#bar button{flex:1;border:0;border-radius:14px;padding:13px 0;font-size:17px;
-  color:#fff;background:#1b2233cc;border:1px solid var(--line)}
+#guide{position:absolute;left:10px;top:70px;width:132px;height:166px;background:#0009;
+border:1px solid var(--line);border-radius:14px;z-index:5}
+#loupe{position:absolute;right:10px;top:70px;width:110px;height:110px;background:#000c;
+border:1px solid var(--acc);border-radius:12px;z-index:5}
+#bar{position:absolute;left:0;right:0;bottom:0;padding:10px 12px calc(10px + env(safe-area-inset-bottom));
+display:flex;gap:8px;z-index:6;background:linear-gradient(#0000,#000d)}
+#bar button{flex:1;border:0;border-radius:14px;padding:13px 0;font-size:17px;color:#fff;
+background:#1b2233cc;border:1px solid var(--line)}
 #bar button.main{flex:2;background:linear-gradient(90deg,var(--acc),var(--acc2));font-weight:800}
-/* ---- результат ---- */
-#result{overflow:hidden}
-#rcv{width:100%;height:40vh;background:#000;flex:none}
-#allBtn{position:absolute;top:8px;right:8px;z-index:9;border:0;border-radius:10px;
-  padding:8px 12px;background:#1b2233cc;color:#fff;border:1px solid var(--line);font-size:12px}
+#result{overflow:hidden}#rcv{width:100%;height:38vh;background:#000;flex:none}
+#allBtn{position:absolute;top:8px;right:8px;z-index:9;border:0;border-radius:10px;padding:8px 12px;
+background:#1b2233cc;color:#fff;border:1px solid var(--line);font-size:12px}
 #mlist{flex:1;overflow-y:auto;padding:12px 16px 90px}
+.card2{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:14px;padding:12px;margin:10px 0}
+.brow{display:flex;justify-content:space-between;font-size:13px;padding:3px 0}
 .mrow{padding:9px 10px;border:1px solid var(--line);border-radius:12px;margin-bottom:8px;
-  background:rgba(255,255,255,.03);animation:rise .3s both}
+background:rgba(255,255,255,.03);animation:rise .3s both}
 .mhead{display:flex;justify-content:space-between;font-size:13.5px;font-weight:600}
 .gauge{position:relative;height:9px;border-radius:6px;margin:7px 0 3px}
-.gauge i{position:absolute;top:-3px;width:4px;height:15px;background:#fff;
-  border-radius:2px;box-shadow:0 0 8px #fff}
+.gauge i{position:absolute;top:-3px;width:4px;height:15px;background:#fff;border-radius:2px;box-shadow:0 0 8px #fff}
 .chip{padding:2px 10px;border-radius:20px;font-weight:800;font-size:12px}
-#send{position:fixed;left:16px;right:16px;bottom:12px;border:0;border-radius:14px;
-  padding:15px;font-weight:800;color:#fff;
-  background:linear-gradient(90deg,var(--acc),var(--acc2));z-index:9}
+#send{position:fixed;left:16px;right:16px;bottom:12px;border:0;border-radius:14px;padding:15px;
+font-weight:800;color:#fff;background:linear-gradient(90deg,var(--acc),var(--acc2));z-index:9}
 </style>
 </head>
 <body>
 
 <div class="screen" id="home">
-  <div class="wrap">
-    <img src="home.png" alt="">
-    <input type="file" id="file" accept="image/*" class="zone"
-      style="top:18.8%;left:19%;width:62%;height:4.5%">
-    <select id="p" class="zone" style="top:27%;left:6%;width:88%;height:15%">
-      <option>1</option><option>0.5</option><option>0.3</option>
-      <option selected>0.2</option><option>0</option><option>-1</option>
-    </select>
-    <div id="pval" style="top:29.5%;left:34%">0.2</div>
-  </div>
+ <div class="wrap">
+  <img src="home.png" alt="">
+  <input type="file" id="file" accept="image/*" class="zone" style="top:18.8%;left:19%;width:62%;height:4.5%">
+  <select id="p" class="zone" style="top:27%;left:6%;width:88%;height:15%">
+   <option>1</option><option>0.5</option><option>0.3</option>
+   <option selected>0.2</option><option>0</option><option>-1</option>
+  </select>
+  <div id="pval" style="top:29.5%;left:34%">0.2</div>
+ </div>
 </div>
 
 <div class="screen" id="editor" style="display:none">
-  <canvas id="cv"></canvas>
-  <div id="top"><div id="pname"></div><div id="pdesc"></div></div>
-  <svg id="ring" viewBox="0 0 46 46">
-    <circle cx="23" cy="23" r="20" fill="none" stroke="#ffffff22" stroke-width="4"/>
-    <circle id="ringv" cx="23" cy="23" r="20" fill="none" stroke="url(#g)"
-      stroke-width="4" stroke-linecap="round" stroke-dasharray="125.6"
-      stroke-dashoffset="125.6" transform="rotate(-90 23 23)"/>
-    <defs><linearGradient id="g">
-      <stop offset="0" stop-color="#5b8cff"/><stop offset="1" stop-color="#8b5bff"/>
-    </linearGradient></defs>
-  </svg>
-  <canvas id="guide" width="100" height="126"></canvas>
-  <canvas id="loupe" width="110" height="110"></canvas>
-  <div id="bar">
-    <button id="restart">↺</button>
-    <button id="undo">⟲</button>
-    <button id="zout">−</button>
-    <button id="zin">+</button>
-    <button class="main" id="placeBtn">ТОЧКА</button>
-  </div>
+ <canvas id="cv"></canvas>
+ <div id="top"><div id="pname"></div><div id="pdesc"></div></div>
+ <svg id="ring" viewBox="0 0 46 46">
+  <circle cx="23" cy="23" r="20" fill="none" stroke="#ffffff22" stroke-width="4"/>
+  <circle id="ringv" cx="23" cy="23" r="20" fill="none" stroke="url(#g)" stroke-width="4"
+   stroke-linecap="round" stroke-dasharray="125.6" stroke-dashoffset="125.6" transform="rotate(-90 23 23)"/>
+  <defs><linearGradient id="g"><stop offset="0" stop-color="#5b8cff"/><stop offset="1" stop-color="#8b5bff"/></linearGradient></defs>
+ </svg>
+ <canvas id="guide" width="100" height="126"></canvas>
+ <canvas id="loupe" width="110" height="110"></canvas>
+ <div id="bar">
+  <button id="restart">↺</button><button id="undo">⟲</button>
+  <button id="zout">−</button><button id="zin">+</button>
+  <button class="main" id="placeBtn">ТОЧКА</button>
+ </div>
 </div>
 
 <div class="screen" id="result" style="display:none">
-  <canvas id="rcv"></canvas>
-  <button id="allBtn">ВСЕ ЛИНИИ</button>
-  <div id="mlist"></div>
-  <button id="send">Отправить боту</button>
+ <canvas id="rcv"></canvas>
+ <button id="allBtn">ВСЕ ЛИНИИ</button>
+ <div id="mlist"></div>
+ <button id="send">Отправить боту</button>
 </div>
 
 <script>
 "use strict";
-/* ================= TELEGRAM ================= */
 var TG=(window.Telegram&&window.Telegram.WebApp)?window.Telegram.WebApp:null;
 if(TG){TG.ready();TG.expand();}
 function haptic(){if(TG&&TG.HapticFeedback)TG.HapticFeedback.impactOccurred('light');}
 
-/* ================= ЗВУК (реальный, с разблокировкой) ================= */
+/* ---------- звук ---------- */
 var audioCtx=null;
-function ensureAudio(){
-  if(!audioCtx){
-    var AC=window.AudioContext||window.webkitAudioContext;
-    if(AC)audioCtx=new AC();
-  }
-  return audioCtx;
-}
-function unlockAudio(){
-  var a=ensureAudio();
-  if(a&&a.state==='suspended'){a.resume();}
-}
-/* Разблокируем звук первым же касанием где угодно */
+function ensureAudio(){if(!audioCtx){var AC=window.AudioContext||window.webkitAudioContext;if(AC)audioCtx=new AC();}return audioCtx;}
+function unlockAudio(){var a=ensureAudio();if(a&&a.state==='suspended')a.resume();}
 document.addEventListener('pointerdown',unlockAudio);
 document.addEventListener('touchstart',unlockAudio);
+function playTone(f,d,v){var a=ensureAudio();if(!a)return;
+ function go(){try{var o=a.createOscillator(),g=a.createGain();o.type='sine';o.frequency.value=f;
+  g.gain.setValueAtTime(v||.15,a.currentTime);g.gain.exponentialRampToValueAtTime(.0001,a.currentTime+d);
+  o.connect(g);g.connect(a.destination);o.start();o.stop(a.currentTime+d);}catch(e){}}
+ if(a.state==='running')go();else a.resume().then(go);}
+function soundPlace(){playTone(880,.08);}
+function soundUndo(){playTone(320,.09);}
+function soundDone(){[523,659,784,1046].forEach(function(f,i){setTimeout(function(){playTone(f,.14);},i*90);});}
 
-function playTone(freq,dur,vol){
-  var a=ensureAudio();
-  if(!a)return;
-  function doPlay(){
-    try{
-      var o=a.createOscillator(),g=a.createGain();
-      o.type='sine';o.frequency.value=freq;
-      g.gain.setValueAtTime(vol||.15,a.currentTime);
-      g.gain.exponentialRampToValueAtTime(.0001,a.currentTime+dur);
-      o.connect(g);g.connect(a.destination);
-      o.start();o.stop(a.currentTime+dur);
-    }catch(e){}
-  }
-  if(a.state==='running')doPlay();
-  else a.resume().then(doPlay);
-}
-function soundPlace(){playTone(880,.08,.15);}
-function soundUndo(){playTone(320,.09,.15);}
-function soundDone(){[523,659,784,1046].forEach(function(f,i){setTimeout(function(){playTone(f,.14,.15);},i*90);});}
-
-/* ================= DOM ================= */
+/* ---------- DOM ---------- */
 function byId(id){return document.getElementById(id);}
 var elHome=byId('home'),elEditor=byId('editor'),elResult=byId('result');
 var elFile=byId('file'),elP=byId('p'),elPval=byId('pval');
 var elCv=byId('cv'),ctx=elCv.getContext('2d');
-var elName=byId('pname'),elDesc=byId('pdesc');
-var elRing=byId('ringv');
+var elName=byId('pname'),elDesc=byId('pdesc'),elRing=byId('ringv');
 var elGuide=byId('guide'),gctx=elGuide.getContext('2d');
 var elLoupe=byId('loupe'),lctx=elLoupe.getContext('2d');
-var elRestart=byId('restart'),elUndo=byId('undo');
-var elZin=byId('zin'),elZout=byId('zout'),elPlace=byId('placeBtn');
+var elRestart=byId('restart'),elUndo=byId('undo'),elZin=byId('zin'),elZout=byId('zout'),elPlace=byId('placeBtn');
 var elRcv=byId('rcv'),rctx=elRcv.getContext('2d');
 var elAll=byId('allBtn'),elList=byId('mlist'),elSend=byId('send');
-
-/* Бледная подложка-лицо (декор, не источник данных) */
 var guideImg=new Image();guideImg.src='guide.png';
 
-/* ================= 46 ТОЧЕК = ровно те, что нужны метрикам =================
-   [ключ, имя, описание, sx, sy]  — ЕДИНЫЙ источник для редактора, гайда, результата */
+/* ---------- 46 точек (единственный источник) ---------- */
 var POINTS=[
 ["hair","Линия роста волос","Середина лба, где начинаются волосы",.5,.06],
 ["nas","Назион","Переносица, где нос начинается между глаз",.5,.42],
@@ -187,446 +133,365 @@ var POINTS=[
 ["chin","Подбородок","Самая нижняя точка подбородка",.5,.97],
 ["eyeRo","Глаз прав. внешн.","Внешний уголок правого глаза",.24,.45],
 ["eyeRi","Глаз прав. внутр.","Внутренний уголок правого глаза",.40,.45],
-["eyeRu","Прав. верх. веко","Середина верхнего века правого глаза",.32,.43],
-["eyeRl","Прав. ниж. веко","Середина нижнего века правого глаза",.32,.47],
+["eyeRu","Прав. верх. веко","Середина верхнего века правого",.32,.43],
+["eyeRl","Прав. ниж. веко","Середина нижнего века правого",.32,.47],
 ["eyeRc","Прав. зрачок","Центр зрачка правого глаза",.32,.45],
 ["eyeLo","Глаз лев. внешн.","Внешний уголок левого глаза",.76,.45],
 ["eyeLi","Глаз лев. внутр.","Внутренний уголок левого глаза",.60,.45],
-["eyeLu","Лев. верх. веко","Середина верхнего века левого глаза",.68,.43],
-["eyeLl","Лев. ниж. веко","Середина нижнего века левого глаза",.68,.47],
+["eyeLu","Лев. верх. веко","Середина верхнего века левого",.68,.43],
+["eyeLl","Лев. ниж. веко","Середина нижнего века левого",.68,.47],
 ["eyeLc","Лев. зрачок","Центр зрачка левого глаза",.68,.45],
-["browRi","Бровь прав. внутр.","Начало правой брови у переносицы",.36,.36],
-["browRp","Бровь прав. пик","Самая высокая точка правой брови",.32,.34],
-["browRo","Бровь прав. внешн.","Кончик (хвост) правой брови",.22,.36],
-["browLi","Бровь лев. внутр.","Начало левой брови у переносицы",.64,.36],
-["browLp","Бровь лев. пик","Самая высокая точка левой брови",.68,.34],
-["browLo","Бровь лев. внешн.","Кончик (хвост) левой брови",.78,.36],
-["bizR","Шилица прав.","Максимум ширины лица справа",.13,.50],
+["browRi","Бровь прав. внутр.","Начало правой брови",.36,.36],
+["browRp","Бровь прав. пик","Верх правой брови",.32,.34],
+["browRo","Бровь прав. внешн.","Хвост правой брови",.22,.36],
+["browLi","Бровь лев. внутр.","Начало левой брови",.64,.36],
+["browLp","Бровь лев. пик","Верх левой брови",.68,.34],
+["browLo","Бровь лев. внешн.","Хвост левой брови",.78,.36],
+["bizR","Ширина прав.","Максимум ширины лица справа",.13,.50],
 ["bizL","Ширина лев.","Максимум ширины лица слева",.87,.50],
 ["tempR","Висок прав.","Край лба у виска справа",.16,.32],
 ["tempL","Висок лев.","Край лба у виска слева",.84,.32],
 ["noseR","Крыло прав.","Внешний край правой ноздри",.42,.62],
 ["noseL","Крыло лев.","Внешний край левой ноздри",.58,.62],
-["ntip","Кончик носа","Самая выступающая точка носа",.5,.60],
-["lt","Верхняя губа","Лук Купидона, верхний край губ",.5,.73],
+["ntip","Кончик носа","Выступающая точка носа",.5,.60],
+["lt","Верхняя губа","Лук Купидона",.5,.73],
 ["st","Линия губ","Стык губ по центру",.5,.76],
 ["lb","Низ нижней губы","Нижний край нижней губы",.5,.80],
 ["mouR","Рот прав. уголок","Правый уголок губ",.34,.76],
 ["mouL","Рот лев. уголок","Левый уголок губ",.66,.76],
 ["gonR","Угол челюсти прав.","Нижний угол челюсти справа",.24,.80],
 ["gonL","Угол челюсти лев.","Нижний угол челюсти слева",.76,.80],
-["jawMidR","Челюсть сред прав.","Середина дуги челюсти справа",.32,.89],
-["jawMidL","Челюсть сред лев.","Середина дуги челюсти слева",.68,.89],
-["jawLowR","Челюсть низ прав.","Нижняя часть дуги справа",.41,.94],
-["jawLowL","Челюсть низ лев.","Нижняя часть дуги слева",.59,.94],
+["jawMidR","Челюсть сред прав.","Середина дуги справа",.32,.89],
+["jawMidL","Челюсть сред лев.","Середина дуги слева",.68,.89],
+["jawLowR","Челюсть низ прав.","Низ дуги справа",.41,.94],
+["jawLowL","Челюсть низ лев.","Низ дуги слева",.59,.94],
 ["zygR","Скула прав.","Выступающая точка правой скулы",.18,.57],
 ["zygL","Скула лев.","Выступающая точка левой скулы",.82,.57],
-["holR","Впадина прав.","Щёчная впадина под скулой справа",.30,.70],
-["holL","Впадина лев.","Щёчная впадина под скулой слева",.70,.70],
+["holR","Впадина прав.","Щёчная впадина справа",.30,.70],
+["holL","Впадина лев.","Щёчная впадина слева",.70,.70],
 ["neckR","Шея прав.","Правый край шеи",.32,1.0],
 ["neckL","Шея лев.","Левый край шеи",.68,1.0],
 ["chinR","Подбородок прав.","Правый край подбородка",.44,.95],
-["chinL","Подбородок лев.","Левый край подбородка",.56,.95]
-];
-/* Быстрый доступ по ключу (тот же источник) */
-var SCH={};
-POINTS.forEach(function(p){SCH[p[0]]={x:p[3],y:p[4]};});
+["chinL","Подбородок лев.","Левый край подбородка",.56,.95]];
+var SCH={};POINTS.forEach(function(p){SCH[p[0]]={x:p[3],y:p[4]};});
 
-/* ================= СОСТОЯНИЕ ================= */
-var img=null,placed=[],idx=0,PVAL=.2;
-var view={s:1,ox:0,oy:0};
+/* ---------- состояние ---------- */
+var img=null,placed=[],idx=0,PVAL=.2,view={s:1,ox:0,oy:0};
 var dpr=window.devicePixelRatio||1,cw=0,ch=0;
-var METRICS=[],PTS={},overall=0,psl=1,thirds=[0,0,0];
+var METRICS=[],PTS={},overall=0,psl=1,thirds=[0,0,0],CATSCORES={},QUAL=null;
 var showAllOn=false,editorOn=false,animId=null;
 
 try{var sp=localStorage.getItem('luxp');if(sp!==null)elP.value=sp;}catch(e){}
 elPval.textContent=elP.value;
-elP.addEventListener('change',function(){
-  elPval.textContent=elP.value;
-  try{localStorage.setItem('luxp',elP.value);}catch(e){}
-});
+elP.addEventListener('change',function(){elPval.textContent=elP.value;
+ try{localStorage.setItem('luxp',elP.value);}catch(e){}});
 
-/* ================= СТАРТ ================= */
-elFile.onchange=function(e){
-  var f=e.target.files[0];if(!f)return;
-  unlockAudio();PVAL=parseFloat(elP.value);
-  var r=new FileReader();
-  r.onload=function(ev){img=new Image();img.onload=startEditor;img.src=ev.target.result;};
-  r.readAsDataURL(f);
-};
-function startEditor(){
-  elHome.style.display='none';elEditor.style.display='block';
-  editorOn=true;
-  resizeCanvas();placed=[];idx=0;fitImage();
-  updatePointUI();
-  playTone(660,.06,.1); /* тест-клик: звук работает */
-  if(!animId)animId=requestAnimationFrame(loop);
-}
-function resizeCanvas(){
-  cw=window.innerWidth;ch=window.innerHeight;
-  elCv.width=cw*dpr;elCv.height=ch*dpr;
-  elCv.style.width=cw+'px';elCv.style.height=ch+'px';
-}
-function fitImage(){
-  view.s=Math.min(cw/img.width,ch/img.height)*.9;
-  view.ox=(cw-img.width*view.s)/2;
-  view.oy=(ch-img.height*view.s)/2;
-}
-function updatePointUI(){
-  var p=POINTS[idx];
-  elName.textContent=(idx+1)+"/"+POINTS.length+" · "+p[1];
-  elDesc.textContent=p[2];
-  elRing.style.strokeDashoffset=125.6*(1-idx/POINTS.length);
-}
+/* ---------- старт ---------- */
+elFile.onchange=function(e){var f=e.target.files[0];if(!f)return;
+ unlockAudio();PVAL=parseFloat(elP.value);
+ var r=new FileReader();
+ r.onload=function(ev){img=new Image();img.onload=startEditor;img.src=ev.target.result;};
+ r.readAsDataURL(f);};
+function startEditor(){elHome.style.display='none';elEditor.style.display='block';editorOn=true;
+ resizeCanvas();placed=[];idx=0;fitImage();updatePointUI();playTone(660,.06,.1);
+ if(!animId)animId=requestAnimationFrame(loop);}
+function resizeCanvas(){cw=innerWidth;ch=innerHeight;elCv.width=cw*dpr;elCv.height=ch*dpr;
+ elCv.style.width=cw+'px';elCv.style.height=ch+'px';}
+function fitImage(){view.s=Math.min(cw/img.width,ch/img.height)*.9;
+ view.ox=(cw-img.width*view.s)/2;view.oy=(ch-img.height*view.s)/2;}
+function updatePointUI(){var p=POINTS[idx];
+ elName.textContent=(idx+1)+"/"+POINTS.length+" · "+p[1];
+ elDesc.textContent=p[2];
+ elRing.style.strokeDashoffset=125.6*(1-idx/POINTS.length);}
 
-/* ================= ЦИКЛ АНИМАЦИИ РЕДАКТОРА ================= */
-function loop(ts){
-  if(!editorOn){animId=null;return;}
-  drawEditor(ts);
-  drawGuide(ts);
-  drawLoupe();
-  animId=requestAnimationFrame(loop);
-}
+/* ---------- цикл ---------- */
+function loop(ts){if(!editorOn){animId=null;return;}
+ drawEditor(ts);drawGuide(ts);drawLoupe();animId=requestAnimationFrame(loop);}
 
-/* ================= ГАЙД: вектор из ТОГО ЖЕ источника ================= */
-function drawGuide(ts){
-  var t=(ts||0)/1000;
-  gctx.clearRect(0,0,100,126);
-  /* бледная фотка-подложка (декор) */
-  if(guideImg.complete&&guideImg.naturalWidth>0){
-    gctx.globalAlpha=.22;gctx.drawImage(guideImg,0,0,100,126);gctx.globalAlpha=1;
-  }
-  gctx.strokeStyle='#5a6residual';
-  gctx.strokeStyle='#5a6a8a';gctx.lineWidth=1.2;
-  /* овал лица из hair/chin/biz */
-  var cx=(SCH.bizR.x+SCH.bizL.x)/2*100, cy=(SCH.hair.y+SCH.chin.y)/2*126;
-  var rx=(SCH.bizL.x-SCH.bizR.x)/2*100, ry=(SCH.chin.y-SCH.hair.y)/2*126;
-  gctx.beginPath();gctx.ellipse(cx,cy,rx,ry,0,0,7);gctx.stroke();
-  /* глаза */
-  function eye(a,b,u,l){
-    var ex=(SCH[a].x+SCH[b].x)/2*100, ey=(SCH[u].y+SCH[l].y)/2*126;
-    var erx=Math.abs(SCH[b].x-SCH[a].x)/2*100, ery=Math.abs(SCH[l].y-SCH[u].y)/2*126;
-    gctx.beginPath();gctx.ellipse(ex,ey,erx,ery,0,0,7);gctx.stroke();
-  }
-  eye('eyeRo','eyeRi','eyeRu','eyeRl');
-  eye('eyeLo','eyeLi','eyeLu','eyeLl');
-  /* брови */
-  function brow(i,p,o){
-    gctx.beginPath();
-    gctx.moveTo(SCH[i].x*100,SCH[i].y*126);
-    gctx.quadraticCurveTo(SCH[p].x*100,SCH[p].y*126,SCH[o].x*100,SCH[o].y*126);
-    gctx.stroke();
-  }
-  brow('browRi','browRp','browRo');brow('browLi','browLp','browLo');
-  /* нос */
-  gctx.beginPath();gctx.moveTo(SCH.nas.x*100,SCH.nas.y*126);gctx.lineTo(SCH.ntip.x*100,SCH.ntip.y*126);gctx.stroke();
-  gctx.beginPath();gctx.moveTo(SCH.noseR.x*100,SCH.noseR.y*126);gctx.quadraticCurveTo(SCH.ntip.x*100,(SCH.ntip.y+.03)*126,SCH.noseL.x*100,SCH.noseL.y*126);gctx.stroke();
-  /* рот */
-  gctx.beginPath();gctx.moveTo(SCH.mouR.x*100,SCH.mouR.y*126);gctx.quadraticCurveTo(SCH.st.x*100,SCH.st.y*126,SCH.mouL.x*100,SCH.mouL.y*126);gctx.stroke();
-  /* челюсть */
-  gctx.beginPath();gctx.moveTo(SCH.gonR.x*100,SCH.gonR.y*126);
-  gctx.quadraticCurveTo(SCH.chin.x*100,(SCH.chin.y+.02)*126,SCH.gonL.x*100,SCH.gonL.y*126);gctx.stroke();
-  /* ПУЛЬСИРУЮЩАЯ точка текущей цели — из того же SCH */
-  var g=SCH[POINTS[idx][0]];
-  var pulse=3+Math.sin(t*6)*1.2;
-  gctx.fillStyle='#ff5c7a';
-  gctx.beginPath();gctx.arc(g.x*100,g.y*126,2.5,0,7);gctx.fill();
-  gctx.globalAlpha=.5;gctx.strokeStyle='#ff5c7a';
-  gctx.beginPath();gctx.arc(g.x*100,g.y*126,pulse+3,0,7);gctx.stroke();
-  gctx.globalAlpha=1;
-}
+/* ---------- гайд ---------- */
+function drawGuide(ts){var t=(ts||0)/1000;
+ gctx.clearRect(0,0,100,126);
+ if(guideImg.complete&&guideImg.naturalWidth>0){gctx.globalAlpha=.22;gctx.drawImage(guideImg,0,0,100,126);gctx.globalAlpha=1;}
+ gctx.strokeStyle='#5a6a8a';gctx.lineWidth=1.2;
+ var cx=(SCH.bizR.x+SCH.bizL.x)/2*100,cy=(SCH.hair.y+SCH.chin.y)/2*126;
+ var rx=(SCH.bizL.x-SCH.bizR.x)/2*100,ry=(SCH.chin.y-SCH.hair.y)/2*126;
+ gctx.beginPath();gctx.ellipse(cx,cy,rx,ry,0,0,7);gctx.stroke();
+ function eye(a,b,u,l){var ex=(SCH[a].x+SCH[b].x)/2*100,ey=(SCH[u].y+SCH[l].y)/2*126;
+  var erx=Math.abs(SCH[b].x-SCH[a].x)/2*100,ery=Math.abs(SCH[l].y-SCH[u].y)/2*126;
+  gctx.beginPath();gctx.ellipse(ex,ey,erx,ery,0,0,7);gctx.stroke();}
+ eye('eyeRo','eyeRi','eyeRu','eyeRl');eye('eyeLo','eyeLi','eyeLu','eyeLl');
+ function brow(i,p,o){gctx.beginPath();gctx.moveTo(SCH[i].x*100,SCH[i].y*126);
+  gctx.quadraticCurveTo(SCH[p].x*100,SCH[p].y*126,SCH[o].x*100,SCH[o].y*126);gctx.stroke();}
+ brow('browRi','browRp','browRo');brow('browLi','browLp','browLo');
+ gctx.beginPath();gctx.moveTo(SCH.nas.x*100,SCH.nas.y*126);gctx.lineTo(SCH.ntip.x*100,SCH.ntip.y*126);gctx.stroke();
+ gctx.beginPath();gctx.moveTo(SCH.mouR.x*100,SCH.mouR.y*126);
+ gctx.quadraticCurveTo(SCH.st.x*100,SCH.st.y*126,SCH.mouL.x*100,SCH.mouL.y*126);gctx.stroke();
+ gctx.beginPath();gctx.moveTo(SCH.gonR.x*100,SCH.gonR.y*126);
+ gctx.quadraticCurveTo(SCH.chin.x*100,(SCH.chin.y+.02)*126,SCH.gonL.x*100,SCH.gonL.y*126);gctx.stroke();
+ var g=SCH[POINTS[idx][0]],pulse=3+Math.sin(t*6)*1.2;
+ gctx.fillStyle='#ff5c7a';gctx.beginPath();gctx.arc(g.x*100,g.y*126,2.5,0,7);gctx.fill();
+ gctx.globalAlpha=.5;gctx.strokeStyle='#ff5c7a';
+ gctx.beginPath();gctx.arc(g.x*100,g.y*126,pulse+3,0,7);gctx.stroke();gctx.globalAlpha=1;}
 
-/* ================= ЛУПА ================= */
-function drawLoupe(){
-  var L=110;
-  lctx.setTransform(1,0,0,1,0,0);
-  lctx.clearRect(0,0,L,L);
-  var wx=((cw/2)-view.ox)/view.s, wy=((ch/2)-view.oy)/view.s;
-  var sc=L/(img.width*0.14);
-  lctx.save();
-  lctx.translate(L/2,L/2);lctx.scale(sc,sc);lctx.translate(-wx,-wy);
-  lctx.drawImage(img,0,0);
-  lctx.restore();
-  lctx.strokeStyle='#3ddc84';lctx.lineWidth=1;
-  lctx.beginPath();lctx.moveTo(L/2-8,L/2);lctx.lineTo(L/2+8,L/2);
-  lctx.moveTo(L/2,L/2-8);lctx.lineTo(L/2,L/2+8);lctx.stroke();
-}
+/* ---------- лупа ---------- */
+function drawLoupe(){var L=110;lctx.setTransform(1,0,0,1,0,0);lctx.clearRect(0,0,L,L);
+ var wx=((cw/2)-view.ox)/view.s,wy=((ch/2)-view.oy)/view.s,sc=L/(img.width*.14);
+ lctx.save();lctx.translate(L/2,L/2);lctx.scale(sc,sc);lctx.translate(-wx,-wy);
+ lctx.drawImage(img,0,0);lctx.restore();
+ lctx.strokeStyle='#3ddc84';lctx.lineWidth=1;
+ lctx.beginPath();lctx.moveTo(L/2-8,L/2);lctx.lineTo(L/2+8,L/2);
+ lctx.moveTo(L/2,L/2-8);lctx.lineTo(L/2,L/2+8);lctx.stroke();}
 
-/* ================= РЕДАКТОР ================= */
-function drawEditor(ts){
-  var t=(ts||0)/1000;
-  ctx.setTransform(dpr,0,0,dpr,0,0);
-  ctx.clearRect(0,0,cw,ch);
-  ctx.save();ctx.translate(view.ox,view.oy);ctx.scale(view.s,view.s);
-  ctx.drawImage(img,0,0);ctx.restore();
-  for(var i=0;i<placed.length;i++){
-    var p=placed[i],x=p.x*img.width*view.s+view.ox,y=p.y*img.height*view.s+view.oy;
-    ctx.fillStyle='#3ddc84';ctx.beginPath();ctx.arc(x,y,4,0,7);ctx.fill();
-    ctx.fillStyle='#fff';ctx.font='10px sans';ctx.fillText(i+1,x+6,y-6);
-  }
-  var pulse=8+Math.sin(t*6)*3;
-  ctx.strokeStyle='#3ddc84';ctx.lineWidth=1.5;
-  ctx.shadowColor='#3ddc84';ctx.shadowBlur=pulse;
-  ctx.beginPath();
-  ctx.moveTo(cw/2-16,ch/2);ctx.lineTo(cw/2+16,ch/2);
-  ctx.moveTo(cw/2,ch/2-16);ctx.lineTo(cw/2,ch/2+16);
-  ctx.stroke();ctx.shadowBlur=0;
-}
+/* ---------- редактор ---------- */
+function drawEditor(ts){var t=(ts||0)/1000;
+ ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,cw,ch);
+ ctx.save();ctx.translate(view.ox,view.oy);ctx.scale(view.s,view.s);ctx.drawImage(img,0,0);ctx.restore();
+ for(var i=0;i<placed.length;i++){var p=placed[i],x=p.x*img.width*view.s+view.ox,y=p.y*img.height*view.s+view.oy;
+  ctx.fillStyle='#3ddc84';ctx.beginPath();ctx.arc(x,y,4,0,7);ctx.fill();
+  ctx.fillStyle='#fff';ctx.font='10px sans';ctx.fillText(i+1,x+6,y-6);}
+ var pulse=8+Math.sin(t*6)*3;
+ ctx.strokeStyle='#3ddc84';ctx.lineWidth=1.5;ctx.shadowColor='#3ddc84';ctx.shadowBlur=pulse;
+ ctx.beginPath();ctx.moveTo(cw/2-16,ch/2);ctx.lineTo(cw/2+16,ch/2);
+ ctx.moveTo(cw/2,ch/2-16);ctx.lineTo(cw/2,ch/2+16);ctx.stroke();ctx.shadowBlur=0;}
 
-/* ================= ТОЧКИ ================= */
-function placePoint(){
-  placed.push({
-    x:((cw/2)-view.ox)/view.s/img.width,
-    y:((ch/2)-view.oy)/view.s/img.height
-  });
-  haptic();soundPlace();idx++;
-  if(idx>=POINTS.length)finish();
-  else updatePointUI();
-}
-function undoPoint(){
-  if(idx>0){idx--;placed.pop();haptic();soundUndo();updatePointUI();}
-}
-function restartPoints(){
-  placed=[];idx=0;haptic();soundUndo();
-  fitImage();updatePointUI();
-}
+/* ---------- точки ---------- */
+function placePoint(){placed.push({x:((cw/2)-view.ox)/view.s/img.width,y:((ch/2)-view.oy)/view.s/img.height});
+ haptic();soundPlace();idx++;
+ if(idx>=POINTS.length)finish();else updatePointUI();}
+function undoPoint(){if(idx>0){idx--;placed.pop();haptic();soundUndo();updatePointUI();}}
+function restartPoints(){placed=[];idx=0;haptic();soundUndo();fitImage();updatePointUI();}
 elPlace.addEventListener('click',placePoint);
 elUndo.addEventListener('click',undoPoint);
 elRestart.addEventListener('click',restartPoints);
 elZin.addEventListener('click',function(){view.s=Math.min(30,view.s*1.3);});
 elZout.addEventListener('click',function(){view.s=Math.max(.05,view.s/1.3);});
 
-/* ================= PAN+PINCH ================= */
+/* ---------- pan+pinch ---------- */
 var ptrs=new Map(),pan=null,pinch=null;
 function resetPointers(){ptrs.clear();pan=null;pinch=null;}
-window.addEventListener('blur',resetPointers);
+addEventListener('blur',resetPointers);
 elCv.addEventListener('pointercancel',resetPointers);
-elCv.addEventListener('pointerdown',function(e){
-  elCv.setPointerCapture(e.pointerId);
-  ptrs.set(e.pointerId,[e.clientX,e.clientY]);
-  if(ptrs.size===1)pan={x:e.clientX,y:e.clientY,ox:view.ox,oy:view.oy};
-  else if(ptrs.size===2){
-    var a=Array.from(ptrs.values());
-    pinch={d:Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]),s:view.s};
-  }
-});
-elCv.addEventListener('pointermove',function(e){
-  if(!ptrs.has(e.pointerId))return;
-  ptrs.set(e.pointerId,[e.clientX,e.clientY]);
-  if(ptrs.size===1&&pan){
-    view.ox=pan.ox+e.clientX-pan.x;
-    view.oy=pan.oy+e.clientY-pan.y;
-  }else if(ptrs.size===2&&pinch){
-    var a=Array.from(ptrs.values());
-    var d=Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]);
-    view.s=Math.max(.05,Math.min(30,pinch.s*d/pinch.d));
-  }
-});
-elCv.addEventListener('pointerup',function(e){
-  ptrs.delete(e.pointerId);
-  if(ptrs.size===1){
-    var a=Array.from(ptrs.values())[0];
-    pan={x:a[0],y:a[1],ox:view.ox,oy:view.oy};pinch=null;
-  }else if(ptrs.size===0)pan=null;
-});
+elCv.addEventListener('pointerdown',function(e){elCv.setPointerCapture(e.pointerId);
+ ptrs.set(e.pointerId,[e.clientX,e.clientY]);
+ if(ptrs.size===1)pan={x:e.clientX,y:e.clientY,ox:view.ox,oy:view.oy};
+ else if(ptrs.size===2){var a=Array.from(ptrs.values());pinch={d:Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]),s:view.s};}});
+elCv.addEventListener('pointermove',function(e){if(!ptrs.has(e.pointerId))return;
+ ptrs.set(e.pointerId,[e.clientX,e.clientY]);
+ if(ptrs.size===1&&pan){view.ox=pan.ox+e.clientX-pan.x;view.oy=pan.oy+e.clientY-pan.y;}
+ else if(ptrs.size===2&&pinch){var a=Array.from(ptrs.values());
+  view.s=Math.max(.05,Math.min(30,pinch.s*Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1])/pinch.d));}});
+elCv.addEventListener('pointerup',function(e){ptrs.delete(e.pointerId);
+ if(ptrs.size===1){var a=Array.from(ptrs.values())[0];pan={x:a[0],y:a[1],ox:view.ox,oy:view.oy};pinch=null;}
+ else if(ptrs.size===0)pan=null;});
 
-/* ================= МАТЕМАТИКА ================= */
-function score(v,lo,hi,m){
-  if(v>=lo&&v<=hi)return 100;
-  var d=v<lo?lo-v:v-hi;
-  return Math.max(0,100-100*d/m);
+/* ================= НОВАЯ МАТЕМАТИКА ================= */
+/* 1) плавный штраф: m = отклонение с оценкой 50 */
+function smoothScore(v,lo,hi,m){
+ if(v>=lo&&v<=hi)return 100;
+ var d=v<lo?lo-v:v-hi, dz=1.645*m, t=Math.min(1,d/dz);
+ return 100*Math.pow(1-t*t,1.5);
 }
-function pmean(xs,p){
-  xs=xs.map(function(x){return Math.max(.1,x);});
-  if(Math.abs(p)<1e-9)
-    return Math.exp(xs.reduce(function(a,x){return a+Math.log(x);},0)/xs.length);
-  return Math.pow(xs.reduce(function(a,x){return a+Math.pow(x,p);},0)/xs.length,1/p);
-}
+/* p-mean (обычный) */
+function pmean(xs,p){xs=xs.map(function(x){return Math.max(.1,x);});
+ if(Math.abs(p)<1e-9)return Math.exp(xs.reduce(function(a,x){return a+Math.log(x);},0)/xs.length);
+ return Math.pow(xs.reduce(function(a,x){return a+Math.pow(x,p);},0)/xs.length,1/p);}
+/* взвешенный p-mean */
+function wpmean(pairs,p){var sw=pairs.reduce(function(a,x){return a+x[1];},0);
+ var xs=pairs.map(function(x){return Math.max(.1,x[0]);});
+ if(Math.abs(p)<1e-9)return Math.exp(pairs.reduce(function(a,x,i){return a+x[1]*Math.log(xs[i]);},0)/sw);
+ return Math.pow(pairs.reduce(function(a,x,i){return a+x[1]*Math.pow(xs[i],p);},0)/sw,1/p);}
 function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
-function angleAt(a,b,c){
-  var v1=[a.x-b.x,a.y-b.y],v2=[c.x-b.x,c.y-b.y];
-  var n=Math.hypot(v1[0],v1[1])*Math.hypot(v2[0],v2[1]);
-  if(!n)return 0;
-  var cos=Math.max(-1,Math.min(1,(v1[0]*v2[0]+v1[1]*v2[1])/n));
-  return Math.acos(cos)*180/Math.PI;
-}
+function angleAt(a,b,c){var v1=[a.x-b.x,a.y-b.y],v2=[c.x-b.x,c.y-b.y];
+ var n=Math.hypot(v1[0],v1[1])*Math.hypot(v2[0],v2[1]);if(!n)return 0;
+ var cos=Math.max(-1,Math.min(1,(v1[0]*v2[0]+v1[1]*v2[1])/n));return Math.acos(cos)*180/Math.PI;}
 function colorOf(s){return s>=80?'#3ddc84':s>=50?'#ffd166':'#ff5c7a';}
-function gauge(v,lo,hi,m){
-  var k=3,rl=lo-k*m,rh=hi+k*m;
-  var pos=Math.max(0,Math.min(1,(v-rl)/(rh-rl)));
-  var gs=(lo-rl)/(rh-rl)*100,ge=(hi-rl)/(rh-rl)*100;
-  return{
-    pos:(pos*100).toFixed(1),
-    grad:'linear-gradient(90deg,var(--bad) 0%,var(--warn) '+(gs*.5).toFixed(1)+
-      '%,var(--ok) '+gs.toFixed(1)+'%,var(--ok) '+ge.toFixed(1)+
-      '%,var(--warn) '+(100-(100-ge)*.5).toFixed(1)+'%,var(--bad) 100%)'
-  };
+function gauge(v,lo,hi,m){var k=3,rl=lo-k*m,rh=hi+k*m;
+ var pos=Math.max(0,Math.min(1,(v-rl)/(rh-rl)));
+ var gs=(lo-rl)/(rh-rl)*100,ge=(hi-rl)/(rh-rl)*100;
+ return{pos:(pos*100).toFixed(1),
+  grad:'linear-gradient(90deg,var(--bad) 0%,var(--warn) '+(gs*.5).toFixed(1)+'%,var(--ok) '+gs.toFixed(1)+
+  '%,var(--ok) '+ge.toFixed(1)+'%,var(--warn) '+(100-(100-ge)*.5).toFixed(1)+'%,var(--bad) 100%)'};}
+function addMetric(cat,n,v,lo,hi,m,u,segs){var s=smoothScore(v,lo,hi,m);
+ METRICS.push({i:METRICS.length,cat:cat,n:n,v:v,lo:lo,hi:hi,m:m,u:u,s:Math.round(s),segs:segs});return s;}
+
+/* 5) честная симметрия: 11 пар, гориз+верт */
+function computeSymmetry(bizy,fh){
+ var cx=(PTS.hair.x+PTS.chin.x+PTS.nas.x+PTS.sub.x)/4;
+ var pairs=[['eyeRo','eyeLo'],['eyeRi','eyeLi'],['eyeRc','eyeLc'],['browRp','browLp'],
+  ['noseR','noseL'],['mouR','mouL'],['zygR','zygL'],['gonR','gonL'],['holR','holL'],
+  ['tempR','tempL'],['chinR','chinL']];
+ var devs=[];
+ pairs.forEach(function(pr){var R=PTS[pr[0]],L=PTS[pr[1]];
+  devs.push(Math.abs(Math.abs(R.x-cx)-Math.abs(L.x-cx))/bizy);
+  devs.push(Math.abs(R.y-L.y)/fh);});
+ var avg=devs.reduce(function(a,b){return a+b;},0)/devs.length*100;
+ return Math.max(0,Math.min(100,100-avg*7));
 }
-function addMetric(cat,n,v,lo,hi,m,u,segs){
-  var s=score(v,lo,hi,m);
-  METRICS.push({i:METRICS.length,cat:cat,n:n,v:v,lo:lo,hi:hi,m:m,u:u,s:Math.round(s),segs:segs});
-  return s;
-}
-
-/* ================= РАСЧЁТ ================= */
-function finish(){
-  editorOn=false;
-  var W=img.width,H=img.height;PTS={};
-  POINTS.forEach(function(t,i){PTS[t[0]]={x:placed[i].x*W,y:placed[i].y*H};});
-  var bizy=dist(PTS.bizR,PTS.bizL);
-  var eyew=(dist(PTS.eyeRo,PTS.eyeRi)+dist(PTS.eyeLo,PTS.eyeLi))/2;
-  var fh=dist(PTS.hair,PTS.chin);
-  METRICS=[];var S=[];function push(s){S.push(s);}
-  var up=dist(PTS.hair,PTS.nas),mid=dist(PTS.nas,PTS.sub),low=dist(PTS.sub,PTS.chin);
-  thirds=[up,mid,low];var tt=up+mid+low;
-
-  var ct=((Math.atan2(PTS.eyeRi.y-PTS.eyeRo.y,Math.abs(PTS.eyeRo.x-PTS.eyeRi.x))+
-           Math.atan2(PTS.eyeLi.y-PTS.eyeLo.y,Math.abs(PTS.eyeLo.x-PTS.eyeLi.x)))/2)*180/Math.PI;
-  push(addMetric("👁 Глаза","Canthal tilt",ct,5.2,8.5,9,"°",[["eyeRo","eyeRi"],["eyeLo","eyeLi"]]));
-  push(addMetric("👁 Глаза","Eye aspect",
-    (dist(PTS.eyeRo,PTS.eyeRi)/Math.max(1,dist(PTS.eyeRu,PTS.eyeRl))+
-     dist(PTS.eyeLo,PTS.eyeLi)/Math.max(1,dist(PTS.eyeLu,PTS.eyeLl)))/2,
-    2.8,3.6,1.3,"",[["eyeRo","eyeRi"],["eyeRu","eyeRl"],["eyeLo","eyeLi"],["eyeLu","eyeLl"]]));
-  push(addMetric("👁 Глаза","Eye spacing",dist(PTS.eyeRi,PTS.eyeLi)/Math.max(1,eyew),.93,1.04,.22,"",[["eyeRi","eyeLi"]]));
-  push(addMetric("👁 Глаза","IPD/eye",dist(PTS.eyeRc,PTS.eyeLc)/Math.max(1,eyew),1.9,2.2,.6,"",[["eyeRc","eyeLc"]]));
-  push(addMetric("👁 Глаза","Eye height/face",100*((dist(PTS.eyeRu,PTS.eyeRl)+dist(PTS.eyeLu,PTS.eyeLl))/2)/fh,8,11,4,"%",[["eyeRu","eyeRl"],["eyeLu","eyeLl"]]));
-  push(addMetric("👁 Глаза","Brow position",
-    (Math.abs(PTS.eyeRu.y-PTS.browRp.y)+Math.abs(PTS.eyeLu.y-PTS.browLp.y))/2/
-    Math.max(1,(dist(PTS.eyeRu,PTS.eyeRl)+dist(PTS.eyeLu,PTS.eyeLl))/2),
-    0,.65,.8,"",[["eyeRu","browRp"],["eyeLu","browLp"]]));
-  var bt=((Math.atan2(PTS.browRp.y-PTS.browRi.y,Math.abs(PTS.browRo.x-PTS.browRi.x))+
-           Math.atan2(PTS.browLp.y-PTS.browLi.y,Math.abs(PTS.browLo.x-PTS.browLi.x)))/2)*180/Math.PI;
-  push(addMetric("👁 Глаза","Brow tilt",bt,5,13,9,"°",[["browRi","browRo"],["browLi","browLo"]]));
-
-  push(addMetric("👃 Нос","Nose length %",100*dist(PTS.nas,PTS.sub)/fh,26,30,6,"%",[["nas","sub"]]));
-  push(addMetric("👃 Нос","Nose W/H",dist(PTS.noseR,PTS.noseL)/Math.max(1,dist(PTS.nas,PTS.ntip)),.62,.88,.3,"",[["noseR","noseL"],["nas","ntip"]]));
-  push(addMetric("👃 Нос","Midface",bizy/Math.max(1,dist(PTS.nas,PTS.sub)),1.5,1.7,.35,"",[["bizR","bizL"],["nas","sub"]]));
-
-  push(addMetric("👄 Рот","Mouth/Nose",dist(PTS.mouR,PTS.mouL)/Math.max(1,dist(PTS.noseR,PTS.noseL)),1.38,1.53,.45,"",[["mouR","mouL"],["noseR","noseL"]]));
-  push(addMetric("👄 Рот","Philtrum %",100*dist(PTS.sub,PTS.lt)/fh,8,12,5,"%",[["sub","lt"]]));
-  push(addMetric("👄 Рот","Lip ratio",dist(PTS.st,PTS.lb)/Math.max(1,dist(PTS.lt,PTS.st)),1.4,2,.9,"",[["st","lb"],["lt","st"]]));
-  push(addMetric("👄 Рот","Chin/Philtrum",dist(PTS.lb,PTS.chin)/Math.max(1,dist(PTS.sub,PTS.lt)),2.05,2.55,1,"",[["lb","chin"],["sub","lt"]]));
-  push(addMetric("👄 Рот","Chin width/mouth",dist(PTS.chinR,PTS.chinL)/Math.max(1,dist(PTS.mouR,PTS.mouL)),1.0,1.2,.3,"",[["chinR","chinL"],["mouR","mouL"]]));
-
-  push(addMetric("🦴 Челюсть","Bigonial %",100*dist(PTS.gonR,PTS.gonL)/bizy,85.5,92,12,"%",[["gonR","gonL"],["bizR","bizL"]]));
-  push(addMetric("🦴 Челюсть","Jaw frontal °",angleAt(PTS.gonR,PTS.chin,PTS.gonL),84.5,95,14,"°",[["gonR","chin"],["gonL","chin"]]));
-  push(addMetric("🦴 Челюсть","Jawline def",
-    (angleAt(PTS.gonR,PTS.jawMidR,PTS.jawLowR)+angleAt(PTS.gonL,PTS.jawMidL,PTS.jawLowL))/2,
-    160,178,22,"°",[["gonR","jawMidR"],["jawMidR","jawLowR"],["gonL","jawMidL"],["jawMidL","jawLowL"]]));
-  push(addMetric("🦴 Челюсть","Cheekbone pos",100*((PTS.zygR.y+PTS.zygL.y)/2-PTS.hair.y)/fh,81,100,22,"%",[["zygR","zygL"]]));
-  push(addMetric("🦴 Челюсть","Cheek sculpt",100*(bizy-dist(PTS.holR,PTS.holL))/bizy,10,18,12,"%",[["bizR","bizL"],["holR","holL"]]));
-  push(addMetric("🦴 Челюсть","Neck width %",100*dist(PTS.neckR,PTS.neckL)/bizy,90,100,14,"%",[["neckR","neckL"],["bizR","bizL"]]));
-  push(addMetric("🦴 Челюсть","Temple/Jaw taper",dist(PTS.tempR,PTS.tempL)/Math.max(1,dist(PTS.gonR,PTS.gonL)),1.15,1.3,.2,"",[["tempR","tempL"],["gonR","gonL"]]));
-
-  push(addMetric("📐 Пропорции","Fifths",eyew/(bizy/5),.9,1.1,.3,"",[["eyeRo","eyeRi"],["bizR","bizL"]]));
-  push(addMetric("📐 Пропорции","FWHR",bizy/Math.max(1,dist(PTS.nas,PTS.lt)),1.9,2.06,.5,"",[["bizR","bizL"],["nas","lt"]]));
-  push(addMetric("📐 Пропорции","Total FWHR",fh/bizy,1.33,1.38,.22,"",[["hair","chin"],["bizR","bizL"]]));
-  push(addMetric("📐 Пропорции","Mid/Lower",mid/low,.9,1.1,.25,"",[["nas","sub"],["sub","chin"]]));
-  push(addMetric("📐 Пропорции","Lower face %",100*low/fh,30.6,34,7,"%",[["sub","chin"],["hair","chin"]]));
-  push(addMetric("📐 Пропорции","Bitemporal %",100*dist(PTS.tempR,PTS.tempL)/bizy,84,95,12,"%",[["tempR","tempL"],["bizR","bizL"]]));
-
-  var sym=100-(
-    Math.abs(dist(PTS.eyeRo,PTS.eyeRi)-dist(PTS.eyeLo,PTS.eyeLi))/Math.max(1,eyew)*100+
-    Math.abs(dist(PTS.gonR,PTS.chin)-dist(PTS.gonL,PTS.chin))/Math.max(1,dist(PTS.gonR,PTS.chin))*100+
-    Math.abs(dist(PTS.browRp,PTS.eyeRc)-dist(PTS.browLp,PTS.eyeLc))/Math.max(1,dist(PTS.browRp,PTS.eyeRc))*100)/3;
-  push(addMetric("🪞 Симметрия","Symmetry",sym,90,97,10,"%",[["hair","chin"]]));
-
-  overall=pmean(S,PVAL);
-  psl=Math.max(1,Math.min(8,overall/10-2));
-  soundDone();
-  elEditor.style.display='none';elResult.style.display='flex';
-  buildList();showMetric(0);
+/* 6) качество фото + confidence */
+function computeQuality(bizy,fh){
+ var faceFrac=fh/img.height;
+ var roll=Math.abs(Math.atan2(PTS.eyeLc.y-PTS.eyeRc.y,PTS.eyeLc.x-PTS.eyeRc.x))*180/Math.PI;
+ var cx=(PTS.hair.x+PTS.chin.x+PTS.nas.x+PTS.sub.x)/4;
+ var yaw=Math.abs(Math.abs(cx-PTS.eyeRc.x)-Math.abs(PTS.eyeLc.x-cx))/bizy*90;
+ var up=dist(PTS.hair,PTS.nas),low=dist(PTS.sub,PTS.chin);
+ var pitch=Math.abs(low-up)/fh*60;
+ var conf=100,warns=[];
+ if(faceFrac<.5){conf-=15;warns.push('лицо мелкое');}
+ if(roll>6){conf-=Math.min(25,(roll-6)*3);warns.push('наклон '+roll.toFixed(0)+'°');}
+ if(yaw>8){conf-=Math.min(25,(yaw-8)*2);warns.push('поворот ~'+yaw.toFixed(0)+'°');}
+ if(pitch>8){conf-=Math.min(20,(pitch-8)*2);warns.push('ракурс сверху/снизу');}
+ return{conf:Math.max(40,Math.min(100,conf)),roll:roll,yaw:yaw,pitch:pitch,warns:warns};
 }
 
-/* ================= РЕЗУЛЬТАТ ================= */
+/* веса категорий (3) */
+var CATW={"👁 Глаза":.20,"👃 Нос":.15,"👄 Рот":.10,"🦴 Челюсть":.20,"📐 Пропорции":.25,"🪞 Симметрия":.10};
 var CATS=["👁 Глаза","👃 Нос","👄 Рот","🦴 Челюсть","📐 Пропорции","🪞 Симметрия"];
+
+/* ---------- расчёт ---------- */
+function finish(){editorOn=false;
+ var W=img.width,H=img.height;PTS={};
+ POINTS.forEach(function(t,i){PTS[t[0]]={x:placed[i].x*W,y:placed[i].y*H};});
+ var bizy=dist(PTS.bizR,PTS.bizL);
+ var eyew=(dist(PTS.eyeRo,PTS.eyeRi)+dist(PTS.eyeLo,PTS.eyeLi))/2;
+ var fh=dist(PTS.hair,PTS.chin);
+ METRICS=[];
+ var up=dist(PTS.hair,PTS.nas),mid=dist(PTS.nas,PTS.sub),low=dist(PTS.sub,PTS.chin);
+ thirds=[up,mid,low];
+
+ var ct=((Math.atan2(PTS.eyeRi.y-PTS.eyeRo.y,Math.abs(PTS.eyeRo.x-PTS.eyeRi.x))+
+   Math.atan2(PTS.eyeLi.y-PTS.eyeLo.y,Math.abs(PTS.eyeLo.x-PTS.eyeLi.x)))/2)*180/Math.PI;
+ addMetric("👁 Глаза","Canthal tilt",ct,5.2,8.5,4,"°",[["eyeRo","eyeRi"],["eyeLo","eyeLi"]]);
+ addMetric("👁 Глаза","Eye aspect",(dist(PTS.eyeRo,PTS.eyeRi)/Math.max(1,dist(PTS.eyeRu,PTS.eyeRl))+
+   dist(PTS.eyeLo,PTS.eyeLi)/Math.max(1,dist(PTS.eyeLu,PTS.eyeLl)))/2,2.8,3.6,.5,"",
+   [["eyeRo","eyeRi"],["eyeRu","eyeRl"],["eyeLo","eyeLi"],["eyeLu","eyeLl"]]);
+ addMetric("👁 Глаза","Eye spacing",dist(PTS.eyeRi,PTS.eyeLi)/Math.max(1,eyew),.93,1.04,.08,"",[["eyeRi","eyeLi"]]);
+ addMetric("👁 Глаза","IPD/eye",dist(PTS.eyeRc,PTS.eyeLc)/Math.max(1,eyew),1.9,2.2,.25,"",[["eyeRc","eyeLc"]]);
+ addMetric("👁 Глаза","Eye height/face",100*((dist(PTS.eyeRu,PTS.eyeRl)+dist(PTS.eyeLu,PTS.eyeLl))/2)/fh,8,11,2,"%",
+   [["eyeRu","eyeRl"],["eyeLu","eyeLl"]]);
+ addMetric("👁 Глаза","Brow position",(Math.abs(PTS.eyeRu.y-PTS.browRp.y)+Math.abs(PTS.eyeLu.y-PTS.browLp.y))/2/
+   Math.max(1,(dist(PTS.eyeRu,PTS.eyeRl)+dist(PTS.eyeLu,PTS.eyeLl))/2),0,.65,.3,"",
+   [["eyeRu","browRp"],["eyeLu","browLp"]]);
+ var bt=((Math.atan2(PTS.browRp.y-PTS.browRi.y,Math.abs(PTS.browRo.x-PTS.browRi.x))+
+   Math.atan2(PTS.browLp.y-PTS.browLi.y,Math.abs(PTS.browLo.x-PTS.browLi.x)))/2)*180/Math.PI;
+ addMetric("👁 Глаза","Brow tilt",bt,5,13,5,"°",[["browRi","browRo"],["browLi","browLo"]]);
+
+ addMetric("👃 Нос","Nose length %",100*dist(PTS.nas,PTS.sub)/fh,26,30,3,"%",[["nas","sub"]]);
+ addMetric("👃 Нос","Nose W/H",dist(PTS.noseR,PTS.noseL)/Math.max(1,dist(PTS.nas,PTS.ntip)),.62,.88,.12,"",
+   [["noseR","noseL"],["nas","ntip"]]);
+ addMetric("👃 Нос","Midface",bizy/Math.max(1,dist(PTS.nas,PTS.sub)),1.5,1.7,.12,"",[["bizR","bizL"],["nas","sub"]]);
+
+ addMetric("👄 Рот","Mouth/Nose",dist(PTS.mouR,PTS.mouL)/Math.max(1,dist(PTS.noseR,PTS.noseL)),1.38,1.53,.12,"",
+   [["mouR","mouL"],["noseR","noseL"]]);
+ addMetric("👄 Рот","Philtrum %",100*dist(PTS.sub,PTS.lt)/fh,8,12,2.5,"%",[["sub","lt"]]);
+ addMetric("👄 Рот","Lip ratio",dist(PTS.st,PTS.lb)/Math.max(1,dist(PTS.lt,PTS.st)),1.4,2,.4,"",[["st","lb"],["lt","st"]]);
+ addMetric("👄 Рот","Chin/Philtrum",dist(PTS.lb,PTS.chin)/Math.max(1,dist(PTS.sub,PTS.lt)),2.05,2.55,.4,"",
+   [["lb","chin"],["sub","lt"]]);
+ addMetric("👄 Рот","Chin width/mouth",dist(PTS.chinR,PTS.chinL)/Math.max(1,dist(PTS.mouR,PTS.mouL)),1.0,1.2,.15,"",
+   [["chinR","chinL"],["mouR","mouL"]]);
+
+ addMetric("🦴 Челюсть","Bigonial %",100*dist(PTS.gonR,PTS.gonL)/bizy,85.5,92,6,"%",[["gonR","gonL"],["bizR","bizL"]]);
+ addMetric("🦴 Челюсть","Jaw frontal °",angleAt(PTS.gonR,PTS.chin,PTS.gonL),84.5,95,7,"°",[["gonR","chin"],["gonL","chin"]]);
+ addMetric("🦴 Челюсть","Jawline def",(angleAt(PTS.gonR,PTS.jawMidR,PTS.jawLowR)+
+   angleAt(PTS.gonL,PTS.jawMidL,PTS.jawLowL))/2,160,178,10,"°",
+   [["gonR","jawMidR"],["jawMidR","jawLowR"],["gonL","jawMidL"],["jawMidL","jawLowL"]]);
+ addMetric("🦴 Челюсть","Cheek height index*",100*((PTS.zygR.y+PTS.zygL.y)/2-PTS.hair.y)/fh,81,100,8,"%",[["zygR","zygL"]]);
+ addMetric("🦴 Челюсть","Cheek hollow index*",100*(bizy-dist(PTS.holR,PTS.holL))/bizy,10,18,6,"%",[["bizR","bizL"],["holR","holL"]]);
+ addMetric("🦴 Челюсть","Neck width %",100*dist(PTS.neckR,PTS.neckL)/bizy,90,100,8,"%",[["neckR","neckL"],["bizR","bizL"]]);
+ addMetric("🦴 Челюсть","Temple/Jaw taper",dist(PTS.tempR,PTS.tempL)/Math.max(1,dist(PTS.gonR,PTS.gonL)),1.15,1.3,.1,"",
+   [["tempR","tempL"],["gonR","gonL"]]);
+
+ addMetric("📐 Пропорции","Fifths",eyew/(bizy/5),.9,1.1,.08,"",[["eyeRo","eyeRi"],["bizR","bizL"]]);
+ addMetric("📐 Пропорции","Cheek/upper-face width",bizy/Math.max(1,dist(PTS.nas,PTS.lt)),1.9,2.06,.12,"",
+   [["bizR","bizL"],["nas","lt"]]);
+ addMetric("📐 Пропорции","Face height/width",fh/bizy,1.33,1.38,.08,"",[["hair","chin"],["bizR","bizL"]]);
+ addMetric("📐 Пропорции","Mid/Lower",mid/low,.9,1.1,.08,"",[["nas","sub"],["sub","chin"]]);
+ addMetric("📐 Пропорции","Lower face %",100*low/fh,30.6,34,2.5,"%",[["sub","chin"],["hair","chin"]]);
+ addMetric("📐 Пропорции","Bitemporal %",100*dist(PTS.tempR,PTS.tempL)/bizy,84,95,6,"%",[["tempR","tempL"],["bizR","bizL"]]);
+
+ var sym=computeSymmetry(bizy,fh);
+ addMetric("🪞 Симметрия","Symmetry",sym,90,100,6,"%",[["hair","chin"]]);
+
+ QUAL=computeQuality(bizy,fh);
+
+ /* двухслойная агрегация */
+ CATSCORES={};
+ CATS.forEach(function(c){var scs=METRICS.filter(function(m){return m.cat===c;})
+   .map(function(m){return m.s;});CATSCORES[c]=pmean(scs,PVAL);});
+ var pairs=CATS.map(function(c){return[CATSCORES[c],CATW[c]];});
+ overall=wpmean(pairs,PVAL);
+ psl=Math.max(1,Math.min(8,overall/10-2));
+ soundDone();
+ elEditor.style.display='none';elResult.style.display='flex';
+ buildList();showMetric(0);
+}
+
+/* ---------- результат ---------- */
 function buildList(){
-  var tt=thirds[0]+thirds[1]+thirds[2];
-  var sorted=METRICS.slice().sort(function(a,b){return b.s-a.s;});
-  var strong=sorted.slice(0,3).map(function(m){return m.n;}).join(', ');
-  var weak=sorted.slice(-3).reverse().map(function(m){return m.n;}).join(', ');
-  var html='<h1 style="padding:4px 0 0">'+overall.toFixed(1)+' / 100</h1>'
-    +'<div class="sub">⭐ PSL '+psl.toFixed(1)+'/8 · Thirds '
-    +Math.round(100*thirds[0]/tt)+'/'+Math.round(100*thirds[1]/tt)+'/'+Math.round(100*thirds[2]/tt)
-    +'% · точек '+POINTS.length+'</div>'
-    +'<div class="sub" style="margin-top:6px">💪 '+strong+'<br>⚠️ '+weak+'</div>';
-  CATS.forEach(function(cat){
-    var rows=METRICS.filter(function(m){return m.cat===cat;});
-    if(!rows.length)return;
-    html+='<h2 class="cat">'+cat+'</h2>';
-    rows.forEach(function(m,ri){
-      var gz=gauge(m.v,m.lo,m.hi,m.m);
-      var c=colorOf(m.s);
-      html+='<div class="mrow" data-i="'+m.i+'" style="animation-delay:'+(ri*0.04)+'s">'
-        +'<div class="mhead"><span>'+m.n+'</span>'
-        +'<span class="chip" style="background:'+c+'22;color:'+c+'">'+m.s+'</span></div>'
-        +'<div class="gauge" style="background:'+gz.grad+'"><i style="left:'+gz.pos+'%"></i></div>'
-        +'<div class="sub">'+m.v.toFixed(2)+m.u+' · идеал '+m.lo+'–'+m.hi+'</div></div>';
-    });
-  });
-  elList.innerHTML=html;
-  elList.querySelectorAll('.mrow').forEach(function(el){
-    el.addEventListener('click',function(){
-      showAllOn=false;elAll.textContent='ВСЕ ЛИНИИ';
-      showMetric(+el.getAttribute('data-i'));haptic();
-    });
-  });
+ var tt=thirds[0]+thirds[1]+thirds[2];
+ var prev=null;try{prev=parseFloat(localStorage.getItem('luxprev'));}catch(e){}
+ var deltaHtml='';
+ if(prev&&!isNaN(prev)){var d=overall-prev;
+  deltaHtml='<div class="brow"><span>Previous</span><span>'+prev.toFixed(1)+'</span></div>'
+   +'<div class="brow"><span>Current</span><span>'+overall.toFixed(1)+' ('+(d>=0?'+':'')+d.toFixed(1)+')</span></div>';}
+ try{localStorage.setItem('luxprev',overall.toFixed(1));}catch(e){}
+
+ var sorted=METRICS.slice().sort(function(a,b){return b.s-a.s;});
+ var strong=sorted.slice(0,3),weak=sorted.slice(-3).reverse();
+
+ var html='<h1 style="padding:4px 0 0">'+overall.toFixed(1)+' / 100</h1>'
+  +'<div class="sub">⭐ PSL '+psl.toFixed(1)+'/8 · Confidence '+Math.round(QUAL.conf)+'% · Thirds '
+  +Math.round(100*thirds[0]/tt)+'/'+Math.round(100*thirds[1]/tt)+'/'+Math.round(100*thirds[2]/tt)+'%</div>';
+ if(QUAL.warns.length)html+='<div class="sub" style="color:var(--warn)">⚠️ Точность снижена: '+QUAL.warns.join(', ')+'</div>';
+ html+='<div class="card2">'+deltaHtml
+  +'<div class="brow"><span>💪</span><span>'+strong.map(function(m){return m.n;}).join(', ')+'</span></div>'
+  +'<div class="brow"><span>⚠️</span><span>'+weak.map(function(m){return m.n;}).join(', ')+'</span></div></div>';
+ html+='<div class="card2"><div class="sub" style="margin-bottom:6px">BREAKDOWN</div>';
+ CATS.forEach(function(c){var s=CATSCORES[c],cc=colorOf(s);
+  html+='<div class="brow"><span>'+c+'</span><span style="color:'+cc+';font-weight:800">'+Math.round(s)+'</span></div>';});
+ html+='</div>';
+
+ CATS.forEach(function(cat){
+  var rows=METRICS.filter(function(m){return m.cat===cat;});if(!rows.length)return;
+  html+='<h2 class="cat">'+cat+'</h2>';
+  rows.forEach(function(m,ri){var gz=gauge(m.v,m.lo,m.hi,m.m),c=colorOf(m.s);
+   html+='<div class="mrow" data-i="'+m.i+'" style="animation-delay:'+(ri*.04)+'s">'
+    +'<div class="mhead"><span>'+m.n+'</span><span class="chip" style="background:'+c+'22;color:'+c+'">'+m.s+'</span></div>'
+    +'<div class="gauge" style="background:'+gz.grad+'"><i style="left:'+gz.pos+'%"></i></div>'
+    +'<div class="sub">'+m.v.toFixed(2)+m.u+' · идеал '+m.lo+'–'+m.hi
+    +(m.s<50?' · значение вне диапазона':'')+'</div></div>';});});
+ elList.innerHTML=html;
+ elList.querySelectorAll('.mrow').forEach(function(el){
+  el.addEventListener('click',function(){showAllOn=false;elAll.textContent='ВСЕ ЛИНИИ';
+   showMetric(+el.getAttribute('data-i'));haptic();});});
 }
 
-/* ================= ПРЕЗЕНТАЦИЯ ================= */
-function fitResult(){
-  var w=elRcv.clientWidth,h=elRcv.clientHeight;
-  elRcv.width=w*dpr;elRcv.height=h*dpr;
-  var s=Math.min(w/img.width,h/img.height);
-  return{w:w,h:h,s:s,ox:(w-img.width*s)/2,oy:(h-img.height*s)/2};
-}
-function drawBase(f){
-  rctx.setTransform(dpr,0,0,dpr,0,0);
-  rctx.clearRect(0,0,f.w,f.h);
-  rctx.save();rctx.translate(f.ox,f.oy);rctx.scale(f.s,f.s);
-  rctx.drawImage(img,0,0);rctx.restore();
-}
-function drawSegs(f,m,width,shadow){
-  var c=colorOf(m.s);
-  rctx.strokeStyle=c;rctx.lineWidth=width;
-  if(shadow){rctx.shadowColor=c;rctx.shadowBlur=6;}
-  (m.segs||[]).forEach(function(seg){
-    var a=PTS[seg[0]],b=PTS[seg[1]];if(!a||!b)return;
-    rctx.beginPath();
-    rctx.moveTo(a.x*f.s+f.ox,a.y*f.s+f.oy);
-    rctx.lineTo(b.x*f.s+f.ox,b.y*f.s+f.oy);
-    rctx.stroke();
-    rctx.fillStyle=c;
-    rctx.beginPath();rctx.arc(a.x*f.s+f.ox,a.y*f.s+f.oy,3,0,7);rctx.fill();
-    rctx.beginPath();rctx.arc(b.x*f.s+f.ox,b.y*f.s+f.oy,3,0,7);rctx.fill();
-  });
-  rctx.shadowBlur=0;
-}
-function showMetric(i){
-  var f=fitResult();drawBase(f);
-  var m=METRICS[i];drawSegs(f,m,2.5,true);
-  rctx.fillStyle=colorOf(m.s);rctx.font='700 14px sans';
-  rctx.fillText(m.n+' · '+m.s+'/100',10,20);
-}
-function showAll(){
-  var f=fitResult();drawBase(f);
-  METRICS.forEach(function(m){drawSegs(f,m,1.2,false);});
-  rctx.fillStyle='#fff';rctx.font='700 14px sans';
-  rctx.fillText('Все измерения',10,20);
-}
-elAll.addEventListener('click',function(){
-  showAllOn=!showAllOn;
-  if(showAllOn){elAll.textContent='ОДНА';showAll();}
-  else{elAll.textContent='ВСЕ ЛИНИИ';showMetric(0);}
-  haptic();
-});
+/* ---------- презентация ---------- */
+function fitResult(){var w=elRcv.clientWidth,h=elRcv.clientHeight;
+ elRcv.width=w*dpr;elRcv.height=h*dpr;
+ var s=Math.min(w/img.width,h/img.height);
+ return{w:w,h:h,s:s,ox:(w-img.width*s)/2,oy:(h-img.height*s)/2};}
+function drawBase(f){rctx.setTransform(dpr,0,0,dpr,0,0);rctx.clearRect(0,0,f.w,f.h);
+ rctx.save();rctx.translate(f.ox,f.oy);rctx.scale(f.s,f.s);rctx.drawImage(img,0,0);rctx.restore();}
+function drawSegs(f,m,width,shadow){var c=colorOf(m.s);
+ rctx.strokeStyle=c;rctx.lineWidth=width;if(shadow){rctx.shadowColor=c;rctx.shadowBlur=6;}
+ (m.segs||[]).forEach(function(seg){var a=PTS[seg[0]],b=PTS[seg[1]];if(!a||!b)return;
+  rctx.beginPath();rctx.moveTo(a.x*f.s+f.ox,a.y*f.s+f.oy);rctx.lineTo(b.x*f.s+f.ox,b.y*f.s+f.oy);rctx.stroke();
+  rctx.fillStyle=c;rctx.beginPath();rctx.arc(a.x*f.s+f.ox,a.y*f.s+f.oy,3,0,7);rctx.fill();
+  rctx.beginPath();rctx.arc(b.x*f.s+f.ox,b.y*f.s+f.oy,3,0,7);rctx.fill();});
+ rctx.shadowBlur=0;}
+function showMetric(i){var f=fitResult();drawBase(f);var m=METRICS[i];drawSegs(f,m,2.5,true);
+ rctx.fillStyle=colorOf(m.s);rctx.font='700 14px sans';rctx.fillText(m.n+' · '+m.s+'/100',10,20);}
+function showAll(){var f=fitResult();drawBase(f);
+ METRICS.forEach(function(m){drawSegs(f,m,1.2,false);});
+ rctx.fillStyle='#fff';rctx.font='700 14px sans';rctx.fillText('Все измерения',10,20);}
+elAll.addEventListener('click',function(){showAllOn=!showAllOn;
+ if(showAllOn){elAll.textContent='ОДНА';showAll();}else{elAll.textContent='ВСЕ ЛИНИИ';showMetric(0);}haptic();});
 
-/* ================= ОТПРАВКА ================= */
+/* ---------- отправка ---------- */
 elSend.addEventListener('click',function(){
-  var txt="📊 LUX PRO: "+overall.toFixed(1)+"/100 | PSL "+psl.toFixed(1)+"/8\n"
-    +METRICS.map(function(m){return "• "+m.n+": "+m.v.toFixed(2)+m.u+" | "+m.s+"/100";}).join("\n");
-  if(TG){TG.sendData(JSON.stringify({t:"lux",text:txt}));TG.close();}
-});
+ var txt="📊 LUX PRO: "+overall.toFixed(1)+"/100 | PSL "+psl.toFixed(1)+"/8 | Confidence "+Math.round(QUAL.conf)+"%\n"
+  +METRICS.map(function(m){return "• "+m.n+": "+m.v.toFixed(2)+m.u+" | "+m.s+"/100";}).join("\n");
+ if(TG){TG.sendData(JSON.stringify({t:"lux",text:txt}));TG.close();}});
 </script>
 </body>
 </html>
