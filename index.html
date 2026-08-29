@@ -125,7 +125,7 @@ var elRcv=byId('rcv'),rctx=elRcv.getContext('2d');
 var elAll=byId('allBtn'),elList=byId('mlist'),elSend=byId('send');
 var guideImg=new Image();guideImg.src='guide.png';
 
-/* ---------- 46 точек (единственный источник) ---------- */
+/* ---------- 46 точек ---------- */
 var POINTS=[
 ["hair","Линия роста волос","Середина лба, где начинаются волосы",.5,.06],
 ["nas","Назион","Переносица, где нос начинается между глаз",.5,.42],
@@ -284,18 +284,16 @@ elCv.addEventListener('pointerup',function(e){ptrs.delete(e.pointerId);
  if(ptrs.size===1){var a=Array.from(ptrs.values())[0];pan={x:a[0],y:a[1],ox:view.ox,oy:view.oy};pinch=null;}
  else if(ptrs.size===0)pan=null;});
 
-/* ================= НОВАЯ МАТЕМАТИКА ================= */
-/* 1) плавный штраф: m = отклонение с оценкой 50 */
+/* ================= МАТЕМАТИКА ================= */
+/* 1) гауссов штраф: никогда не жёсткий 0 */
 function smoothScore(v,lo,hi,m){
  if(v>=lo&&v<=hi)return 100;
- var d=v<lo?lo-v:v-hi, dz=1.645*m, t=Math.min(1,d/dz);
- return 100*Math.pow(1-t*t,1.5);
+ var d=v<lo?lo-v:v-hi, scale=Math.max(m,1e-6);
+ return 100*Math.exp(-Math.pow(d/(1.5*scale),2));
 }
-/* p-mean (обычный) */
 function pmean(xs,p){xs=xs.map(function(x){return Math.max(.1,x);});
  if(Math.abs(p)<1e-9)return Math.exp(xs.reduce(function(a,x){return a+Math.log(x);},0)/xs.length);
  return Math.pow(xs.reduce(function(a,x){return a+Math.pow(x,p);},0)/xs.length,1/p);}
-/* взвешенный p-mean */
 function wpmean(pairs,p){var sw=pairs.reduce(function(a,x){return a+x[1];},0);
  var xs=pairs.map(function(x){return Math.max(.1,x[0]);});
  if(Math.abs(p)<1e-9)return Math.exp(pairs.reduce(function(a,x,i){return a+x[1]*Math.log(xs[i]);},0)/sw);
@@ -311,10 +309,11 @@ function gauge(v,lo,hi,m){var k=3,rl=lo-k*m,rh=hi+k*m;
  return{pos:(pos*100).toFixed(1),
   grad:'linear-gradient(90deg,var(--bad) 0%,var(--warn) '+(gs*.5).toFixed(1)+'%,var(--ok) '+gs.toFixed(1)+
   '%,var(--ok) '+ge.toFixed(1)+'%,var(--warn) '+(100-(100-ge)*.5).toFixed(1)+'%,var(--bad) 100%)'};}
-function addMetric(cat,n,v,lo,hi,m,u,segs){var s=smoothScore(v,lo,hi,m);
- METRICS.push({i:METRICS.length,cat:cat,n:n,v:v,lo:lo,hi:hi,m:m,u:u,s:Math.round(s),segs:segs});return s;}
+/* 2) вес метрики */
+function addMetric(cat,n,v,lo,hi,m,u,segs,w){var s=smoothScore(v,lo,hi,m);
+ METRICS.push({i:METRICS.length,cat:cat,n:n,v:v,lo:lo,hi:hi,m:m,u:u,s:Math.round(s),segs:segs,weight:w||1});return s;}
 
-/* 5) честная симметрия: 11 пар, гориз+верт */
+/* 5) симметрия */
 function computeSymmetry(bizy,fh){
  var cx=(PTS.hair.x+PTS.chin.x+PTS.nas.x+PTS.sub.x)/4;
  var pairs=[['eyeRo','eyeLo'],['eyeRi','eyeLi'],['eyeRc','eyeLc'],['browRp','browLp'],
@@ -327,7 +326,7 @@ function computeSymmetry(bizy,fh){
  var avg=devs.reduce(function(a,b){return a+b;},0)/devs.length*100;
  return Math.max(0,Math.min(100,100-avg*7));
 }
-/* 6) качество фото + confidence */
+/* 6) качество */
 function computeQuality(bizy,fh){
  var faceFrac=fh/img.height;
  var roll=Math.abs(Math.atan2(PTS.eyeLc.y-PTS.eyeRc.y,PTS.eyeLc.x-PTS.eyeRc.x))*180/Math.PI;
@@ -343,8 +342,8 @@ function computeQuality(bizy,fh){
  return{conf:Math.max(40,Math.min(100,conf)),roll:roll,yaw:yaw,pitch:pitch,warns:warns};
 }
 
-/* веса категорий (3) */
-var CATW={"👁 Глаза":.20,"👃 Нос":.15,"👄 Рот":.10,"🦴 Челюсть":.20,"📐 Пропорции":.25,"🪞 Симметрия":.10};
+/* 3) веса категорий */
+var CATW={"👁 Глаза":.18,"👃 Нос":.14,"👄 Рот":.12,"🦴 Челюсть":.20,"📐 Пропорции":.26,"🪞 Симметрия":.10};
 var CATS=["👁 Глаза","👃 Нос","👄 Рот","🦴 Челюсть","📐 Пропорции","🪞 Симметрия"];
 
 /* ---------- расчёт ---------- */
@@ -360,65 +359,64 @@ function finish(){editorOn=false;
 
  var ct=((Math.atan2(PTS.eyeRi.y-PTS.eyeRo.y,Math.abs(PTS.eyeRo.x-PTS.eyeRi.x))+
    Math.atan2(PTS.eyeLi.y-PTS.eyeLo.y,Math.abs(PTS.eyeLo.x-PTS.eyeLi.x)))/2)*180/Math.PI;
- addMetric("👁 Глаза","Canthal tilt",ct,5.2,8.5,4,"°",[["eyeRo","eyeRi"],["eyeLo","eyeLi"]]);
+ addMetric("👁 Глаза","Canthal tilt",ct,5.2,8.5,4,"°",[["eyeRo","eyeRi"],["eyeLo","eyeLi"]],2);
  addMetric("👁 Глаза","Eye aspect",(dist(PTS.eyeRo,PTS.eyeRi)/Math.max(1,dist(PTS.eyeRu,PTS.eyeRl))+
    dist(PTS.eyeLo,PTS.eyeLi)/Math.max(1,dist(PTS.eyeLu,PTS.eyeLl)))/2,2.8,3.6,.5,"",
-   [["eyeRo","eyeRi"],["eyeRu","eyeRl"],["eyeLo","eyeLi"],["eyeLu","eyeLl"]]);
- addMetric("👁 Глаза","Eye spacing",dist(PTS.eyeRi,PTS.eyeLi)/Math.max(1,eyew),.93,1.04,.08,"",[["eyeRi","eyeLi"]]);
- addMetric("👁 Глаза","IPD/eye",dist(PTS.eyeRc,PTS.eyeLc)/Math.max(1,eyew),1.9,2.2,.25,"",[["eyeRc","eyeLc"]]);
- addMetric("👁 Глаза","Eye height/face",100*((dist(PTS.eyeRu,PTS.eyeRl)+dist(PTS.eyeLu,PTS.eyeLl))/2)/fh,8,11,2,"%",
-   [["eyeRu","eyeRl"],["eyeLu","eyeLl"]]);
+   [["eyeRo","eyeRi"],["eyeRu","eyeRl"],["eyeLo","eyeLi"],["eyeLu","eyeLl"]],1.5);
+ addMetric("👁 Глаза","Eye spacing",dist(PTS.eyeRi,PTS.eyeLi)/Math.max(1,eyew),.93,1.04,.12,"",[["eyeRi","eyeLi"]],1);
+ addMetric("👁 Глаза","IPD/eye",dist(PTS.eyeRc,PTS.eyeLc)/Math.max(1,eyew),1.9,2.2,.25,"",[["eyeRc","eyeLc"]],1);
+ addMetric("👁 Глаза","Eye height/face",100*((dist(PTS.eyeRu,PTS.eyeRl)+dist(PTS.eyeLu,PTS.eyeLl))/2)/fh,8,11,3,"%",
+   [["eyeRu","eyeRl"],["eyeLu","eyeLl"]],.8);
  addMetric("👁 Глаза","Brow position",(Math.abs(PTS.eyeRu.y-PTS.browRp.y)+Math.abs(PTS.eyeLu.y-PTS.browLp.y))/2/
-   Math.max(1,(dist(PTS.eyeRu,PTS.eyeRl)+dist(PTS.eyeLu,PTS.eyeLl))/2),0,.65,.3,"",
-   [["eyeRu","browRp"],["eyeLu","browLp"]]);
- var bt=((Math.atan2(PTS.browRp.y-PTS.browRi.y,Math.abs(PTS.browRo.x-PTS.browRi.x))+
-   Math.atan2(PTS.browLp.y-PTS.browLi.y,Math.abs(PTS.browLo.x-PTS.browLi.x)))/2)*180/Math.PI;
- addMetric("👁 Глаза","Brow tilt",bt,5,13,5,"°",[["browRi","browRo"],["browLi","browLo"]]);
+   Math.max(1,(dist(PTS.eyeRu,PTS.eyeRl)+dist(PTS.eyeLu,PTS.eyeLl))/2),.5,1.2,.5,"",
+   [["eyeRu","browRp"],["eyeLu","browLp"]],1);
+ var bt=((Math.atan2(PTS.browRi.y-PTS.browRp.y,Math.abs(PTS.browRo.x-PTS.browRi.x))+
+   Math.atan2(PTS.browLi.y-PTS.browLp.y,Math.abs(PTS.browLo.x-PTS.browLi.x)))/2)*180/Math.PI;
+ addMetric("👁 Глаза","Brow tilt",bt,5,13,5,"°",[["browRi","browRo"],["browLi","browLo"]],1);
 
- addMetric("👃 Нос","Nose length %",100*dist(PTS.nas,PTS.sub)/fh,26,30,3,"%",[["nas","sub"]]);
+ addMetric("👃 Нос","Nose length %",100*dist(PTS.nas,PTS.sub)/fh,26,30,3,"%",[["nas","sub"]],1);
  addMetric("👃 Нос","Nose W/H",dist(PTS.noseR,PTS.noseL)/Math.max(1,dist(PTS.nas,PTS.ntip)),.62,.88,.12,"",
-   [["noseR","noseL"],["nas","ntip"]]);
- addMetric("👃 Нос","Midface",bizy/Math.max(1,dist(PTS.nas,PTS.sub)),1.5,1.7,.12,"",[["bizR","bizL"],["nas","sub"]]);
+   [["noseR","noseL"],["nas","ntip"]],1);
+ addMetric("👃 Нос","Midface",bizy/Math.max(1,dist(PTS.nas,PTS.st)),1.5,1.7,.12,"",[["bizR","bizL"],["nas","st"]],2);
 
  addMetric("👄 Рот","Mouth/Nose",dist(PTS.mouR,PTS.mouL)/Math.max(1,dist(PTS.noseR,PTS.noseL)),1.38,1.53,.12,"",
-   [["mouR","mouL"],["noseR","noseL"]]);
- addMetric("👄 Рот","Philtrum %",100*dist(PTS.sub,PTS.lt)/fh,8,12,2.5,"%",[["sub","lt"]]);
- addMetric("👄 Рот","Lip ratio",dist(PTS.st,PTS.lb)/Math.max(1,dist(PTS.lt,PTS.st)),1.4,2,.4,"",[["st","lb"],["lt","st"]]);
- addMetric("👄 Рот","Chin/Philtrum",dist(PTS.lb,PTS.chin)/Math.max(1,dist(PTS.sub,PTS.lt)),2.05,2.55,.4,"",
-   [["lb","chin"],["sub","lt"]]);
+   [["mouR","mouL"],["noseR","noseL"]],1.5);
+ addMetric("👄 Рот","Philtrum %",100*dist(PTS.sub,PTS.lt)/fh,8,12,2.5,"%",[["sub","lt"]],1);
+ addMetric("👄 Рот","Lip ratio",dist(PTS.st,PTS.lb)/Math.max(1,dist(PTS.lt,PTS.st)),1.4,2,.4,"",[["st","lb"],["lt","st"]],1);
+ addMetric("👄 Рот","Chin/Philtrum",dist(PTS.lb,PTS.chin)/Math.max(1,dist(PTS.sub,PTS.lt)),1.8,2.6,.6,"",
+   [["lb","chin"],["sub","lt"]],1);
  addMetric("👄 Рот","Chin width/mouth",dist(PTS.chinR,PTS.chinL)/Math.max(1,dist(PTS.mouR,PTS.mouL)),1.0,1.2,.15,"",
-   [["chinR","chinL"],["mouR","mouL"]]);
+   [["chinR","chinL"],["mouR","mouL"]],1);
 
- addMetric("🦴 Челюсть","Bigonial %",100*dist(PTS.gonR,PTS.gonL)/bizy,85.5,92,6,"%",[["gonR","gonL"],["bizR","bizL"]]);
- addMetric("🦴 Челюсть","Jaw frontal °",angleAt(PTS.gonR,PTS.chin,PTS.gonL),84.5,95,7,"°",[["gonR","chin"],["gonL","chin"]]);
+ addMetric("🦴 Челюсть","Bigonial %",100*dist(PTS.gonR,PTS.gonL)/bizy,85.5,92,6,"%",[["gonR","gonL"],["bizR","bizL"]],1.5);
+ addMetric("🦴 Челюсть","Jaw frontal °",angleAt(PTS.gonR,PTS.chin,PTS.gonL),84.5,95,7,"°",[["gonR","chin"],["gonL","chin"]],1.5);
  addMetric("🦴 Челюсть","Jawline def",(angleAt(PTS.gonR,PTS.jawMidR,PTS.jawLowR)+
    angleAt(PTS.gonL,PTS.jawMidL,PTS.jawLowL))/2,160,178,10,"°",
-   [["gonR","jawMidR"],["jawMidR","jawLowR"],["gonL","jawMidL"],["jawMidL","jawLowL"]]);
- addMetric("🦴 Челюсть","Cheek height index*",100*((PTS.zygR.y+PTS.zygL.y)/2-PTS.hair.y)/fh,81,100,8,"%",[["zygR","zygL"]]);
- addMetric("🦴 Челюсть","Cheek hollow index*",100*(bizy-dist(PTS.holR,PTS.holL))/bizy,10,18,6,"%",[["bizR","bizL"],["holR","holL"]]);
- addMetric("🦴 Челюсть","Neck width %",100*dist(PTS.neckR,PTS.neckL)/bizy,90,100,8,"%",[["neckR","neckL"],["bizR","bizL"]]);
+   [["gonR","jawMidR"],["jawMidR","jawLowR"],["gonL","jawMidL"],["jawMidL","jawLowL"]],1.5);
+ addMetric("🦴 Челюсть","Cheek height index*",100*((PTS.zygR.y+PTS.zygL.y)/2-PTS.hair.y)/fh,52,60,5,"%",[["zygR","zygL"]],1);
+ addMetric("🦴 Челюсть","Cheek hollow index*",100*(bizy-dist(PTS.holR,PTS.holL))/bizy,10,18,6,"%",[["bizR","bizL"],["holR","holL"]],1);
+ addMetric("🦴 Челюсть","Neck width %",100*dist(PTS.neckR,PTS.neckL)/bizy,90,100,8,"%",[["neckR","neckL"],["bizR","bizL"]],1);
  addMetric("🦴 Челюсть","Temple/Jaw taper",dist(PTS.tempR,PTS.tempL)/Math.max(1,dist(PTS.gonR,PTS.gonL)),1.15,1.3,.1,"",
-   [["tempR","tempL"],["gonR","gonL"]]);
+   [["tempR","tempL"],["gonR","gonL"]],1);
 
- addMetric("📐 Пропорции","Fifths",eyew/(bizy/5),.9,1.1,.08,"",[["eyeRo","eyeRi"],["bizR","bizL"]]);
+ addMetric("📐 Пропорции","Fifths",eyew/(bizy/5),.9,1.1,.08,"",[["eyeRo","eyeRi"],["bizR","bizL"]],1.5);
  addMetric("📐 Пропорции","Cheek/upper-face width",bizy/Math.max(1,dist(PTS.nas,PTS.lt)),1.9,2.06,.12,"",
-   [["bizR","bizL"],["nas","lt"]]);
- addMetric("📐 Пропорции","Face height/width",fh/bizy,1.33,1.38,.08,"",[["hair","chin"],["bizR","bizL"]]);
- addMetric("📐 Пропорции","Mid/Lower",mid/low,.9,1.1,.08,"",[["nas","sub"],["sub","chin"]]);
- addMetric("📐 Пропорции","Lower face %",100*low/fh,30.6,34,2.5,"%",[["sub","chin"],["hair","chin"]]);
- addMetric("📐 Пропорции","Bitemporal %",100*dist(PTS.tempR,PTS.tempL)/bizy,84,95,6,"%",[["tempR","tempL"],["bizR","bizL"]]);
+   [["bizR","bizL"],["nas","lt"]],2);
+ addMetric("📐 Пропорции","Face height/width",fh/bizy,1.33,1.38,.08,"",[["hair","chin"],["bizR","bizL"]],2);
+ addMetric("📐 Пропорции","Mid/Lower",mid/low,.9,1.1,.08,"",[["nas","sub"],["sub","chin"]],1);
+ addMetric("📐 Пропорции","Lower face %",100*low/fh,30.6,34,2.5,"%",[["sub","chin"],["hair","chin"]],1.5);
+ addMetric("📐 Пропорции","Bitemporal %",100*dist(PTS.tempR,PTS.tempL)/bizy,84,95,6,"%",[["tempR","tempL"],["bizR","bizL"]],1);
 
  var sym=computeSymmetry(bizy,fh);
- addMetric("🪞 Симметрия","Symmetry",sym,90,100,6,"%",[["hair","chin"]]);
+ addMetric("🪞 Симметрия","Symmetry",sym,90,100,6,"%",[["hair","chin"]],2);
 
  QUAL=computeQuality(bizy,fh);
 
- /* двухслойная агрегация */
+ /* двухслойная агрегация с весами метрик */
  CATSCORES={};
- CATS.forEach(function(c){var scs=METRICS.filter(function(m){return m.cat===c;})
-   .map(function(m){return m.s;});CATSCORES[c]=pmean(scs,PVAL);});
- var pairs=CATS.map(function(c){return[CATSCORES[c],CATW[c]];});
- overall=wpmean(pairs,PVAL);
+ CATS.forEach(function(c){var rows=METRICS.filter(function(m){return m.cat===c;});
+  CATSCORES[c]=wpmean(rows.map(function(m){return[m.s,m.weight];}),PVAL);});
+ overall=wpmean(CATS.map(function(c){return[CATSCORES[c],CATW[c]];}),PVAL);
  psl=Math.max(1,Math.min(8,overall/10-2));
  soundDone();
  elEditor.style.display='none';elResult.style.display='flex';
