@@ -266,39 +266,13 @@ elRestart.addEventListener('click',restartPoints);
 elZin.addEventListener('click',function(){view.s=Math.min(30,view.s*1.3);});
 elZout.addEventListener('click',function(){view.s=Math.max(.05,view.s/1.3);});
 
-/* ---------- pan+pinch ---------- */
-var ptrs=new Map(),pan=null,pinch=null;
-function resetPointers(){ptrs.clear();pan=null;pinch=null;}
-addEventListener('blur',resetPointers);
-elCv.addEventListener('pointercancel',resetPointers);
-elCv.addEventListener('pointerdown',function(e){elCv.setPointerCapture(e.pointerId);
- ptrs.set(e.pointerId,[e.clientX,e.clientY]);
- if(ptrs.size===1)pan={x:e.clientX,y:e.clientY,ox:view.ox,oy:view.oy};
- else if(ptrs.size===2){var a=Array.from(ptrs.values());pinch={d:Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]),s:view.s};}});
-elCv.addEventListener('pointermove',function(e){if(!ptrs.has(e.pointerId))return;
- ptrs.set(e.pointerId,[e.clientX,e.clientY]);
- if(ptrs.size===1&&pan){view.ox=pan.ox+e.clientX-pan.x;view.oy=pan.oy+e.clientY-pan.y;}
- else if(ptrs.size===2&&pinch){var a=Array.from(ptrs.values());
-  view.s=Math.max(.05,Math.min(30,pinch.s*Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1])/pinch.d));}});
-elCv.addEventListener('pointerup',function(e){ptrs.delete(e.pointerId);
- if(ptrs.size===1){var a=Array.from(ptrs.values())[0];pan={x:a[0],y:a[1],ox:view.ox,oy:view.oy};pinch=null;}
- else if(ptrs.size===0)pan=null;});
-
-/* ================= МАТЕМАТИКА ================= */
-/* Штраф с оптимумом: 100 только в оптимуме, ~82 на краях диапазона, гауссов хвост снаружи */
+/* ================= ЯДРО ================= */
+/* 1) чистая гауссиана вокруг оптимума: нет плоской зоны 100 */
 function smoothScore(v,lo,hi,m,opt){
  if(opt==null)opt=(lo+hi)/2;
- var wi=Math.max(hi-opt,opt-lo,1e-6);
- if(v>=lo&&v<=hi){
-   var di=Math.abs(v-opt)/wi;
-   return 100-18*di*di;
- }
- var d=v<lo?lo-v:v-hi;
- return 82*Math.exp(-Math.pow(d/(1.5*Math.max(m,1e-6)),2));
+ var sigma=Math.max(m,1e-6);
+ return 100*Math.exp(-((v-opt)*(v-opt))/(2*sigma*sigma));
 }
-function pmean(xs,p){xs=xs.map(function(x){return Math.max(.1,x);});
- if(Math.abs(p)<1e-9)return Math.exp(xs.reduce(function(a,x){return a+Math.log(x);},0)/xs.length);
- return Math.pow(xs.reduce(function(a,x){return a+Math.pow(x,p);},0)/xs.length,1/p);}
 function wpmean(pairs,p){var sw=pairs.reduce(function(a,x){return a+x[1];},0);
  var xs=pairs.map(function(x){return Math.max(.1,x[0]);});
  if(Math.abs(p)<1e-9)return Math.exp(pairs.reduce(function(a,x,i){return a+x[1]*Math.log(xs[i]);},0)/sw);
@@ -314,14 +288,14 @@ function gauge(v,lo,hi,m){var k=3,rl=lo-k*m,rh=hi+k*m;
  return{pos:(pos*100).toFixed(1),
   grad:'linear-gradient(90deg,var(--bad) 0%,var(--warn) '+(gs*.5).toFixed(1)+'%,var(--ok) '+gs.toFixed(1)+
   '%,var(--ok) '+ge.toFixed(1)+'%,var(--warn) '+(100-(100-ge)*.5).toFixed(1)+'%,var(--bad) 100%)'};}
-/* Оптимумы для асимметричных метрик; остальные — середина диапазона */
 var OPT={"Canthal tilt":7,"Symmetry":98,"Jawline def":172,"Cheek height index*":56,"Brow tilt":9,"Eye aspect":3.2};
 function addMetric(cat,n,v,lo,hi,m,u,segs,w){
  var opt=OPT[n]!=null?OPT[n]:(lo+hi)/2;
  var s=smoothScore(v,lo,hi,m,opt);
- METRICS.push({i:METRICS.length,cat:cat,n:n,v:v,lo:lo,hi:hi,m:m,u:u,s:Math.round(s),segs:segs,weight:w||1});
+ METRICS.push({i:METRICS.length,cat:cat,n:n,v:v,lo:lo,hi:hi,m:m,u:u,s:s,segs:segs,weight:w||1});
  return s;
 }
+function mScore(n){for(var i=0;i<METRICS.length;i++)if(METRICS[i].n===n)return METRICS[i].s;return null;}
 
 /* ---------- симметрия ---------- */
 function computeSymmetry(bizy,fh){
@@ -336,7 +310,7 @@ function computeSymmetry(bizy,fh){
  var avg=devs.reduce(function(a,b){return a+b;},0)/devs.length*100;
  return Math.max(0,Math.min(100,100-avg*7));
 }
-/* ---------- качество фото ---------- */
+/* ---------- качество ---------- */
 function computeQuality(bizy,fh){
  var faceFrac=fh/img.height;
  var roll=Math.abs(Math.atan2(PTS.eyeLc.y-PTS.eyeRc.y,PTS.eyeLc.x-PTS.eyeRc.x))*180/Math.PI;
@@ -355,6 +329,12 @@ function computeQuality(bizy,fh){
 /* ---------- веса категорий ---------- */
 var CATW={"👁 Глаза":.18,"👃 Нос":.14,"👄 Рот":.12,"🦴 Челюсть":.20,"📐 Пропорции":.26,"🪞 Симметрия":.10};
 var CATS=["👁 Глаза","👃 Нос","👄 Рот","🦴 Челюсть","📐 Пропорции","🪞 Симметрия"];
+/* ---------- 4 оси (превью) ---------- */
+var AXES={
+ "Гармония":["Fifths","Face height/width","Mid/Lower","Lower face %","Symmetry","Midface"],
+ "Угловатость":["Bigonial %","Jaw frontal °","Jawline def","Cheek hollow index*","Cheek height index*"],
+ "Диморфизм":["Bigonial %","Jaw frontal °","Neck width %","Brow tilt","Temple/Jaw taper"],
+ "Фичи":["Canthal tilt","Eye aspect","Nose W/H","Lip ratio","Mouth/Nose","Eye spacing"]};
 
 /* ---------- расчёт ---------- */
 function finish(){editorOn=false;
@@ -422,9 +402,11 @@ function finish(){editorOn=false;
 
  QUAL=computeQuality(bizy,fh);
 
+ /* 3) категория = взвешенное арифметическое; итог = степенное среднее категорий */
  CATSCORES={};
  CATS.forEach(function(c){var rows=METRICS.filter(function(m){return m.cat===c;});
-  CATSCORES[c]=wpmean(rows.map(function(m){return[m.s,m.weight];}),PVAL);});
+  var sw=rows.reduce(function(a,m){return a+m.weight;},0);
+  CATSCORES[c]=rows.reduce(function(a,m){return a+m.s*m.weight;},0)/Math.max(1e-6,sw);});
  overall=wpmean(CATS.map(function(c){return[CATSCORES[c],CATW[c]];}),PVAL);
  psl=Math.max(1,Math.min(8,overall/10-2));
  soundDone();
@@ -446,9 +428,19 @@ function buildList(){
  var strong=sorted.slice(0,3),weak=sorted.slice(-3).reverse();
 
  var html='<h1 style="padding:4px 0 0">'+overall.toFixed(1)+' / 100</h1>'
-  +'<div class="sub">⭐ PSL '+psl.toFixed(1)+'/8 · Confidence '+Math.round(QUAL.conf)+'% · Thirds '
-  +Math.round(100*thirds[0]/tt)+'/'+Math.round(100*thirds[1]/tt)+'/'+Math.round(100*thirds[2]/tt)+'%</div>';
+  +'<div class="sub">Attractiveness '+overall.toFixed(1)+' · Confidence '+Math.round(QUAL.conf)+'% (не влияет на балл) · PSL '+psl.toFixed(1)+'/8</div>'
+  +'<div class="sub">Thirds '+Math.round(100*thirds[0]/tt)+'/'+Math.round(100*thirds[1]/tt)+'/'+Math.round(100*thirds[2]/tt)+'%</div>';
  if(QUAL.warns.length)html+='<div class="sub" style="color:var(--warn)">⚠️ Точность снижена: '+QUAL.warns.join(', ')+'</div>';
+
+ /* 4 оси */
+ html+='<div class="card2"><div class="sub" style="margin-bottom:6px">PROFILES</div>';
+ Object.keys(AXES).forEach(function(ax){
+  var vals=AXES[ax].map(mScore).filter(function(v){return v!=null;});
+  if(!vals.length)return;
+  var s=vals.reduce(function(a,b){return a+b;},0)/vals.length;
+  html+='<div class="brow"><span>'+ax+'</span><span style="color:'+colorOf(s)+';font-weight:800">'+Math.round(s)+'</span></div>';});
+ html+='</div>';
+
  html+='<div class="card2">'+deltaHtml
   +'<div class="brow"><span>💪</span><span>'+strong.map(function(m){return m.n;}).join(', ')+'</span></div>'
   +'<div class="brow"><span>⚠️</span><span>'+weak.map(function(m){return m.n;}).join(', ')+'</span></div></div>';
@@ -462,10 +454,9 @@ function buildList(){
   html+='<h2 class="cat">'+cat+'</h2>';
   rows.forEach(function(m,ri){var gz=gauge(m.v,m.lo,m.hi,m.m),c=colorOf(m.s);
    html+='<div class="mrow" data-i="'+m.i+'" style="animation-delay:'+(ri*.04)+'s">'
-    +'<div class="mhead"><span>'+m.n+'</span><span class="chip" style="background:'+c+'22;color:'+c+'">'+m.s+'</span></div>'
+    +'<div class="mhead"><span>'+m.n+'</span><span class="chip" style="background:'+c+'22;color:'+c+'">'+Math.round(m.s)+'</span></div>'
     +'<div class="gauge" style="background:'+gz.grad+'"><i style="left:'+gz.pos+'%"></i></div>'
-    +'<div class="sub">'+m.v.toFixed(2)+m.u+' · идеал '+m.lo+'–'+m.hi
-    +(m.s<50?' · значение вне диапазона':'')+'</div></div>';});});
+    +'<div class="sub">'+m.v.toFixed(2)+m.u+' · оптимум ~'+((m.lo+m.hi)/2).toFixed(2)+'</div></div>';});});
  elList.innerHTML=html;
  elList.querySelectorAll('.mrow').forEach(function(el){
   el.addEventListener('click',function(){showAllOn=false;elAll.textContent='ВСЕ ЛИНИИ';
@@ -487,7 +478,7 @@ function drawSegs(f,m,width,shadow){var c=colorOf(m.s);
   rctx.beginPath();rctx.arc(b.x*f.s+f.ox,b.y*f.s+f.oy,3,0,7);rctx.fill();});
  rctx.shadowBlur=0;}
 function showMetric(i){var f=fitResult();drawBase(f);var m=METRICS[i];drawSegs(f,m,2.5,true);
- rctx.fillStyle=colorOf(m.s);rctx.font='700 14px sans';rctx.fillText(m.n+' · '+m.s+'/100',10,20);}
+ rctx.fillStyle=colorOf(m.s);rctx.font='700 14px sans';rctx.fillText(m.n+' · '+Math.round(m.s)+'/100',10,20);}
 function showAll(){var f=fitResult();drawBase(f);
  METRICS.forEach(function(m){drawSegs(f,m,1.2,false);});
  rctx.fillStyle='#fff';rctx.font='700 14px sans';rctx.fillText('Все измерения',10,20);}
@@ -496,8 +487,8 @@ elAll.addEventListener('click',function(){showAllOn=!showAllOn;
 
 /* ---------- отправка ---------- */
 elSend.addEventListener('click',function(){
- var txt="📊 LUX PRO: "+overall.toFixed(1)+"/100 | PSL "+psl.toFixed(1)+"/8 | Confidence "+Math.round(QUAL.conf)+"%\n"
-  +METRICS.map(function(m){return "• "+m.n+": "+m.v.toFixed(2)+m.u+" | "+m.s+"/100";}).join("\n");
+ var txt="📊 LUX PRO: "+overall.toFixed(1)+"/100 | Confidence "+Math.round(QUAL.conf)+"% | PSL "+psl.toFixed(1)+"/8\n"
+  +METRICS.map(function(m){return "• "+m.n+": "+m.v.toFixed(2)+m.u+" | "+Math.round(m.s)+"/100";}).join("\n");
  if(TG){TG.sendData(JSON.stringify({t:"lux",text:txt}));TG.close();}});
 </script>
 </body>
