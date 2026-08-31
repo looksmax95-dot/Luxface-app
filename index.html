@@ -1,784 +1,149 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-<style>
-:root{--bg1:#0b0f1a;--bg2:#141a2e;--line:rgba(255,255,255,.1);--txt:#f2f5fa;--mut:#93a0b4;
---acc:#5b8cff;--acc2:#8b5bff;--ok:#3ddc84;--warn:#ffd166;--bad:#ff5c7a}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
-html,body{margin:0;height:100%;overflow:hidden;color:var(--txt);
-font:15px/1.45 -apple-system,Roboto,sans-serif;background:linear-gradient(160deg,var(--bg1),var(--bg2))}
-.screen{position:fixed;inset:0;display:flex;flex-direction:column;animation:fadeIn .25s ease}
-@keyframes fadeIn{from{opacity:0}to{opacity:1}}
-@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-#home{overflow-y:auto;background:#0a1230}
-.wrap{position:relative}.wrap>img{width:100%;display:block}
-.zone{position:absolute;opacity:0;border:0;background:none}
-#pval{position:absolute;color:#fff;font-size:12px;font-weight:800;text-shadow:0 0 6px #000}
-h1{font-size:24px;font-weight:800;margin:2px 0;background:linear-gradient(90deg,var(--acc),var(--acc2));
--webkit-background-clip:text;color:transparent}
-h2.cat{font-size:15px;font-weight:800;margin:14px 0 4px}
-.sub{color:var(--mut);font-size:12.5px}
-button{transition:transform .12s ease}button:active{transform:scale(.95)}
-#editor{background:#000}canvas#cv{position:absolute;inset:0;touch-action:none}
-#top{position:absolute;top:0;left:0;right:0;padding:12px 14px;z-index:5;background:linear-gradient(#000d,#0000)}
-#pname{font-weight:800;font-size:16px}#pdesc{color:#cdd6e4;font-size:12.5px;margin-top:2px}
-#ring{position:absolute;right:12px;top:12px;width:46px;height:46px;z-index:6}
-#ringv{transition:stroke-dashoffset .3s ease}
-#guide{position:absolute;left:10px;top:70px;width:132px;height:166px;background:#0009;
-border:1px solid var(--line);border-radius:14px;z-index:5}
-#loupe{position:absolute;right:10px;top:70px;width:110px;height:110px;background:#000c;
-border:1px solid var(--acc);border-radius:12px;z-index:5}
-#bar{position:absolute;left:0;right:0;bottom:0;padding:10px 12px calc(10px + env(safe-area-inset-bottom));
-display:flex;gap:8px;z-index:6;background:linear-gradient(#0000,#000d)}
-#bar button{flex:1;border:0;border-radius:14px;padding:13px 0;font-size:17px;color:#fff;
-background:#1b2233cc;border:1px solid var(--line)}
-#bar button.main{flex:2;background:linear-gradient(90deg,var(--acc),var(--acc2));font-weight:800}
-#result{overflow:hidden}#rcv{width:100%;height:38vh;background:#000;flex:none}
-#allBtn{position:absolute;top:8px;right:8px;z-index:9;border:0;border-radius:10px;padding:8px 12px;
-background:#1b2233cc;color:#fff;border:1px solid var(--line);font-size:12px}
-#mlist{flex:1;overflow-y:auto;padding:12px 16px 90px}
-.card2{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:14px;padding:12px;margin:10px 0}
-.brow{display:flex;justify-content:space-between;font-size:13px;padding:3px 0}
-.mrow{padding:9px 10px;border:1px solid var(--line);border-radius:12px;margin-bottom:8px;
-background:rgba(255,255,255,.03);animation:rise .3s both}
-.mhead{display:flex;justify-content:space-between;font-size:13.5px;font-weight:600}
-.gauge{position:relative;height:9px;border-radius:6px;margin:7px 0 3px}
-.gauge i{position:absolute;top:-3px;width:4px;height:15px;background:#fff;border-radius:2px;box-shadow:0 0 8px #fff}
-.chip{padding:2px 10px;border-radius:20px;font-weight:800;font-size:12px}
-#send{position:fixed;left:16px;right:16px;bottom:12px;border:0;border-radius:14px;padding:15px;
-font-weight:800;color:#fff;background:linear-gradient(90deg,var(--acc),var(--acc2));z-index:9}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <meta name="theme-color" content="#0b0f1a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>LUX Face Scanner</title>
+
+  <!-- Telegram WebApp SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <!-- Стили -->
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-<div class="screen" id="home">
- <div class="wrap">
-  <img src="home.png" alt="">
-  <input type="file" id="file" accept="image/*" class="zone" style="top:18.8%;left:19%;width:62%;height:4.5%">
-  <select id="p" class="zone" style="top:27%;left:6%;width:88%;height:15%">
-   <option>1</option><option>0.5</option><option>0.3</option>
-   <option selected>0.2</option><option>0</option><option>-1</option>
-  </select>
-  <div id="pval" style="top:29.5%;left:34%">0.2</div>
- </div>
-</div>
+  <!-- ========== ЭКРАН 1: ГЛАВНОЕ МЕНЮ ========== -->
+  <div class="screen" id="home">
+    <div class="wrap">
+      <img src="home.png" alt="LUX Face Scanner">
 
-<div class="screen" id="editor" style="display:none">
- <canvas id="cv"></canvas>
- <div id="top"><div id="pname"></div><div id="pdesc"></div></div>
- <svg id="ring" viewBox="0 0 46 46">
-  <circle cx="23" cy="23" r="20" fill="none" stroke="#ffffff22" stroke-width="4"/>
-  <circle id="ringv" cx="23" cy="23" r="20" fill="none" stroke="url(#g)" stroke-width="4"
-   stroke-linecap="round" stroke-dasharray="125.6" stroke-dashoffset="125.6" transform="rotate(-90 23 23)"/>
-  <defs><linearGradient id="g"><stop offset="0" stop-color="#5b8cff"/><stop offset="1" stop-color="#8b5bff"/></linearGradient></defs>
- </svg>
- <canvas id="guide" width="100" height="126"></canvas>
- <canvas id="loupe" width="110" height="110"></canvas>
- <div id="bar">
-  <button id="restart">↺</button><button id="undo">⟲</button>
-  <button id="zout">−</button><button id="zin">+</button>
-  <button class="main" id="placeBtn">ТОЧКА</button>
- </div>
-</div>
+      <!-- Зона загрузки фото (поверх кнопки на home.png) -->
+      <input type="file" id="file" accept="image/*" class="zone"
+             style="top:18.8%;left:19%;width:62%;height:4.5%">
 
-<div class="screen" id="result" style="display:none">
- <canvas id="rcv"></canvas>
- <button id="allBtn">ВСЕ ЛИНИИ</button>
- <div id="mlist"></div>
- <button id="send">Отправить боту</button>
-</div>
+      <!-- Выбор параметра PSL (скрытый селект поверх зоны) -->
+      <select id="p" class="zone" style="top:27%;left:6%;width:88%;height:15%">
+        <option value="1">1</option>
+        <option value="0.5">0.5</option>
+        <option value="0.3">0.3</option>
+        <option value="0.2" selected>0.2</option>
+        <option value="0">0</option>
+        <option value="-1">-1</option>
+      </select>
 
-<script>
-"use strict";
-var TG=(window.Telegram&&window.Telegram.WebApp)?window.Telegram.WebApp:null;
-if(TG){TG.ready();TG.expand();}
-function haptic(){if(TG&&TG.HapticFeedback)TG.HapticFeedback.impactOccurred('light');}
+      <!-- Отображение выбранного значения -->
+      <div id="pval" style="top:29.5%;left:34%">0.2</div>
+    </div>
+  </div>
 
-/* ---------- звук ---------- */
-var audioCtx=null;
-function ensureAudio(){if(!audioCtx){var AC=window.AudioContext||window.webkitAudioContext;if(AC)audioCtx=new AC();}return audioCtx;}
-function unlockAudio(){var a=ensureAudio();if(a&&a.state==='suspended')a.resume();}
-document.addEventListener('pointerdown',unlockAudio);
-document.addEventListener('touchstart',unlockAudio);
-function playTone(f,d,v){var a=ensureAudio();if(!a)return;
- function go(){try{var o=a.createOscillator(),g=a.createGain();o.type='sine';o.frequency.value=f;
-  g.gain.setValueAtTime(v||.15,a.currentTime);g.gain.exponentialRampToValueAtTime(.0001,a.currentTime+d);
-  o.connect(g);g.connect(a.destination);o.start();o.stop(a.currentTime+d);}catch(e){}}
- if(a.state==='running')go();else a.resume().then(go);}
-function soundPlace(){playTone(880,.08);}
-function soundUndo(){playTone(320,.09);}
-function soundDone(){[523,659,784,1046].forEach(function(f,i){setTimeout(function(){playTone(f,.14);},i*90);});}
+  <!-- ========== ЭКРАН 2: РЕДАКТОР ТОЧЕК ========== -->
+  <div class="screen" id="editor" style="display:none">
+    <!-- Основной canvas для фото и точек -->
+    <canvas id="cv"></canvas>
 
-/* ---------- DOM ---------- */
-function byId(id){return document.getElementById(id);}
-var elHome=byId('home'),elEditor=byId('editor'),elResult=byId('result');
-var elFile=byId('file'),elP=byId('p'),elPval=byId('pval');
-var elCv=byId('cv'),ctx=elCv.getContext('2d');
-var elName=byId('pname'),elDesc=byId('pdesc'),elRing=byId('ringv');
-var elGuide=byId('guide'),gctx=elGuide.getContext('2d');
-var elLoupe=byId('loupe'),lctx=elLoupe.getContext('2d');
-var elRestart=byId('restart'),elUndo=byId('undo'),elZin=byId('zin'),elZout=byId('zout'),elPlace=byId('placeBtn');
-var elRcv=byId('rcv'),rctx=elRcv.getContext('2d');
-var elAll=byId('allBtn'),elList=byId('mlist'),elSend=byId('send');
-var guideImg=new Image();guideImg.src='guide.png';
+    <!-- Верхняя панель: имя и описание текущей точки -->
+    <div id="top">
+      <div id="pname"></div>
+      <div id="pdesc"></div>
+    </div>
 
-/* ---------- 46 точек ---------- */
-var POINTS=[
-["hair","Линия роста волос","Середина лба, где начинаются волосы",.5,.06],
-["nas","Назион","Переносица, где нос начинается между глаз",.5,.42],
-["sub","Субназале","Основание носа, стык с верхней губой",.5,.66],
-["chin","Подбородок","Самая нижняя точка подбородка",.5,.97],
-["eyeRo","Глаз прав. внешн.","Внешний уголок правого глаза",.24,.45],
-["eyeRi","Глаз прав. внутр.","Внутренний уголок правого глаза",.40,.45],
-["eyeRu","Прав. верх. веко","Середина верхнего века правого",.32,.43],
-["eyeRl","Прав. ниж. веко","Середина нижнего века правого",.32,.47],
-["eyeRc","Прав. зрачок","Центр зрачка правого глаза",.32,.45],
-["eyeLo","Глаз лев. внешн.","Внешний уголок левого глаза",.76,.45],
-["eyeLi","Глаз лев. внутр.","Внутренний уголок левого глаза",.60,.45],
-["eyeLu","Лев. верх. веко","Середина верхнего века левого",.68,.43],
-["eyeLl","Лев. ниж. веко","Середина нижнего века левого",.68,.47],
-["eyeLc","Лев. зрачок","Центр зрачка левого глаза",.68,.45],
-["browRi","Бровь прав. внутр.","Начало правой брови",.36,.36],
-["browRp","Бровь прав. пик","Верх правой брови",.32,.34],
-["browRo","Бровь прав. внешн.","Хвост правой брови",.22,.36],
-["browLi","Бровь лев. внутр.","Начало левой брови",.64,.36],
-["browLp","Бровь лев. пик","Верх левой брови",.68,.34],
-["browLo","Бровь лев. внешн.","Хвост левой брови",.78,.36],
-["bizR","Ширина прав.","Максимум ширины лица справа",.13,.50],
-["bizL","Ширина лев.","Максимум ширины лица слева",.87,.50],
-["tempR","Висок прав.","Край лба у виска справа",.16,.32],
-["tempL","Висок лев.","Край лба у виска слева",.84,.32],
-["noseR","Крыло прав.","Внешний край правой ноздри",.42,.62],
-["noseL","Крыло лев.","Внешний край левой ноздри",.58,.62],
-["ntip","Кончик носа","Выступающая точка носа",.5,.60],
-["lt","Верхняя губа","Лук Купидона",.5,.73],
-["st","Линия губ","Стык губ по центру",.5,.76],
-["lb","Низ нижней губы","Нижний край нижней губы",.5,.80],
-["mouR","Рот прав. уголок","Правый уголок губ",.34,.76],
-["mouL","Рот лев. уголок","Левый уголок губ",.66,.76],
-["gonR","Угол челюсти прав.","Нижний угол челюсти справа",.24,.80],
-["gonL","Угол челюсти лев.","Нижний угол челюсти слева",.76,.80],
-["jawMidR","Челюсть сред прав.","Середина дуги справа",.32,.89],
-["jawMidL","Челюсть сред лев.","Середина дуги слева",.68,.89],
-["jawLowR","Челюсть низ прав.","Низ дуги справа",.41,.94],
-["jawLowL","Челюсть низ лев.","Низ дуги слева",.59,.94],
-["zygR","Скула прав.","Выступающая точка правой скулы",.18,.57],
-["zygL","Скула лев.","Выступающая точка левой скулы",.82,.57],
-["holR","Впадина прав.","Щёчная впадина справа",.30,.70],
-["holL","Впадина лев.","Щёчная впадина слева",.70,.70],
-["neckR","Шея прав.","Правый край шеи",.32,1.0],
-["neckL","Шея лев.","Левый край шеи",.68,1.0],
-["chinR","Подбородок прав.","Правый край подбородка",.44,.95],
-["chinL","Подбородок лев.","Левый край подбородка",.56,.95]];
-var SCH={};POINTS.forEach(function(p){SCH[p[0]]={x:p[3],y:p[4]};});
+    <!-- Прогресс-кольцо (SVG) -->
+    <svg id="ring" viewBox="0 0 46 46">
+      <circle cx="23" cy="23" r="20" fill="none" stroke="rgba(255,255,255,0.13)" stroke-width="4"/>
+      <circle id="ringv" cx="23" cy="23" r="20" fill="none" stroke="url(#ringGrad)"
+              stroke-width="4" stroke-linecap="round"
+              stroke-dasharray="125.6" stroke-dashoffset="125.6"
+              transform="rotate(-90 23 23)"/>
+      <defs>
+        <linearGradient id="ringGrad">
+          <stop offset="0" stop-color="#5b8cff"/>
+          <stop offset="1" stop-color="#8b5bff"/>
+        </linearGradient>
+      </defs>
+    </svg>
 
-/* ---------- состояние ---------- */
-var img=null,placed=[],idx=0,PVAL=.2,view={s:1,ox:0,oy:0};
-var dpr=window.devicePixelRatio||1,cw=0,ch=0;
-var METRICS=[],PTS={},overall=0,psl=1,thirds=[0,0,0],CATSCORES={},QUAL=null;
-var showAllOn=false,editorOn=false,animId=null;
+    <!-- Мини-гайд (векторный canvas) -->
+    <canvas id="guide" width="100" height="126"></canvas>
 
-try{var sp=localStorage.getItem('luxp');if(sp!==null)elP.value=sp;}catch(e){}
-elPval.textContent=elP.value;
-elP.addEventListener('change',function(){elPval.textContent=elP.value;
- try{localStorage.setItem('luxp',elP.value);}catch(e){}});
+    <!-- Лупа (canvas) -->
+    <canvas id="loupe" width="110" height="110"></canvas>
 
-/* ---------- старт ---------- */
-elFile.onchange=function(e){var f=e.target.files[0];if(!f)return;
- unlockAudio();PVAL=parseFloat(elP.value);
- var r=new FileReader();
- r.onload=function(ev){img=new Image();img.onload=startEditor;img.src=ev.target.result;};
- r.readAsDataURL(f);};
-function startEditor(){elHome.style.display='none';elEditor.style.display='block';editorOn=true;
- resizeCanvas();placed=[];idx=0;fitImage();updatePointUI();playTone(660,.06,.1);
- if(!animId)animId=requestAnimationFrame(loop);}
-function resizeCanvas(){cw=innerWidth;ch=innerHeight;elCv.width=cw*dpr;elCv.height=ch*dpr;
- elCv.style.width=cw+'px';elCv.style.height=ch+'px';}
-function fitImage(){view.s=Math.min(cw/img.width,ch/img.height)*.9;
- view.ox=(cw-img.width*view.s)/2;view.oy=(ch-img.height*view.s)/2;}
-function updatePointUI(){var p=POINTS[idx];
- elName.textContent=(idx+1)+"/"+POINTS.length+" · "+p[1];
- elDesc.textContent=p[2];
- elRing.style.strokeDashoffset=125.6*(1-idx/POINTS.length);}
+    <!-- Нижняя панель кнопок -->
+    <div id="bar">
+      <button id="restart" aria-label="Начать заново">↺</button>
+      <button id="undo" aria-label="Отменить точку">⟲</button>
+      <button id="zout" aria-label="Уменьшить">−</button>
+      <button id="zin" aria-label="Увеличить">+</button>
+      <button class="main" id="placeBtn">ТОЧКА</button>
+    </div>
+  </div>
 
-/* ---------- цикл ---------- */
-function loop(ts){if(!editorOn){animId=null;return;}
- drawEditor(ts);drawGuide(ts);drawLoupe();animId=requestAnimationFrame(loop);}
+  <!-- ========== ЭКРАН 3: РЕЗУЛЬТАТЫ ========== -->
+  <div class="screen" id="result" style="display:none">
+    <!-- Canvas для отрисовки линий на фото -->
+    <canvas id="rcv"></canvas>
 
-/* ---------- гайд ---------- */
-function drawGuide(ts){var t=(ts||0)/1000;
- gctx.clearRect(0,0,100,126);
- if(guideImg.complete&&guideImg.naturalWidth>0){gctx.globalAlpha=.22;gctx.drawImage(guideImg,0,0,100,126);gctx.globalAlpha=1;}
- gctx.strokeStyle='#5a6a8a';gctx.lineWidth=1.2;
- var cx=(SCH.bizR.x+SCH.bizL.x)/2*100,cy=(SCH.hair.y+SCH.chin.y)/2*126;
- var rx=(SCH.bizL.x-SCH.bizR.x)/2*100,ry=(SCH.chin.y-SCH.hair.y)/2*126;
- gctx.beginPath();gctx.ellipse(cx,cy,rx,ry,0,0,7);gctx.stroke();
- function eye(a,b,u,l){var ex=(SCH[a].x+SCH[b].x)/2*100,ey=(SCH[u].y+SCH[l].y)/2*126;
-  var erx=Math.abs(SCH[b].x-SCH[a].x)/2*100,ery=Math.abs(SCH[l].y-SCH[u].y)/2*126;
-  gctx.beginPath();gctx.ellipse(ex,ey,erx,ery,0,0,7);gctx.stroke();}
- eye('eyeRo','eyeRi','eyeRu','eyeRl');eye('eyeLo','eyeLi','eyeLu','eyeLl');
- function brow(i,p,o){gctx.beginPath();gctx.moveTo(SCH[i].x*100,SCH[i].y*126);
-  gctx.quadraticCurveTo(SCH[p].x*100,SCH[p].y*126,SCH[o].x*100,SCH[o].y*126);gctx.stroke();}
- brow('browRi','browRp','browRo');brow('browLi','browLp','browLo');
- gctx.beginPath();gctx.moveTo(SCH.nas.x*100,SCH.nas.y*126);gctx.lineTo(SCH.ntip.x*100,SCH.ntip.y*126);gctx.stroke();
- gctx.beginPath();gctx.moveTo(SCH.mouR.x*100,SCH.mouR.y*126);
- gctx.quadraticCurveTo(SCH.st.x*100,SCH.st.y*126,SCH.mouL.x*100,SCH.mouL.y*126);gctx.stroke();
- gctx.beginPath();gctx.moveTo(SCH.gonR.x*100,SCH.gonR.y*126);
- gctx.quadraticCurveTo(SCH.chin.x*100,(SCH.chin.y+.02)*126,SCH.gonL.x*100,SCH.gonL.y*126);gctx.stroke();
- var g=SCH[POINTS[idx][0]],pulse=3+Math.sin(t*6)*1.2;
- gctx.fillStyle='#ff5c7a';gctx.beginPath();gctx.arc(g.x*100,g.y*126,2.5,0,7);gctx.fill();
- gctx.globalAlpha=.5;gctx.strokeStyle='#ff5c7a';
- gctx.beginPath();gctx.arc(g.x*100,g.y*126,pulse+3,0,7);gctx.stroke();gctx.globalAlpha=1;}
+    <!-- Кнопка переключения: одна линия / все линии -->
+    <button id="allBtn">ВСЕ ЛИНИИ</button>
 
-/* ---------- лупа ---------- */
-function drawLoupe(){var L=110;lctx.setTransform(1,0,0,1,0,0);lctx.clearRect(0,0,L,L);
- var wx=((cw/2)-view.ox)/view.s,wy=((ch/2)-view.oy)/view.s,sc=L/(img.width*.14);
- lctx.save();lctx.translate(L/2,L/2);lctx.scale(sc,sc);lctx.translate(-wx,-wy);
- lctx.drawImage(img,0,0);lctx.restore();
- lctx.strokeStyle='#3ddc84';lctx.lineWidth=1;
- lctx.beginPath();lctx.moveTo(L/2-8,L/2);lctx.lineTo(L/2+8,L/2);
- lctx.moveTo(L/2,L/2-8);lctx.lineTo(L/2,L/2+8);lctx.stroke();}
+    <!-- Скроллируемый список метрик -->
+    <div id="mlist"></div>
 
-/* ---------- редактор ---------- */
-function drawEditor(ts){var t=(ts||0)/1000;
- ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,cw,ch);
- ctx.save();ctx.translate(view.ox,view.oy);ctx.scale(view.s,view.s);ctx.drawImage(img,0,0);ctx.restore();
- for(var i=0;i<placed.length;i++){var p=placed[i],x=p.x*img.width*view.s+view.ox,y=p.y*img.height*view.s+view.oy;
-  ctx.fillStyle='#3ddc84';ctx.beginPath();ctx.arc(x,y,4,0,7);ctx.fill();
-  ctx.fillStyle='#fff';ctx.font='10px sans';ctx.fillText(i+1,x+6,y-6);}
- var pulse=8+Math.sin(t*6)*3;
- ctx.strokeStyle='#3ddc84';ctx.lineWidth=1.5;ctx.shadowColor='#3ddc84';ctx.shadowBlur=pulse;
- ctx.beginPath();ctx.moveTo(cw/2-16,ch/2);ctx.lineTo(cw/2+16,ch/2);
- ctx.moveTo(cw/2,ch/2-16);ctx.lineTo(cw/2,ch/2+16);ctx.stroke();ctx.shadowBlur=0;}
+    <!-- Кнопка отправки боту -->
+    <button id="send">Отправить боту</button>
+  </div>
 
-/* ---------- точки ---------- */
-function placePoint(){placed.push({x:((cw/2)-view.ox)/view.s/img.width,y:((ch/2)-view.oy)/view.s/img.height});
- haptic();soundPlace();idx++;
- if(idx>=POINTS.length)finish();else updatePointUI();}
-function undoPoint(){if(idx>0){idx--;placed.pop();haptic();soundUndo();updatePointUI();}}
-function restartPoints(){placed=[];idx=0;haptic();soundUndo();fitImage();updatePointUI();}
-elPlace.addEventListener('click',placePoint);
-elUndo.addEventListener('click',undoPoint);
-elRestart.addEventListener('click',restartPoints);
-elZin.addEventListener('click',function(){view.s=Math.min(30,view.s*1.3);});
-elZout.addEventListener('click',function(){view.s=Math.max(.05,view.s/1.3);});
+  <!-- ========== ПОДКЛЮЧЕНИЕ МОДУЛЕЙ ========== -->
+  <script type="module">
+    import { initApp } from './app-logic.js';
 
-/* ================= TIER СИСТЕМА (v16) ================= */
-/* Tier-коэффициенты из Looksmax.org */
-var TIER_COEFF=[1.00,0.90,0.75,0.60,0.40,0.20,0.0];
+    /* Инициализация Telegram WebApp */
+    var TG = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
+    if (TG) {
+      TG.ready();
+      TG.expand();
+    }
 
-/* 
- * Метрики с весами из Looksmax.org
- * lo, hi - идеальный диапазон (Tier 1)
- * w - вес метрики в категории
- * u - единицы измерения
- * cat - категория
- */
-var METRIC_TABLE=[
- {name:"Eye separation",cat:"👁 Глаза",lo:0.45,hi:0.47,w:35,u:""},
- {name:"Upper third",cat:"📐 Пропорции",lo:0.30,hi:0.36,w:30,u:""},
- {name:"Canthal tilt",cat:"👁 Глаза",lo:5,hi:8.5,w:30,u:"°"},
- {name:"FWHR",cat:"📐 Пропорции",lo:1.90,hi:2.06,w:25,u:""},
- {name:"Cheekbone setness",cat:"🦴 Челюсть",lo:0.81,hi:1.00,w:25,u:""},
- {name:"Jaw frontal angle",cat:"🦴 Челюсть",lo:82,hi:94,w:25,u:"°"},
- {name:"Bigonial/Bizygomatic",cat:"🦴 Челюсть",lo:0.88,hi:1.00,w:15,u:""},
- {name:"Total face H/W",cat:"📐 Пропорции",lo:1.30,hi:1.40,w:15,u:""},
- {name:"Middle third",cat:"📐 Пропорции",lo:0.32,hi:0.38,w:12,u:""},
- {name:"Lower third",cat:"📐 Пропорции",lo:0.30,hi:0.36,w:12,u:""},
- {name:"Chin/Philtrum",cat:"👄 Рот",lo:2.0,hi:2.5,w:12.5,u:""},
- {name:"Eye spacing",cat:"👁 Глаза",lo:0.93,hi:1.04,w:10,u:""},
- {name:"Eye aspect",cat:"👁 Глаза",lo:3.0,hi:3.7,w:10,u:""},
- {name:"Midface ratio",cat:"👃 Нос",lo:0.90,hi:1.10,w:10,u:""},
- {name:"Mouth/Nose",cat:"👄 Рот",lo:1.40,hi:1.60,w:10,u:""},
- {name:"Nasal height/width",cat:"👃 Нос",lo:0.62,hi:0.88,w:5,u:""},
- {name:"Bitemporal",cat:"📐 Пропорции",lo:0.89,hi:1.00,w:5,u:""},
- {name:"Lower third proportion",cat:"📐 Пропорции",lo:0.33,hi:0.40,w:5,u:""},
- {name:"Lower/upper lip",cat:"👄 Рот",lo:0.33,hi:0.40,w:7.5,u:""},
- {name:"Eyebrow tilt",cat:"👁 Глаза",lo:5,hi:13,w:5,u:"°"},
- {name:"Eyebrow setness",cat:"👁 Глаза",lo:0,hi:0.5,w:10,u:""},
- {name:"Orbital vector",cat:"👁 Глаза",lo:0.5,hi:1.5,w:7.5,u:""},
- {name:"Ipsilateral alar angle",cat:"👃 Нос",lo:84,hi:95,w:2.5,u:"°"},
- {name:"IAA-JFA deviation",cat:"👃 Нос",lo:-2.5,hi:2.5,w:7,u:"°"},
- {name:"Jawline def",cat:"🦴 Челюсть",lo:160,hi:178,w:8,u:"°"},
- {name:"Temple/Jaw taper",cat:"🦴 Челюсть",lo:1.15,hi:1.30,w:6,u:""},
- {name:"Neck width %",cat:"🦴 Челюсть",lo:0.90,hi:1.00,w:6,u:""},
- {name:"Symmetry",cat:"🪞 Симметрия",lo:0.90,hi:1.00,w:20,u:""}
-];
+    /* Сохранение/загрузка параметра P */
+    var elP = document.getElementById('p');
+    var elPval = document.getElementById('pval');
+    try {
+      var savedP = localStorage.getItem('luxp');
+      if (savedP !== null) elP.value = savedP;
+    } catch (e) {}
+    elPval.textContent = elP.value;
+    elP.addEventListener('change', function() {
+      elPval.textContent = elP.value;
+      try { localStorage.setItem('luxp', elP.value); } catch (e) {}
+    });
 
-/**
- * Расчёт tier-балла для метрики
- * @param {number} value - измеренное значение
- * @param {object} metric - объект метрики с lo, hi
- * @returns {number} - балл от 0 до 100
- */
-function tierScore(value,metric){
- var center=(metric.lo+metric.hi)/2;
- var halfRange=(metric.hi-metric.lo)/2;
- var deviation=Math.abs(value-center);
- 
- // Определяем tier по отклонению
- if(deviation<=halfRange*0.25){
-  return TIER_COEFF[0]*100; // 100 - центр идеала
- }
- if(deviation<=halfRange*0.50){
-  return TIER_COEFF[1]*100; // 90 - близко к центру
- }
- if(deviation<=halfRange){
-  return TIER_COEFF[2]*100; // 75 - край идеального диапазона
- }
- if(deviation<=halfRange*1.5){
-  return TIER_COEFF[3]*100; // 60 - небольшое отклонение
- }
- if(deviation<=halfRange*2.0){
-  return TIER_COEFF[4]*100; // 40 - умеренное отклонение
- }
- if(deviation<=halfRange*3.0){
-  return TIER_COEFF[5]*100; // 20 - значительное отклонение
- }
- return TIER_COEFF[6]*100; // 0 - экстремальное отклонение
-}
+    /* Инициализация приложения */
+    initApp({
+      homeScreen: document.getElementById('home'),
+      editorScreen: document.getElementById('editor'),
+      resultScreen: document.getElementById('result'),
+      fileInput: document.getElementById('file'),
+      editorCanvas: document.getElementById('cv'),
+      guideCanvas: document.getElementById('guide'),
+      loupeCanvas: document.getElementById('loupe'),
+      pointName: document.getElementById('pname'),
+      pointDesc: document.getElementById('pdesc'),
+      progressRing: document.getElementById('ringv'),
+      placeBtn: document.getElementById('placeBtn'),
+      undoBtn: document.getElementById('undo'),
+      restartBtn: document.getElementById('restart'),
+      zinBtn: document.getElementById('zin'),
+      zoutBtn: document.getElementById('zout'),
+      resultCanvas: document.getElementById('rcv'),
+      metricList: document.getElementById('mlist'),
+      allLinesBtn: document.getElementById('allBtn'),
+      sendBtn: document.getElementById('send')
+    });
+  </script>
 
-/**
- * Взвешенное степенное среднее
- * @param {Array} pairs - массив [значение, вес]
- * @param {number} p - показатель степени (0 = геометрическое)
- * @returns {number} - среднее значение
- */
-function wpmean(pairs,p){
- var sw=pairs.reduce(function(a,x){return a+x[1];},0);
- if(sw===0)return 0;
- var xs=pairs.map(function(x){return Math.max(.1,x[0]);});
- 
- if(Math.abs(p)<1e-9){
-  // Геометрическое среднее (p=0)
-  var sum=pairs.reduce(function(a,x,i){
-   return a+x[1]*Math.log(xs[i]);
-  },0);
-  return Math.exp(sum/sw);
- }
- 
- // Степенное среднее
- var sum=pairs.reduce(function(a,x,i){
-  return a+x[1]*Math.pow(xs[i],p);
- },0);
- return Math.pow(sum/sw,1/p);
-}
-
-function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
-function angleAt(a,b,c){var v1=[a.x-b.x,a.y-b.y],v2=[c.x-b.x,c.y-b.y];
- var n=Math.hypot(v1[0],v1[1])*Math.hypot(v2[0],v2[1]);if(!n)return 0;
- var cos=Math.max(-1,Math.min(1,(v1[0]*v2[0]+v1[1]*v2[1])/n));return Math.acos(cos)*180/Math.PI;}
-function colorOf(s){return s>=80?'#3ddc84':s>=50?'#ffd166':'#ff5c7a';}
-function gauge(v,lo,hi){
- var center=(lo+hi)/2;
- var range=hi-lo;
- var pos=50; // Центр - 50%
- if(range>0){
-  pos=Math.max(0,Math.min(100,50+((v-center)/range)*100));
- }
- return{
-  pos:pos.toFixed(1),
-  grad:'linear-gradient(90deg,var(--bad) 0%,var(--warn) 25%,var(--ok) 50%,var(--warn) 75%,var(--bad) 100%)'
- };
-}
-
-function addMetric(cat,name,value,metricObj,segs){
- var s=tierScore(value,metricObj);
- METRICS.push({
-  i:METRICS.length,
-  cat:cat,
-  name:name,
-  value:value,
-  lo:metricObj.lo,
-  hi:metricObj.hi,
-  u:metricObj.u,
-  score:s,
-  weight:metricObj.w,
-  segs:segs||[]
- });
- return s;
-}
-
-function mScore(name){
- for(var i=0;i<METRICS.length;i++){
-  if(METRICS[i].name===name)return METRICS[i].score;
- }
- return null;
-}
-
-/* ---------- симметрия ---------- */
-function computeSymmetry(bizy,fh){
- var cx=(PTS.hair.x+PTS.chin.x+PTS.nas.x+PTS.sub.x)/4;
- var pairs=[
-  ['eyeCo','eyeCo'],['eyeRi','eyeLi'],['eyeRc','eyeLc'],['browRp','browLp'],
-  ['noseR','noseL'],['mouR','mouL'],['zygR','zygL'],['gonR','gonL'],['holR','holL'],
-  ['tempR','tempL'],['chinR','chinL']
- ];
- var devs=[];
- pairs.forEach(function(pr){
-  var R=PTS[pr[0]],L=PTS[pr[1]];
-  if(R&&L){
-   devs.push(Math.abs(Math.abs(R.x-cx)-Math.abs(L.x-cx))/bizy);
-   devs.push(Math.abs(R.y-L.y)/fh);
-  }
- });
- var avg=devs.length>0?(devs.reduce(function(a,b){return a+b;},0)/devs.length)*100:0;
- return Math.max(0,Math.min(1,1-avg*5));
-}
-
-/* ---------- качество ---------- */
-function computeQuality(bizy,fh){
- var faceFrac=fh/img.height;
- var roll=Math.abs(Math.atan2(PTS.eyeLc.y-PTS.eyeRc.y,PTS.eyeLc.x-PTS.eyeRc.x))*180/Math.PI;
- var cx=(PTS.hair.x+PTS.chin.x+PTS.nas.x+PTS.sub.x)/4;
- var yaw=Math.abs(Math.abs(cx-PTS.eyeRc.x)-Math.abs(PTS.eyeLc.x-cx))/bizy*90;
- var up=dist(PTS.hair,PTS.nas),low=dist(PTS.sub,PTS.chin);
- var pitch=Math.abs(low-up)/fh*60;
- var conf=100,warns=[];
- 
- if(faceFrac<.5){conf-=15;warns.push('лицо мелкое');}
- if(roll>6){conf-=Math.min(25,(roll-6)*3);warns.push('наклон '+roll.toFixed(0)+'°');}
- if(yaw>8){conf-=Math.min(25,(yaw-8)*2);warns.push('поворот ~'+yaw.toFixed(0)+'°');}
- if(pitch>8){conf-=Math.min(20,(pitch-8)*2);warns.push('ракурс сверху/снизу');}
- 
- return{
-  conf:Math.max(40,Math.min(100,conf)),
-  roll:roll,
-  yaw:yaw,
-  pitch:pitch,
-  warns:warns
- };
-}
-
-/* ---------- веса категорий ---------- */
-var CATW={
- "👁 Глаза":0.18,
- "👃 Нос":0.12,
- "👄 Рот":0.10,
- "🦴 Челюсть":0.22,
- "📐 Пропорции":0.28,
- "🪞 Симметрия":0.10
-};
-var CATS=["👁 Глаза","👃 Нос","👄 Рот","🦴 Челюсть","📐 Пропорции","🪞 Симметрия"];
-
-/* ---------- 4 оси (превью) ---------- */
-var AXES={
- "Гармония":["Upper third","Middle third","Lower third","Total face H/W","Symmetry","Midface ratio"],
- "Угловатость":["Bigonial/Bizygomatic","Jaw frontal angle","Jawline def","Cheekbone setness"],
- "Диморфизм":["Bigonial/Bizygomatic","Jaw frontal angle","Neck width %","Eyebrow tilt","Temple/Jaw taper"],
- "Фичи":["Canthal tilt","Eye aspect","Nasal height/width","Lower/upper lip","Mouth/Nose","Eye spacing"]
-};
-
-/* ---------- расчёт ---------- */
-function finish(){
- editorOn=false;
- var W=img.width,H=img.height;
- PTS={};
- POINTS.forEach(function(t,i){
-  PTS[t[0]]={x:placed[i].x*W,y:placed[i].y*H};
- });
- 
- var bizy=dist(PTS.bizR,PTS.bizL);
- var eyew=(dist(PTS.eyeRo,PTS.eyeRi)+dist(PTS.eyeLo,PTS.eyeLi))/2;
- var fh=dist(PTS.hair,PTS.chin);
- METRICS=[];
- 
- var up=dist(PTS.hair,PTS.nas);
- var mid=dist(PTS.nas,PTS.sub);
- var low=dist(PTS.sub,PTS.chin);
- thirds=[up,mid,low];
- 
- // 👁 Глаза
- var ct=((Math.atan2(PTS.eyeRi.y-PTS.eyeRo.y,Math.abs(PTS.eyeRo.x-PTS.eyeRi.x))+
-   Math.atan2(PTS.eyeLi.y-PTS.eyeLo.y,Math.abs(PTS.eyeLo.x-PTS.eyeLi.x)))/2)*180/Math.PI;
- addMetric("👁 Глаза","Canthal tilt",ct,METRIC_TABLE[2],[["eyeRo","eyeRi"],["eyeLo","eyeLi"]]);
- 
- var ear=(dist(PTS.eyeRo,PTS.eyeRi)/Math.max(1,dist(PTS.eyeRu,PTS.eyeRl))+
-   dist(PTS.eyeLo,PTS.eyeLi)/Math.max(1,dist(PTS.eyeLu,PTS.eyeLl)))/2;
- addMetric("👁 Глаза","Eye aspect",ear,METRIC_TABLE[12],
-   [["eyeRo","eyeRi"],["eyeRu","eyeRl"],["eyeLo","eyeLi"],["eyeLu","eyeLl"]]);
- 
- var eyeSpacing=dist(PTS.eyeRi,PTS.eyeLi)/Math.max(1,eyew);
- addMetric("👁 Глаза","Eye spacing",eyeSpacing,METRIC_TABLE[11],[["eyeRi","eyeLi"]]);
- 
- var eyeSep=(dist(PTS.eyeRo,PTS.eyeRi)+dist(PTS.eyeLo,PTS.eyeLi))/(2*bizy);
- addMetric("👁 Глаза","Eye separation",eyeSep,METRIC_TABLE[0],[["eyeRo","eyeRi"],["eyeLo","eyeLi"],["bizR","bizL"]]);
- 
- var browSet=(Math.abs(PTS.eyeRu.y-PTS.browRp.y)+Math.abs(PTS.eyeLu.y-PTS.browLp.y))/2/
-   Math.max(1,(dist(PTS.eyeRu,PTS.eyeRl)+dist(PTS.eyeLu,PTS.eyeLl))/2);
- addMetric("👁 Глаза","Eyebrow setness",browSet,METRIC_TABLE[20],[["eyeRu","browRp"],["eyeLu","browLp"]]);
- 
- var bt=((Math.atan2(PTS.browRi.y-PTS.browRp.y,Math.abs(PTS.browRo.x-PTS.browRi.x))+
-   Math.atan2(PTS.browLi.y-PTS.browLp.y,Math.abs(PTS.browLo.x-PTS.browLi.x)))/2)*180/Math.PI;
- addMetric("👁 Глаза","Eyebrow tilt",bt,METRIC_TABLE[19],[["browRi","browRo"],["browLi","browLo"]]);
- 
- var orbVec=(dist(PTS.eyeRu,PTS.eyeRl)+dist(PTS.eyeLu,PTS.eyeLl))/2/
-   Math.max(1,dist(PTS.eyeRo,PTS.eyeLo))*100;
- addMetric("👁 Глаза","Orbital vector",orbVec,METRIC_TABLE[21],[["eyeRu","eyeRl"],["eyeLu","eyeLl"],["eyeRo","eyeLo"]]);
- 
- // 👃 Нос
- var nhw=dist(PTS.noseR,PTS.noseL)/Math.max(1,dist(PTS.nas,PTS.ntip));
- addMetric("👃 Нос","Nasal height/width",nhw,METRIC_TABLE[15],[["noseR","noseL"],["nas","ntip"]]);
- 
- var mfr=bizy/Math.max(1,dist(PTS.nas,PTS.st));
- addMetric("👃 Нос","Midface ratio",mfr,METRIC_TABLE[13],[["bizR","bizL"],["nas","st"]]);
- 
- var iaa=((angleAt(PTS.noseR,PTS.ntip,PTS.noseL)+
-   angleAt(PTS.noseL,PTS.ntip,PTS.noseR))/2);
- addMetric("👃 Нос","Ipsilateral alar angle",iaa,METRIC_TABLE[22],
-   [["noseR","ntip"],["noseL","ntip"]]);
- 
- var jfa=angleAt(PTS.gonR,PTS.chin,PTS.gonL);
- var iaaJfaDev=iaa-jfa;
- addMetric("👃 Нос","IAA-JFA deviation",iaaJfaDev,METRIC_TABLE[23],
-   [["noseR","ntip"],["noseL","ntip"],["gonR","chin"],["gonL","chin"]]);
- 
- // 👄 Рот
- var mouthNose=dist(PTS.mouR,PTS.mouL)/Math.max(1,dist(PTS.noseR,PTS.noseL));
- addMetric("👄 Рот","Mouth/Nose",mouthNose,METRIC_TABLE[14],[["mouR","mouL"],["noseR","noseL"]]);
- 
- var chinPhil=dist(PTS.lb,PTS.chin)/Math.max(1,dist(PTS.sub,PTS.lt));
- addMetric("👄 Рот","Chin/Philtrum",chinPhil,METRIC_TABLE[10],[["lb","chin"],["sub","lt"]]);
- 
- var lipRatio=dist(PTS.st,PTS.lb)/Math.max(1,dist(PTS.lt,PTS.st));
- addMetric("👄 Рот","Lower/upper lip",lipRatio,METRIC_TABLE[18],[["st","lb"],["lt","st"]]);
- 
- // 🦴 Челюсть
- var bigoBzy=dist(PTS.gonR,PTS.gonL)/bizy;
- addMetric("🦴 Челюсть","Bigonial/Bizygomatic",bigoBzy,METRIC_TABLE[6],
-   [["gonR","gonL"],["bizR","bizL"]]);
- 
- addMetric("🦴 Челюсть","Jaw frontal angle",jfa,METRIC_TABLE[5],
-   [["gonR","chin"],["gonL","chin"]]);
- 
- var jld=(angleAt(PTS.gonR,PTS.jawMidR,PTS.jawLowR)+
-   angleAt(PTS.gonL,PTS.jawMidL,PTS.jawLowL))/2;
- addMetric("🦴 Челюсть","Jawline def",jld,METRIC_TABLE[24],
-   [["gonR","jawMidR"],["jawMidR","jawLowR"],["gonL","jawMidL"],["jawMidL","jawLowL"]]);
- 
- var cbs=(bizy-dist(PTS.holR,PTS.holL))/bizy;
- addMetric("🦴 Челюсть","Cheekbone setness",cbs,METRIC_TABLE[4],
-   [["bizR","bizL"],["holR","holL"]]);
- 
- var neckW=dist(PTS.neckR,PTS.neckL)/bizy;
- addMetric("🦴 Челюсть","Neck width %",neckW,METRIC_TABLE[26],
-   [["neckR","neckL"],["bizR","bizL"]]);
- 
- var tjTaper=dist(PTS.tempR,PTS.tempL)/Math.max(1,dist(PTS.gonR,PTS.gonL));
- addMetric("🦴 Челюсть","Temple/Jaw taper",tjTaper,METRIC_TABLE[25],
-   [["tempR","tempL"],["gonR","gonL"]]);
- 
- // 📐 Пропорции
- var upperThird=up/fh;
- addMetric("📐 Пропорции","Upper third",upperThird,METRIC_TABLE[1],
-   [["hair","nas"],["hair","chin"]]);
- 
- var middleThird=mid/fh;
- addMetric("📐 Пропорции","Middle third",middleThird,METRIC_TABLE[8],
-   [["nas","sub"],["hair","chin"]]);
- 
- var lowerThird=low/fh;
- addMetric("📐 Пропорции","Lower third",lowerThird,METRIC_TABLE[9],
-   [["sub","chin"],["hair","chin"]]);
- 
- var fwhr=bizy/fh;
- addMetric("📐 Пропорции","FWHR",fwhr,METRIC_TABLE[3],
-   [["bizR","bizL"],["hair","chin"]]);
- 
- var tfhw=fh/bizy;
- addMetric("📐 Пропорции","Total face H/W",tfhw,METRIC_TABLE[7],
-   [["hair","chin"],["bizR","bizL"]]);
- 
- var bitemp=dist(PTS.tempR,PTS.tempL)/bizy;
- addMetric("📐 Пропорции","Bitemporal",bitemp,METRIC_TABLE[16],
-   [["tempR","tempL"],["bizR","bizL"]]);
- 
- var ltProp=low/fh;
- addMetric("📐 Пропорции","Lower third proportion",ltProp,METRIC_TABLE[17],
-   [["sub","chin"],["hair","chin"]]);
- 
- // 🪞 Симметрия
- var sym=computeSymmetry(bizy,fh);
- addMetric("🪞 Симметрия","Symmetry",sym,METRIC_TABLE[27],[["hair","chin"]]);
- 
- QUAL=computeQuality(bizy,fh);
- 
- // Категория = взвешенное арифметическое внутри категории
- CATSCORES={};
- CATS.forEach(function(c){
-  var rows=METRICS.filter(function(m){return m.cat===c;});
-  var sw=rows.reduce(function(a,m){return a+m.weight;},0);
-  CATSCORES[c]=rows.reduce(function(a,m){return a+m.score*m.weight;},0)/Math.max(1e-6,sw);
- });
- 
- // Итог = геометрическое среднее категорий (p=0)
- overall=wpmean(CATS.map(function(c){return[CATSCORES[c],CATW[c]];}),0);
- psl=Math.max(1,Math.min(8,overall/10-2));
- 
- soundDone();
- elEditor.style.display='none';
- elResult.style.display='flex';
- buildList();
- showMetric(0);
-}
-
-/* ---------- результат ---------- */
-function buildList(){
- var tt=thirds[0]+thirds[1]+thirds[2];
- var prev=null;
- try{prev=parseFloat(localStorage.getItem('luxprev'));}catch(e){}
- var deltaHtml='';
- if(prev&&!isNaN(prev)){
-  var d=overall-prev;
-  deltaHtml='<div class="brow"><span>Previous</span><span>'+prev.toFixed(1)+'</span></div>'
-   +'<div class="brow"><span>Current</span><span>'+overall.toFixed(1)+' ('+(d>=0?'+':'')+d.toFixed(1)+')</span></div>';
- }
- try{localStorage.setItem('luxprev',overall.toFixed(1));}catch(e){}
- 
- var sorted=METRICS.slice().sort(function(a,b){return b.score-a.score;});
- var strong=sorted.slice(0,3),weak=sorted.slice(-3).reverse();
- 
- var html='<h1 style="padding:4px 0 0">'+overall.toFixed(1)+' / 100</h1>'
-  +'<div class="sub">Attractiveness '+overall.toFixed(1)+' · Confidence '+Math.round(QUAL.conf)+'% (не влияет на балл) · PSL '+psl.toFixed(1)+'/8</div>'
-  +'<div class="sub">Thirds '+Math.round(100*thirds[0]/tt)+'/'+Math.round(100*thirds[1]/tt)+'/'+Math.round(100*thirds[2]/tt)+'%</div>';
- if(QUAL.warns.length)html+='<div class="sub" style="color:var(--warn)">⚠️ Точность снижена: '+QUAL.warns.join(', ')+'</div>';
- 
- /* 4 оси */
- html+='<div class="card2"><div class="sub" style="margin-bottom:6px">PROFILES</div>';
- Object.keys(AXES).forEach(function(ax){
-  var vals=AXES[ax].map(mScore).filter(function(v){return v!=null;});
-  if(!vals.length)return;
-  var s=vals.reduce(function(a,b){return a+b;},0)/vals.length;
-  html+='<div class="brow"><span>'+ax+'</span><span style="color:'+colorOf(s)+';font-weight:800">'+Math.round(s)+'</span></div>';
- });
- html+='</div>';
- 
- html+='<div class="card2">'+deltaHtml
-  +'<div class="brow"><span>💪</span><span>'+strong.map(function(m){return m.name;}).join(', ')+'</span></div>'
-  +'<div class="brow"><span>⚠️</span><span>'+weak.map(function(m){return m.name;}).join(', ')+'</span></div></div>';
- 
- html+='<div class="card2"><div class="sub" style="margin-bottom:6px">BREAKDOWN</div>';
- CATS.forEach(function(c){
-  var s=CATSCORES[c],cc=colorOf(s);
-  html+='<div class="brow"><span>'+c+'</span><span style="color:'+cc+';font-weight:800">'+Math.round(s)+'</span></div>';
- });
- html+='</div>';
- 
- CATS.forEach(function(cat){
-  var rows=METRICS.filter(function(m){return m.cat===cat;});
-  if(!rows.length)return;
-  html+='<h2 class="cat">'+cat+'</h2>';
-  rows.forEach(function(m,ri){
-   var gz=gauge(m.value,m.lo,m.hi),c=colorOf(m.score);
-   html+='<div class="mrow" data-i="'+m.i+'" style="animation-delay:'+(ri*.04)+'s">'
-    +'<div class="mhead"><span>'+m.name+'</span><span class="chip" style="background:'+c+'22;color:'+c+'">'+Math.round(m.score)+'</span></div>'
-    +'<div class="gauge" style="background:'+gz.grad+'"><i style="left:'+gz.pos+'%"></i></div>'
-    +'<div class="sub">'+m.value.toFixed(2)+m.u+' · идеал '+m.lo+'-'+m.hi+'</div></div>';
-  });
- });
- elList.innerHTML=html;
- elList.querySelectorAll('.mrow').forEach(function(el){
-  el.addEventListener('click',function(){
-   showAllOn=false;
-   elAll.textContent='ВСЕ ЛИНИИ';
-   showMetric(+el.getAttribute('data-i'));
-   haptic();
-  });
- });
-}
-
-/* ---------- презентация ---------- */
-function fitResult(){
- var w=elRcv.clientWidth,h=elRcv.clientHeight;
- elRcv.width=w*dpr;
- elRcv.height=h*dpr;
- var s=Math.min(w/img.width,h/img.height);
- return{w:w,h:h,s:s,ox:(w-img.width*s)/2,oy:(h-img.height*s)/2};
-}
-
-function drawBase(f){
- rctx.setTransform(dpr,0,0,dpr,0,0);
- rctx.clearRect(0,0,f.w,f.h);
- rctx.save();
- rctx.translate(f.ox,f.oy);
- rctx.scale(f.s,f.s);
- rctx.drawImage(img,0,0);
- rctx.restore();
-}
-
-function drawSegs(f,m,width,shadow){
- var c=colorOf(m.score);
- rctx.strokeStyle=c;
- rctx.lineWidth=width;
- if(shadow){
-  rctx.shadowColor=c;
-  rctx.shadowBlur=6;
- }
- (m.segs||[]).forEach(function(seg){
-  var a=PTS[seg[0]],b=PTS[seg[1]];
-  if(!a||!b)return;
-  rctx.beginPath();
-  rctx.moveTo(a.x*f.s+f.ox,a.y*f.s+f.oy);
-  rctx.lineTo(b.x*f.s+f.ox,b.y*f.s+f.oy);
-  rctx.stroke();
-  rctx.fillStyle=c;
-  rctx.beginPath();
-  rctx.arc(a.x*f.s+f.ox,a.y*f.s+f.oy,3,0,7);
-  rctx.fill();
-  rctx.beginPath();
-  rctx.arc(b.x*f.s+f.ox,b.y*f.s+f.oy,3,0,7);
-  rctx.fill();
- });
- rctx.shadowBlur=0;
-}
-
-function showMetric(i){
- var f=fitResult();
- drawBase(f);
- var m=METRICS[i];
- drawSegs(f,m,2.5,true);
- rctx.fillStyle=colorOf(m.score);
- rctx.font='700 14px sans';
- rctx.fillText(m.name+' · '+Math.round(m.score)+'/100',10,20);
-}
-
-function showAll(){
- var f=fitResult();
- drawBase(f);
- METRICS.forEach(function(m){
-  drawSegs(f,m,1.2,false);
- });
- rctx.fillStyle='#fff';
- rctx.font='700 14px sans';
- rctx.fillText('Все измерения',10,20);
-}
-
-elAll.addEventListener('click',function(){
- showAllOn=!showAllOn;
- if(showAllOn){
-  elAll.textContent='ОДНА';
-  showAll();
- }else{
-  elAll.textContent='ВСЕ ЛИНИИ';
-  showMetric(0);
- }
- haptic();
-});
-
-/* ---------- отправка ---------- */
-elSend.addEventListener('click',function(){
- var txt="📊 LUX PRO: "+overall.toFixed(1)+"/100 | Confidence "+Math.round(QUAL.conf)+"% | PSL "+psl.toFixed(1)+"/8\n"
-  +METRICS.map(function(m){
-   return "• "+m.name+": "+m.value.toFixed(2)+m.u+" | "+Math.round(m.score)+"/100";
-  }).join("\n");
- if(TG){
-  TG.sendData(JSON.stringify({t:"lux",text:txt}));
-  TG.close();
- }
-});
-</script>
 </body>
 </html>
