@@ -1,10 +1,30 @@
 /* ============================================================
    LUX FACE BOT — app-logic.js
-   Оркестратор: связывает редактор, математику и UI результата.
-   Версия: v17-tier
+   Версия: v20-looksmax
+   Дата: 2026-09-01
+   Назначение: Оркестратор. Связывает редактор (editor-engine),
+               математику (math-core) и UI результата.
+   
+   Поток:
+   1. Пользователь выбирает фото → FileReader → Image
+   2. editor-engine рисует canvas + гайд + лупу
+   3. Пользователь ставит 46 точек
+   4. onAllPlaced → computeAllMetrics (math-core)
+   5. buildResultUI строит HTML
+   6. renderResultCanvas рисует линии
+   7. "Отправить боту" → buildReportText → TG.sendData
    ============================================================ */
 
-import { POINTS, METRIC_TABLE, CATS, CATW, AXES, METRIC_SEGMENTS, RESULT_CONFIG } from './config.js';
+import {
+  POINTS,
+  METRIC_TABLE,
+  CATS,
+  CATW,
+  AXES,
+  METRIC_SEGMENTS,
+  RESULT_CONFIG
+} from './config.js';
+
 import {
   computeAllMetrics,
   computeThirds,
@@ -12,10 +32,13 @@ import {
   computePSL,
   buildReportText,
   colorOf,
-  tierName
+  tierName,
+  looksmaxLabel
 } from './math-core.js';
+
 import {
   initEditor,
+  setCallbacks,
   startWithImage,
   stopEditor,
   getPlacedPoints,
@@ -24,14 +47,14 @@ import {
 } from './editor-engine.js';
 
 /* ============================================================
-   СОСТОЯНИЕ ПРИЛОЖЕНИЯ
+   РАЗДЕЛ 1: СОСТОЯНИЕ ПРИЛОЖЕНИЯ
    ============================================================ */
 
 var appState = {
-  img: null,
-  result: null,
-  showAllLines: false,
-  previousScore: null
+  img: null,          /* текущее Image */
+  result: null,       /* результат computeAllMetrics */
+  showAllLines: false,/* показывать все линии или одну */
+  previousScore: null /* предыдущий балл из localStorage */
 };
 
 /* DOM-ссылки (устанавливаются через initApp) */
@@ -48,10 +71,11 @@ var ui = {
 };
 
 /* ============================================================
-   ИНИЦИАЛИЗАЦИЯ
+   РАЗДЕЛ 2: ИНИЦИАЛИЗАЦИЯ
    ============================================================ */
 
 export function initApp(domRefs) {
+  /* Сохраняем ссылки на DOM */
   ui.homeScreen = domRefs.homeScreen;
   ui.editorScreen = domRefs.editorScreen;
   ui.resultScreen = domRefs.resultScreen;
@@ -62,7 +86,7 @@ export function initApp(domRefs) {
   ui.allLinesBtn = domRefs.allLinesBtn;
   ui.sendBtn = domRefs.sendBtn;
 
-  /* Инициализация редактора */
+  /* Инициализация редактора (editor-engine) */
   initEditor({
     canvas: domRefs.editorCanvas,
     guideCanvas: domRefs.guideCanvas,
@@ -78,19 +102,17 @@ export function initApp(domRefs) {
   });
 
   /* Колбэки редактора */
-  import('./editor-engine.js').then(function(mod) {
-    mod.setCallbacks({
-      onAllPlaced: onAllPointsPlaced
-    });
+  setCallbacks({
+    onAllPlaced: onAllPointsPlaced
   });
 
   /* Загрузка фото */
   ui.fileInput.addEventListener('change', onFileSelected);
 
-  /* Кнопка переключения линий */
+  /* Переключение линий */
   ui.allLinesBtn.addEventListener('click', toggleAllLines);
 
-  /* Кнопка отправки */
+  /* Отправка боту */
   ui.sendBtn.addEventListener('click', sendToBot);
 
   /* Разблокировка звука при первом касании */
@@ -107,7 +129,7 @@ export function initApp(domRefs) {
 }
 
 /* ============================================================
-   ЗАГРУЗКА ФОТО
+   РАЗДЕЛ 3: ЗАГРУЗКА ФОТО
    ============================================================ */
 
 function onFileSelected(e) {
@@ -131,21 +153,21 @@ function onFileSelected(e) {
 }
 
 /* ============================================================
-   ЗАВЕРШЕНИЕ РАССТАНОВКИ ТОЧЕК
+   РАЗДЕЛ 4: ЗАВЕРШЕНИЕ РАССТАНОВКИ ТОЧЕК
    ============================================================ */
 
 function onAllPointsPlaced(placedPoints) {
   stopEditor();
   playDoneSound();
 
-  /* Расчёт всех метрик */
+  /* Расчёт всех метрик (math-core) */
   appState.result = computeAllMetrics(
     placedPoints,
     appState.img.width,
     appState.img.height
   );
 
-  /* Сохранение балла */
+  /* Сохранение балла для дельты */
   try {
     localStorage.setItem('luxprev', appState.result.overall.toFixed(1));
   } catch (e) {}
@@ -154,7 +176,7 @@ function onAllPointsPlaced(placedPoints) {
   ui.editorScreen.style.display = 'none';
   ui.resultScreen.style.display = 'flex';
 
-  /* Отрисовка результата */
+  /* Отрисовка */
   appState.showAllLines = false;
   ui.allLinesBtn.textContent = 'ВСЕ ЛИНИИ';
   renderResultCanvas(0);
@@ -162,17 +184,19 @@ function onAllPointsPlaced(placedPoints) {
 }
 
 /* ============================================================
-   ОТРИСОВКА CANVAS РЕЗУЛЬТАТА
+   РАЗДЕЛ 5: ОТРИСОВКА CANVAS РЕЗУЛЬТАТА
    ============================================================ */
 
 function fitResultCanvas() {
   var w = ui.resultCanvas.clientWidth;
   var h = ui.resultCanvas.clientHeight;
   var dpr = window.devicePixelRatio || 1;
+
   ui.resultCanvas.width = w * dpr;
   ui.resultCanvas.height = h * dpr;
 
   var s = Math.min(w / appState.img.width, h / appState.img.height);
+
   return {
     w: w,
     h: h,
@@ -198,7 +222,7 @@ function drawMetricSegments(fit, metric, lineWidth, withShadow) {
   var rctx = ui.resultCtx;
   var c = colorOf(metric.score);
   var segments = METRIC_SEGMENTS[metric.name] || [];
-  var PTS = appState.result.PTS;
+  var P = appState.result.PTS;
 
   rctx.strokeStyle = c;
   rctx.lineWidth = lineWidth;
@@ -209,8 +233,8 @@ function drawMetricSegments(fit, metric, lineWidth, withShadow) {
 
   for (var i = 0; i < segments.length; i++) {
     var seg = segments[i];
-    var a = PTS[seg[0]];
-    var b = PTS[seg[1]];
+    var a = P[seg[0]];
+    var b = P[seg[1]];
     if (!a || !b) continue;
 
     rctx.beginPath();
@@ -218,7 +242,7 @@ function drawMetricSegments(fit, metric, lineWidth, withShadow) {
     rctx.lineTo(b.x * fit.s + fit.ox, b.y * fit.s + fit.oy);
     rctx.stroke();
 
-    /* Точки на концах сегмента */
+    /* Точки на концах */
     rctx.fillStyle = c;
     rctx.beginPath();
     rctx.arc(a.x * fit.s + fit.ox, a.y * fit.s + fit.oy, 3, 0, Math.PI * 2);
@@ -256,18 +280,17 @@ function renderResultCanvas(metricIndex) {
 }
 
 /* ============================================================
-   ПЕРЕКЛЮЧЕНИЕ ЛИНИЙ
+   РАЗДЕЛ 6: ПЕРЕКЛЮЧЕНИЕ ЛИНИЙ
    ============================================================ */
 
 function toggleAllLines() {
   appState.showAllLines = !appState.showAllLines;
   if (appState.showAllLines) {
     ui.allLinesBtn.textContent = 'ОДНА';
-    renderResultCanvas(0);
   } else {
     ui.allLinesBtn.textContent = 'ВСЕ ЛИНИИ';
-    renderResultCanvas(0);
   }
+  renderResultCanvas(0);
   triggerHaptic();
 }
 
@@ -279,7 +302,7 @@ function triggerHaptic() {
 }
 
 /* ============================================================
-   ПОСТРОЕНИЕ UI РЕЗУЛЬТАТА
+   РАЗДЕЛ 7: ПОСТРОЕНИЕ UI РЕЗУЛЬТАТА (v20)
    ============================================================ */
 
 function buildResultUI() {
@@ -289,7 +312,7 @@ function buildResultUI() {
   var axes = computeAxes(R.metrics, AXES);
   var psl = computePSL(R.overall);
 
-  /* Delta с предыдущим */
+  /* Дельта с предыдущим */
   var deltaHtml = '';
   if (appState.previousScore !== null && !isNaN(appState.previousScore)) {
     var d = R.overall - appState.previousScore;
@@ -300,16 +323,21 @@ function buildResultUI() {
       ')</span></div>';
   }
 
-  /* Сортировка метрик по скору */
+  /* Сортировка по score */
   var sorted = R.metrics.slice().sort(function(a, b) { return b.score - a.score; });
   var strong = sorted.slice(0, RC.strongCount);
   var weak = sorted.slice(-RC.weakCount).reverse();
 
-  /* Заголовок */
-  var html = '<h1 style="padding:4px 0 0">' + R.overall.toFixed(1) + ' / 100</h1>';
-  html += '<div class="sub">Attractiveness ' + R.overall.toFixed(1) +
-    ' · Confidence ' + Math.round(R.quality.conf) +
-    '% (не влияет на балл) · PSL ' + psl.toFixed(1) + '/8</div>';
+  /* Заголовок: балл + лейбл looksmax */
+  var html = '<h1 style="padding:4px 0 0">' + R.overall.toFixed(1) +
+    ' / 100 <span style="font-size:16px">[' + R.label + ']</span></h1>';
+
+  html += '<div class="sub">PSL ' + psl.toFixed(1) + '/8 · Confidence ' +
+    Math.round(R.quality.conf) + '% (не влияет на балл)</div>';
+
+  html += '<div class="sub">Raw ' + R.rawSum.toFixed(1) + '/' + R.maxSum.toFixed(1) +
+    ' (' + R.rawPercent.toFixed(1) + '%) · Penalty -' + R.penalty.toFixed(1) + '</div>';
+
   html += '<div class="sub">Thirds ' +
     Math.round(thirds[0]) + '/' +
     Math.round(thirds[1]) + '/' +
@@ -333,7 +361,7 @@ function buildResultUI() {
   }
   html += '</div>';
 
-  /* Сильные/слабые стороны + дельта */
+  /* Сильные/слабые + дельта */
   html += '<div class="card2">' + deltaHtml;
   html += '<div class="brow"><span>💪</span><span>' +
     strong.map(function(m) { return m.name; }).join(', ') + '</span></div>';
@@ -362,10 +390,10 @@ function buildResultUI() {
 
     for (var mi = 0; mi < catMetrics.length; mi++) {
       var met = catMetrics[mi];
-      var center = ((met.lo + met.hi) / 2).toFixed(2);
       var tName = tierName(met.tierIndex);
       var chipColor = colorOf(met.score);
       var delay = (mi * RC.animationDelayStep).toFixed(2);
+      var sign = met.points >= 0 ? '+' : '';
 
       /* Gauge bar */
       var gaugeData = computeGauge(met.value, met.lo, met.hi);
@@ -374,11 +402,11 @@ function buildResultUI() {
         '" style="animation-delay:' + delay + 's">' +
         '<div class="mhead"><span>' + met.name + ' [' + tName + ']</span>' +
         '<span class="chip" style="background:' + chipColor + '22;color:' + chipColor + '">' +
-        Math.round(met.score) + '</span></div>' +
+        sign + met.points.toFixed(1) + '</span></div>' +
         '<div class="gauge" style="background:' + gaugeData.grad + '">' +
         '<i style="left:' + gaugeData.pos + '%"></i></div>' +
         '<div class="sub">' + met.value.toFixed(2) + met.u +
-        ' · оптимум ~' + center + '</div></div>';
+        ' · идеал ' + met.lo + '–' + met.hi + '</div></div>';
     }
   }
 
@@ -404,7 +432,7 @@ function buildResultUI() {
 }
 
 /* ============================================================
-   GAUGE BAR (визуализация положения значения в диапазоне)
+   РАЗДЕЛ 8: GAUGE BAR
    ============================================================ */
 
 function computeGauge(value, lo, hi) {
@@ -430,19 +458,21 @@ function computeGauge(value, lo, hi) {
 }
 
 /* ============================================================
-   ОТПРАВКА БОТУ
+   РАЗДЕЛ 9: ОТПРАВКА БОТУ
    ============================================================ */
 
 function sendToBot() {
   if (!appState.result) return;
 
   var reportText = buildReportText(appState.result);
+
   var payload = JSON.stringify({
     t: 'lux',
     text: reportText,
     overall: appState.result.overall,
+    label: appState.result.label,
     confidence: appState.result.quality.conf,
-    version: 'v17-tier'
+    version: 'v20-looksmax'
   });
 
   var TG = window.Telegram && window.Telegram.WebApp;
@@ -450,4 +480,4 @@ function sendToBot() {
     TG.sendData(payload);
     TG.close();
   }
-      }
+}
