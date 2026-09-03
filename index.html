@@ -2,31 +2,84 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+
+  <meta
+    name="viewport"
+    content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"
+  >
+
   <meta name="theme-color" content="#0b0f1a">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="color-scheme" content="dark">
+
+  <meta
+    name="apple-mobile-web-app-capable"
+    content="yes"
+  >
+
+  <meta
+    name="apple-mobile-web-app-status-bar-style"
+    content="black-translucent"
+  >
+
   <title>LUX Face Scanner</title>
 
   <!-- Telegram WebApp SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-  <!-- Стили -->
+  <!-- Основные стили -->
   <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
 
-  <!-- ========== ЭКРАН 1: ГЛАВНОЕ МЕНЮ ========== -->
-  <div class="screen" id="home">
+  <!-- =========================================================
+       SCREEN 1 — HOME
+       ========================================================= -->
+
+  <main
+    class="screen"
+    id="home"
+    aria-label="LUX Face Scanner"
+  >
     <div class="wrap">
-      <img src="home.png" alt="LUX Face Scanner">
 
-      <!-- Зона загрузки фото (поверх кнопки на home.png) -->
-      <input type="file" id="file" accept="image/*" class="zone"
-             style="top:18.8%;left:19%;width:62%;height:4.5%">
+      <img
+        src="home.png"
+        alt="LUX Face Scanner"
+        draggable="false"
+      >
 
-      <!-- Выбор параметра PSL (скрытый селект поверх зоны) -->
-      <select id="p" class="zone" style="top:27%;left:6%;width:88%;height:15%">
+      <!--
+        Зона выбора фотографии.
+        Позиционирование намеренно оставлено inline:
+        оно привязано непосредственно к координатам home.png.
+      -->
+      <input
+        type="file"
+        id="file"
+        class="zone"
+        accept="image/*"
+        aria-label="Выбрать фотографию лица"
+        style="top:18.8%;left:19%;width:62%;height:4.5%"
+      >
+
+      <!--
+        P-parameter.
+        Значения оставлены совместимыми со старой версией приложения.
+      -->
+      <label
+        for="p"
+        class="sr-only"
+      >
+        Параметр P
+      </label>
+
+      <select
+        id="p"
+        class="zone"
+        aria-label="Параметр P"
+        style="top:27%;left:6%;width:88%;height:15%"
+      >
         <option value="1">1</option>
         <option value="0.5">0.5</option>
         <option value="0.3">0.3</option>
@@ -35,114 +88,384 @@
         <option value="-1">-1</option>
       </select>
 
-      <!-- Отображение выбранного значения -->
-      <div id="pval" style="top:29.5%;left:34%">0.2</div>
+      <div
+        id="pval"
+        aria-hidden="true"
+        style="top:29.5%;left:34%"
+      >
+        0.2
+      </div>
+
     </div>
-  </div>
+  </main>
 
-  <!-- ========== ЭКРАН 2: РЕДАКТОР ТОЧЕК ========== -->
-  <div class="screen" id="editor" style="display:none">
-    <!-- Основной canvas для фото и точек -->
-    <canvas id="cv"></canvas>
 
-    <!-- Верхняя панель: имя и описание текущей точки -->
-    <div id="top">
-      <div id="pname"></div>
-      <div id="pdesc"></div>
-    </div>
+  <!-- =========================================================
+       SCREEN 2 — POINT EDITOR
+       ========================================================= -->
 
-    <!-- Прогресс-кольцо (SVG) -->
-    <svg id="ring" viewBox="0 0 46 46">
-      <circle cx="23" cy="23" r="20" fill="none" stroke="rgba(255,255,255,0.13)" stroke-width="4"/>
-      <circle id="ringv" cx="23" cy="23" r="20" fill="none" stroke="url(#ringGrad)"
-              stroke-width="4" stroke-linecap="round"
-              stroke-dasharray="125.6" stroke-dashoffset="125.6"
-              transform="rotate(-90 23 23)"/>
+  <section
+    class="screen"
+    id="editor"
+    aria-label="Редактор точек"
+    style="display:none"
+  >
+
+    <!-- Основной canvas -->
+    <canvas
+      id="cv"
+      aria-label="Фотография для расстановки точек"
+    ></canvas>
+
+
+    <!-- Верхняя информация о текущей точке -->
+    <header id="top">
+
+      <div
+        id="pname"
+        aria-live="polite"
+      ></div>
+
+      <div
+        id="pdesc"
+        aria-live="polite"
+      ></div>
+
+    </header>
+
+
+    <!-- Прогресс -->
+    <svg
+      id="ring"
+      viewBox="0 0 46 46"
+      aria-hidden="true"
+    >
+      <circle
+        cx="23"
+        cy="23"
+        r="20"
+        fill="none"
+        stroke="rgba(255,255,255,0.13)"
+        stroke-width="4"
+      />
+
+      <circle
+        id="ringv"
+        cx="23"
+        cy="23"
+        r="20"
+        fill="none"
+        stroke="url(#ringGrad)"
+        stroke-width="4"
+        stroke-linecap="round"
+        stroke-dasharray="125.6"
+        stroke-dashoffset="125.6"
+        transform="rotate(-90 23 23)"
+      />
+
       <defs>
-        <linearGradient id="ringGrad">
-          <stop offset="0" stop-color="#5b8cff"/>
-          <stop offset="1" stop-color="#8b5bff"/>
+        <linearGradient
+          id="ringGrad"
+          x1="0"
+          y1="0"
+          x2="1"
+          y2="1"
+        >
+          <stop
+            offset="0"
+            stop-color="#5b8cff"
+          />
+
+          <stop
+            offset="1"
+            stop-color="#8b5bff"
+          />
         </linearGradient>
       </defs>
     </svg>
 
-    <!-- Мини-гайд (векторный canvas) -->
-    <canvas id="guide" width="100" height="126"></canvas>
 
-    <!-- Лупа (canvas) -->
-    <canvas id="loupe" width="110" height="110"></canvas>
+    <!-- Мини-гайд -->
+    <canvas
+      id="guide"
+      width="100"
+      height="126"
+      aria-hidden="true"
+    ></canvas>
 
-    <!-- Нижняя панель кнопок -->
-    <div id="bar">
-      <button id="restart" aria-label="Начать заново">↺</button>
-      <button id="undo" aria-label="Отменить точку">⟲</button>
-      <button id="zout" aria-label="Уменьшить">−</button>
-      <button id="zin" aria-label="Увеличить">+</button>
-      <button class="main" id="placeBtn">ТОЧКА</button>
-    </div>
-  </div>
 
-  <!-- ========== ЭКРАН 3: РЕЗУЛЬТАТЫ ========== -->
-  <div class="screen" id="result" style="display:none">
-    <!-- Canvas для отрисовки линий на фото -->
-    <canvas id="rcv"></canvas>
+    <!-- Лупа -->
+    <canvas
+      id="loupe"
+      width="110"
+      height="110"
+      aria-hidden="true"
+    ></canvas>
 
-    <!-- Кнопка переключения: одна линия / все линии -->
-    <button id="allBtn">ВСЕ ЛИНИИ</button>
 
-    <!-- Скроллируемый список метрик -->
-    <div id="mlist"></div>
+    <!-- Нижняя панель -->
+    <nav
+      id="bar"
+      aria-label="Управление редактором"
+    >
 
-    <!-- Кнопка отправки боту -->
-    <button id="send">Отправить боту</button>
-  </div>
+      <button
+        type="button"
+        id="restart"
+        aria-label="Начать расстановку точек заново"
+      >
+        ↺
+      </button>
 
-  <!-- ========== ПОДКЛЮЧЕНИЕ МОДУЛЕЙ ========== -->
+      <button
+        type="button"
+        id="undo"
+        aria-label="Отменить последнюю точку"
+      >
+        ⟲
+      </button>
+
+      <button
+        type="button"
+        id="zout"
+        aria-label="Уменьшить масштаб"
+      >
+        −
+      </button>
+
+      <button
+        type="button"
+        id="zin"
+        aria-label="Увеличить масштаб"
+      >
+        +
+      </button>
+
+      <button
+        type="button"
+        class="main"
+        id="placeBtn"
+        aria-label="Установить текущую точку"
+      >
+        ТОЧКА
+      </button>
+
+    </nav>
+
+  </section>
+
+
+  <!-- =========================================================
+       SCREEN 3 — RESULTS
+       ========================================================= -->
+
+  <section
+    class="screen"
+    id="result"
+    aria-label="Результаты анализа"
+    style="display:none"
+  >
+
+    <!-- Canvas результатов -->
+    <canvas
+      id="rcv"
+      aria-label="Визуализация результатов анализа"
+    ></canvas>
+
+
+    <!-- Переключатель линий -->
+    <button
+      type="button"
+      id="allBtn"
+      aria-label="Показать все линии"
+    >
+      ВСЕ ЛИНИИ
+    </button>
+
+
+    <!-- Список метрик -->
+    <section
+      id="mlist"
+      aria-label="Метрики анализа"
+    ></section>
+
+
+    <!-- Отправка результата -->
+    <button
+      type="button"
+      id="send"
+    >
+      Отправить боту
+    </button>
+
+  </section>
+
+
+  <!-- =========================================================
+       APPLICATION
+       ========================================================= -->
+
   <script type="module">
+
     import { initApp } from './app-logic.js';
 
-    /* Инициализация Telegram WebApp */
-    var TG = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
+
+    /* =========================================================
+       TELEGRAM
+       ========================================================= */
+
+    const TG =
+      window.Telegram &&
+      window.Telegram.WebApp
+        ? window.Telegram.WebApp
+        : null;
+
+
     if (TG) {
-      TG.ready();
-      TG.expand();
+      try {
+        TG.ready();
+      } catch (e) {
+        // Telegram SDK может быть недоступен вне Telegram.
+      }
+
+      try {
+        TG.expand();
+      } catch (e) {
+        // Ничего не делаем: приложение должно работать и в браузере.
+      }
     }
 
-    /* Сохранение/загрузка параметра P */
-    var elP = document.getElementById('p');
-    var elPval = document.getElementById('pval');
-    try {
-      var savedP = localStorage.getItem('luxp');
-      if (savedP !== null) elP.value = savedP;
-    } catch (e) {}
-    elPval.textContent = elP.value;
-    elP.addEventListener('change', function() {
-      elPval.textContent = elP.value;
-      try { localStorage.setItem('luxp', elP.value); } catch (e) {}
+
+    /* =========================================================
+       P PARAMETER
+       ========================================================= */
+
+    const elP =
+      document.getElementById('p');
+
+    const elPval =
+      document.getElementById('pval');
+
+
+    function loadP() {
+      if (!elP) return;
+
+      try {
+        const savedP =
+          localStorage.getItem('luxp');
+
+        if (
+          savedP !== null &&
+          Array.from(elP.options).some(
+            option => option.value === savedP
+          )
+        ) {
+          elP.value = savedP;
+        }
+      } catch (e) {
+        // localStorage может быть недоступен.
+      }
+
+      if (elPval) {
+        elPval.textContent = elP.value;
+      }
+    }
+
+
+    function saveP() {
+      if (!elP) return;
+
+      if (elPval) {
+        elPval.textContent = elP.value;
+      }
+
+      try {
+        localStorage.setItem(
+          'luxp',
+          elP.value
+        );
+      } catch (e) {
+        // Ничего не делаем.
+      }
+    }
+
+
+    loadP();
+
+
+    if (elP) {
+      elP.addEventListener(
+        'change',
+        saveP
+      );
+    }
+
+
+    /* =========================================================
+       APPLICATION INITIALIZATION
+       ========================================================= */
+
+    initApp({
+
+      homeScreen:
+        document.getElementById('home'),
+
+      editorScreen:
+        document.getElementById('editor'),
+
+      resultScreen:
+        document.getElementById('result'),
+
+      fileInput:
+        document.getElementById('file'),
+
+      editorCanvas:
+        document.getElementById('cv'),
+
+      guideCanvas:
+        document.getElementById('guide'),
+
+      loupeCanvas:
+        document.getElementById('loupe'),
+
+      pointName:
+        document.getElementById('pname'),
+
+      pointDesc:
+        document.getElementById('pdesc'),
+
+      progressRing:
+        document.getElementById('ringv'),
+
+      placeBtn:
+        document.getElementById('placeBtn'),
+
+      undoBtn:
+        document.getElementById('undo'),
+
+      restartBtn:
+        document.getElementById('restart'),
+
+      zinBtn:
+        document.getElementById('zin'),
+
+      zoutBtn:
+        document.getElementById('zout'),
+
+      resultCanvas:
+        document.getElementById('rcv'),
+
+      metricList:
+        document.getElementById('mlist'),
+
+      allLinesBtn:
+        document.getElementById('allBtn'),
+
+      sendBtn:
+        document.getElementById('send')
+
     });
 
-    /* Инициализация приложения */
-    initApp({
-      homeScreen: document.getElementById('home'),
-      editorScreen: document.getElementById('editor'),
-      resultScreen: document.getElementById('result'),
-      fileInput: document.getElementById('file'),
-      editorCanvas: document.getElementById('cv'),
-      guideCanvas: document.getElementById('guide'),
-      loupeCanvas: document.getElementById('loupe'),
-      pointName: document.getElementById('pname'),
-      pointDesc: document.getElementById('pdesc'),
-      progressRing: document.getElementById('ringv'),
-      placeBtn: document.getElementById('placeBtn'),
-      undoBtn: document.getElementById('undo'),
-      restartBtn: document.getElementById('restart'),
-      zinBtn: document.getElementById('zin'),
-      zoutBtn: document.getElementById('zout'),
-      resultCanvas: document.getElementById('rcv'),
-      metricList: document.getElementById('mlist'),
-      allLinesBtn: document.getElementById('allBtn'),
-      sendBtn: document.getElementById('send')
-    });
   </script>
 
 </body>
