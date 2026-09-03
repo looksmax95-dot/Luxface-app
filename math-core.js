@@ -280,20 +280,21 @@ export var METRIC_FUNCTIONS = {
   /*
      Canthal tilt.
 
-     В старом коде:
+     Единая анатомическая ориентация:
 
-       atan2(y2-y1, abs(dx))
+     RIGHT: medial → lateral
+     LEFT:  lateral → medial
 
-     давал неправильный знак при image coordinates.
-
-     Теперь используем signedLineAngle().
+     В image coordinates Y направлен вниз.
+     Поэтому наружный угол выше внутреннего
+     даёт положительный tilt.
   */
 
   "Canthal tilt": function(P, bizy, fh) {
 
     var rightAngle = signedLineAngle(
-      P.eyeRo,
-      P.eyeRi
+      P.eyeRi,
+      P.eyeRo
     );
 
     var leftAngle = signedLineAngle(
@@ -301,13 +302,9 @@ export var METRIC_FUNCTIONS = {
       P.eyeLi
     );
 
-    /*
-       Для симметричных глаз направления левой и правой
-       линии должны интерпретироваться одинаково.
-    */
-
     return (
-      rightAngle + leftAngle
+      rightAngle +
+      leftAngle
     ) / 2;
   },
 
@@ -379,25 +376,27 @@ export var METRIC_FUNCTIONS = {
 
   "Eyebrow tilt": function(P, bizy, fh) {
 
+    /*
+       RIGHT: medial → lateral
+       LEFT:  lateral → medial
+
+       Таким образом обе стороны имеют
+       одинаковую анатомическую ориентацию.
+    */
+
     var rightTilt = signedLineAngle(
       P.browRi,
       P.browRo
     );
 
     var leftTilt = signedLineAngle(
-      P.browLi,
-      P.browLo
+      P.browLo,
+      P.browLi
     );
 
-    /*
-       Усредняем абсолютную величину,
-       потому что левая и правая бровь имеют
-       зеркальную геометрию.
-    */
-
     return (
-      Math.abs(rightTilt) +
-      Math.abs(leftTilt)
+      rightTilt +
+      leftTilt
     ) / 2;
   },
 
@@ -832,62 +831,57 @@ export var METRIC_FUNCTIONS = {
 
 /* ============================================================
    6. SYMMETRY
-   ============================================================
-
-   Старый алгоритм:
-
-     1 - average deviation * 5
-
-   был произвольным.
-
-   Здесь:
-
-   1. Строим центральную ось через центральные точки.
-   2. Для каждой пары сравниваем горизонтальное расстояние
-      до оси.
-   3. Сравниваем вертикальные координаты.
-   4. Нормализуем отдельно.
-   5. Преобразуем среднюю ошибку в 0..1.
-
-   Это всё ещё 2D proxy symmetry, а не полноценная
-   3D facial symmetry analysis.
    ============================================================ */
 
 export function computeSymmetry(P, bizy, fh) {
 
-  if (!P || !Number.isFinite(bizy) || !Number.isFinite(fh)) {
+  if (
+    !P ||
+    !Number.isFinite(bizy) ||
+    !Number.isFinite(fh) ||
+    bizy <= 0 ||
+    fh <= 0
+  ) {
     return 0;
   }
 
-  if (bizy <= 0 || fh <= 0) {
+  if (!P.nas || !P.chin) {
     return 0;
   }
 
-  var centerIds = [
-    "hair",
-    "nas",
-    "sub",
-    "chin"
-  ];
+  /*
+     Центральная facial axis.
 
-  var centerX = 0;
-  var centerCount = 0;
+     Она проходит через nasion → chin,
+     поэтому небольшой roll головы не должен
+     автоматически превращаться в асимметрию.
+  */
 
-  for (var c = 0; c < centerIds.length; c++) {
+  var ax = P.chin.x - P.nas.x;
+  var ay = P.chin.y - P.nas.y;
 
-    var cp = P[centerIds[c]];
+  var axisLength = Math.sqrt(
+    ax * ax +
+    ay * ay
+  );
 
-    if (!cp) continue;
-
-    centerX += cp.x;
-    centerCount++;
-  }
-
-  if (centerCount === 0) {
+  if (axisLength < 1e-9) {
     return 0;
   }
 
-  centerX /= centerCount;
+  /*
+     Нормализованный direction axis.
+  */
+
+  ax /= axisLength;
+  ay /= axisLength;
+
+  /*
+     Перпендикуляр к facial axis.
+  */
+
+  var nx = -ay;
+  var ny = ax;
 
   var errors = [];
 
@@ -906,31 +900,62 @@ export function computeSymmetry(P, bizy, fh) {
       continue;
     }
 
-    var rightX = Math.abs(
-      right.x - centerX
-    );
+    /*
+       Проецируем каждую точку
+       на нормаль facial axis.
 
-    var leftX = Math.abs(
-      left.x - centerX
-    );
+       Это расстояние от центральной оси.
+    */
 
-    var xError = Math.abs(
-      rightX - leftX
-    ) / bizy;
+    var rightSide =
+      right.x * nx +
+      right.y * ny;
 
-    var yError = Math.abs(
-      right.y - left.y
-    ) / fh;
+    var leftSide =
+      left.x * nx +
+      left.y * ny;
 
     /*
-       Horizontal and vertical error имеют разные масштабы,
-       поэтому используем RMS внутри пары.
+       Идеально симметричные точки должны
+       находиться на одинаковом расстоянии
+       по разные стороны оси.
+
+       Поэтому сравниваем:
+         rightSide + leftSide
+    */
+
+    var sideError =
+      Math.abs(
+        rightSide +
+        leftSide
+      ) / bizy;
+
+    /*
+       Разницу вдоль самой оси тоже учитываем.
+    */
+
+    var rightAlong =
+      right.x * ax +
+      right.y * ay;
+
+    var leftAlong =
+      left.x * ax +
+      left.y * ay;
+
+    var alongError =
+      Math.abs(
+        rightAlong -
+        leftAlong
+      ) / fh;
+
+    /*
+       RMS двух компонентов.
     */
 
     var pairError = Math.sqrt(
       (
-        xError * xError +
-        yError * yError
+        sideError * sideError +
+        alongError * alongError
       ) / 2
     );
 
@@ -951,20 +976,17 @@ export function computeSymmetry(P, bizy, fh) {
     sum / errors.length;
 
   /*
-     Экспоненциальное преобразование:
+     0 = идеальная симметрия
+     1 = максимальная ошибка
 
-       symmetry = exp(-k * error)
-
-     Оно не создаёт искусственного жёсткого
-     "100 → 0" порога.
-
-     k = 8 выбран как scale parameter,
-     а не как часть professional pillar formula.
+     Экспоненциальное преобразование оставляем
+     только как 2D display metric.
   */
 
-  var symmetry = Math.exp(
-    -8 * meanError
-  );
+  var symmetry =
+    Math.exp(
+      -8 * meanError
+    );
 
   return clamp(
     symmetry,
