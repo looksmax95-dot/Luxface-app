@@ -1,367 +1,937 @@
 /* ============================================================
    LUX FACE BOT — styles.css
-   Полная тёмная тема. Адаптив. Анимации.
-   Версия: v17-tier
+   Production UI
    ============================================================ */
 
-/* ---------- CSS-ПЕРЕМЕННЫЕ ---------- */
+/* ============================================================
+   VARIABLES
+   ============================================================ */
+
 :root {
   --bg1: #0b0f1a;
   --bg2: #141a2e;
-  --line: rgba(255, 255, 255, 0.1);
+
+  --line: rgba(255, 255, 255, 0.10);
+
   --txt: #f2f5fa;
   --mut: #93a0b4;
+
   --acc: #5b8cff;
   --acc2: #8b5bff;
+
   --ok: #3ddc84;
   --warn: #ffd166;
   --bad: #ff5c7a;
+
   --card-bg: rgba(255, 255, 255, 0.04);
+
   --card-border: 1px solid var(--line);
+
   --radius: 14px;
   --radius-sm: 12px;
-  --font-main: -apple-system, Roboto, 'Segoe UI', Helvetica, Arial, sans-serif;
+
+  --font-main:
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
+
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
 }
 
-/* ---------- СБРОС И БАЗА ---------- */
-*, *::before, *::after {
+
+/* ============================================================
+   RESET
+   ============================================================ */
+
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
-  user-select: none;
-  -webkit-user-select: none;
 }
 
-html, body {
+html,
+body {
+  width: 100%;
+  height: 100%;
   margin: 0;
   padding: 0;
-  height: 100%;
+
   overflow: hidden;
+
   color: var(--txt);
-  font: 15px/1.45 var(--font-main);
-  background: linear-gradient(160deg, var(--bg1), var(--bg2));
+
+  font-family: var(--font-main);
+  font-size: 15px;
+  line-height: 1.45;
+
+  background:
+    linear-gradient(
+      160deg,
+      var(--bg1),
+      var(--bg2)
+    );
+
+  overscroll-behavior: none;
 }
 
-/* ---------- ЭКРАНЫ ---------- */
+body {
+  position: fixed;
+  inset: 0;
+}
+
+
+/*
+ * Не запрещаем user-select глобально.
+ * Иначе пользователь не может нормально выделять текст
+ * на экране результатов.
+ */
+button,
+input,
+select,
+canvas,
+img {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+
+/* ============================================================
+   ACCESSIBILITY
+   ============================================================ */
+
+button:focus-visible,
+select:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
+.sr-only {
+  position: absolute !important;
+
+  width: 1px !important;
+  height: 1px !important;
+
+  padding: 0 !important;
+  margin: -1px !important;
+
+  overflow: hidden !important;
+
+  clip: rect(0, 0, 0, 0) !important;
+
+  white-space: nowrap !important;
+
+  border: 0 !important;
+}
+
+
+/* ============================================================
+   SCREENS
+   ============================================================ */
+
 .screen {
   position: fixed;
   inset: 0;
+
   display: flex;
   flex-direction: column;
+
+  width: 100%;
+  height: 100%;
+
   animation: fadeIn 0.25s ease;
+
+  isolation: isolate;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes rise {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
-/* ---------- ГЛАВНЫЙ ЭКРАН (HOME) ---------- */
+
+/* ============================================================
+   HOME
+   ============================================================ */
+
 #home {
+  overflow-x: hidden;
   overflow-y: auto;
+
+  -webkit-overflow-scrolling: touch;
+
   background: #0a1230;
+
+  overscroll-behavior-y: contain;
 }
 
 .wrap {
   position: relative;
+
+  width: 100%;
+  min-height: 100%;
+
+  line-height: 0;
 }
 
 .wrap > img {
-  width: 100%;
   display: block;
+
+  width: 100%;
+  height: auto;
+
+  max-width: none;
+
+  pointer-events: none;
+
+  object-fit: contain;
 }
 
-/* Прозрачные зоны поверх home.png для кликов */
+
+/* Transparent clickable zones */
+
 .zone {
   position: absolute;
-  opacity: 0;
+
+  display: block;
+
+  margin: 0;
+  padding: 0;
+
   border: 0;
-  background: none;
+  border-radius: 0;
+
+  background: transparent;
+
+  opacity: 0;
+
   cursor: pointer;
+
+  appearance: none;
+  -webkit-appearance: none;
+
+  touch-action: manipulation;
 }
+
+.zone:focus-visible {
+  opacity: 0.15;
+
+  outline:
+    2px solid
+    rgba(255, 255, 255, 0.8);
+
+  outline-offset: -2px;
+}
+
+
+/* P value */
 
 #pval {
   position: absolute;
+
   color: #fff;
+
   font-size: 12px;
   font-weight: 800;
-  text-shadow: 0 0 6px #000;
+
+  line-height: 1;
+
+  text-shadow:
+    0 0 6px #000;
+
   pointer-events: none;
 }
 
-/* ---------- ЗАГОЛОВКИ ---------- */
+
+/* ============================================================
+   TYPOGRAPHY
+   ============================================================ */
+
 h1 {
+  margin: 2px 0;
+
   font-size: 24px;
   font-weight: 800;
-  margin: 2px 0;
-  background: linear-gradient(90deg, var(--acc), var(--acc2));
+  line-height: 1.15;
+
+  background:
+    linear-gradient(
+      90deg,
+      var(--acc),
+      var(--acc2)
+    );
+
   -webkit-background-clip: text;
   background-clip: text;
+
   color: transparent;
 }
 
 h2.cat {
+  margin: 14px 0 4px;
+
+  color: var(--txt);
+
   font-size: 15px;
   font-weight: 800;
-  margin: 14px 0 4px;
-  color: var(--txt);
 }
 
 .sub {
   color: var(--mut);
+
   font-size: 12.5px;
   line-height: 1.4;
 }
 
-/* ---------- КНОПКИ ---------- */
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+
 button {
-  transition: transform 0.12s ease;
+  margin: 0;
+
+  font: inherit;
+
   cursor: pointer;
+
   outline: none;
+
+  -webkit-tap-highlight-color: transparent;
+
+  touch-action: manipulation;
+
+  transition:
+    transform 0.12s ease,
+    background 0.15s ease,
+    opacity 0.15s ease;
 }
 
 button:active {
   transform: scale(0.95);
 }
 
-/* ---------- РЕДАКТОР ---------- */
+button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+
+/* ============================================================
+   EDITOR
+   ============================================================ */
+
 #editor {
+  overflow: hidden;
+
   background: #000;
+
+  /*
+   * Important for mobile browsers:
+   * editor gestures belong to the canvas,
+   * not to the page.
+   */
+  touch-action: none;
 }
 
 canvas#cv {
   position: absolute;
+
   inset: 0;
+
+  display: block;
+
+  width: 100%;
+  height: 100%;
+
   touch-action: none;
+
+  cursor: crosshair;
+
+  z-index: 1;
 }
 
-/* Верхняя панель с именем точки */
+
+/* ============================================================
+   EDITOR TOP BAR
+   ============================================================ */
+
 #top {
   position: absolute;
+
   top: 0;
   left: 0;
   right: 0;
-  padding: 12px 14px;
+
+  padding:
+    calc(12px + var(--safe-top))
+    70px
+    12px
+    14px;
+
   z-index: 5;
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.85), transparent);
+
+  background:
+    linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.88),
+      rgba(0, 0, 0, 0)
+    );
+
   pointer-events: none;
 }
 
 #pname {
-  font-weight: 800;
-  font-size: 16px;
   color: #fff;
+
+  font-size: 16px;
+  font-weight: 800;
+
+  line-height: 1.25;
 }
 
 #pdesc {
-  color: #cdd6e4;
-  font-size: 12.5px;
   margin-top: 2px;
+
+  color: #cdd6e4;
+
+  font-size: 12.5px;
+  line-height: 1.4;
 }
 
-/* Прогресс-кольцо */
+
+/* ============================================================
+   PROGRESS RING
+   ============================================================ */
+
 #ring {
   position: absolute;
-  right: 12px;
-  top: 12px;
+
+  top:
+    calc(12px + var(--safe-top));
+
+  right:
+    calc(12px + var(--safe-right));
+
   width: 46px;
   height: 46px;
+
   z-index: 6;
+
   pointer-events: none;
 }
 
 #ringv {
-  transition: stroke-dashoffset 0.3s ease;
+  transition:
+    stroke-dashoffset 0.3s ease;
 }
 
-/* Гайд (миниатюра схемы) */
+
+/* ============================================================
+   GUIDE
+   ============================================================ */
+
 #guide {
   position: absolute;
-  left: 10px;
-  top: 70px;
+
+  top:
+    calc(70px + var(--safe-top));
+
+  left:
+    calc(10px + var(--safe-left));
+
   width: 132px;
   height: 166px;
-  background: rgba(0, 0, 0, 0.6);
-  border: 1px solid var(--line);
+
+  display: block;
+
+  background:
+    rgba(0, 0, 0, 0.60);
+
+  border:
+    1px solid var(--line);
+
   border-radius: var(--radius);
+
   z-index: 5;
+
   pointer-events: none;
+
+  object-fit: contain;
 }
 
-/* Лупа */
+
+/* ============================================================
+   LOUPE
+   ============================================================ */
+
 #loupe {
   position: absolute;
-  right: 10px;
-  top: 70px;
+
+  top:
+    calc(70px + var(--safe-top));
+
+  right:
+    calc(10px + var(--safe-right));
+
   width: 110px;
   height: 110px;
-  background: rgba(0, 0, 0, 0.75);
-  border: 1px solid var(--acc);
-  border-radius: var(--radius-sm);
+
+  display: block;
+
+  background:
+    rgba(0, 0, 0, 0.75);
+
+  border:
+    1px solid var(--acc);
+
+  border-radius: 50%;
+
   z-index: 5;
+
   pointer-events: none;
+
+  object-fit: cover;
+
+  box-shadow:
+    0 0 18px
+    rgba(91, 140, 255, 0.18);
 }
 
-/* Нижняя панель кнопок редактора */
+
+/* ============================================================
+   EDITOR BOTTOM BAR
+   ============================================================ */
+
 #bar {
   position: absolute;
+
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+
   display: flex;
+
   gap: 8px;
+
+  padding:
+    10px
+    calc(12px + var(--safe-right))
+    calc(10px + var(--safe-bottom))
+    calc(12px + var(--safe-left));
+
   z-index: 6;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.85), transparent);
+
+  background:
+    linear-gradient(
+      to top,
+      rgba(0, 0, 0, 0.90),
+      rgba(0, 0, 0, 0)
+    );
+
+  pointer-events: auto;
 }
 
 #bar button {
   flex: 1;
-  border: 0;
-  border-radius: var(--radius);
+
+  min-width: 0;
+
+  min-height: 48px;
+
   padding: 13px 0;
-  font-size: 17px;
+
+  border:
+    1px solid var(--line);
+
+  border-radius: var(--radius);
+
   color: #fff;
-  background: rgba(27, 34, 51, 0.8);
-  border: 1px solid var(--line);
+
+  background:
+    rgba(27, 34, 51, 0.82);
+
+  font-size: 17px;
+  font-weight: 600;
+
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 #bar button.main {
   flex: 2;
-  background: linear-gradient(90deg, var(--acc), var(--acc2));
+
+  border: 0;
+
+  background:
+    linear-gradient(
+      90deg,
+      var(--acc),
+      var(--acc2)
+    );
+
   font-weight: 800;
-  border: none;
+
+  box-shadow:
+    0 4px 18px
+    rgba(91, 140, 255, 0.22);
 }
 
-/* ---------- ЭКРАН РЕЗУЛЬТАТОВ ---------- */
+#bar button:not(.main):active {
+  background:
+    rgba(255, 255, 255, 0.12);
+}
+
+
+/* ============================================================
+   RESULT SCREEN
+   ============================================================ */
+
 #result {
   overflow: hidden;
+
+  background:
+    linear-gradient(
+      160deg,
+      var(--bg1),
+      var(--bg2)
+    );
 }
 
+
+/* Result visualization */
+
 #rcv {
+  flex: none;
+
+  display: block;
+
   width: 100%;
   height: 38vh;
+
+  min-height: 220px;
+
   background: #000;
-  flex: none;
-  display: block;
+
+  object-fit: contain;
 }
+
+
+/* ============================================================
+   ALL LINES BUTTON
+   ============================================================ */
 
 #allBtn {
   position: absolute;
-  top: 8px;
-  right: 8px;
+
+  top:
+    calc(8px + var(--safe-top));
+
+  right:
+    calc(8px + var(--safe-right));
+
   z-index: 9;
-  border: 0;
-  border-radius: 10px;
+
   padding: 8px 12px;
-  background: rgba(27, 34, 51, 0.8);
+
+  border:
+    1px solid var(--line);
+
+  border-radius: 10px;
+
   color: #fff;
-  border: 1px solid var(--line);
+
+  background:
+    rgba(27, 34, 51, 0.82);
+
   font-size: 12px;
   font-weight: 600;
+
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
-/* Список метрик */
+#allBtn:active {
+  background:
+    rgba(255, 255, 255, 0.12);
+}
+
+
+/* ============================================================
+   METRIC LIST
+   ============================================================ */
+
 #mlist {
   flex: 1;
+
+  min-height: 0;
+
+  overflow-x: hidden;
   overflow-y: auto;
-  padding: 12px 16px 90px;
+
+  padding:
+    12px
+    calc(16px + var(--safe-right))
+    calc(90px + var(--safe-bottom))
+    calc(16px + var(--safe-left));
+
   -webkit-overflow-scrolling: touch;
+
+  overscroll-behavior-y: contain;
 }
 
-/* Карточка-контейнер */
+
+/* ============================================================
+   GENERIC CARD
+   ============================================================ */
+
 .card2 {
-  background: var(--card-bg);
-  border: var(--card-border);
-  border-radius: var(--radius);
-  padding: 12px;
   margin: 10px 0;
+  padding: 12px;
+
+  background:
+    var(--card-bg);
+
+  border:
+    var(--card-border);
+
+  border-radius:
+    var(--radius);
+
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
-/* Строка в карточке */
+
+/* ============================================================
+   BREAKDOWN ROW
+   ============================================================ */
+
 .brow {
   display: flex;
-  justify-content: space-between;
+
   align-items: center;
-  font-size: 13px;
+  justify-content: space-between;
+
+  gap: 10px;
+
   padding: 3px 0;
+
+  font-size: 13px;
 }
 
-/* Карточка отдельной метрики */
+
+/* ============================================================
+   METRIC ROW
+   ============================================================ */
+
 .mrow {
-  padding: 9px 10px;
-  border: var(--card-border);
-  border-radius: var(--radius-sm);
   margin-bottom: 8px;
-  background: rgba(255, 255, 255, 0.03);
-  animation: rise 0.3s both;
+
+  padding: 9px 10px;
+
+  background:
+    rgba(255, 255, 255, 0.03);
+
+  border:
+    var(--card-border);
+
+  border-radius:
+    var(--radius-sm);
+
+  animation:
+    rise 0.3s both;
+
   cursor: pointer;
-  transition: background 0.15s ease;
+
+  transition:
+    background 0.15s ease,
+    transform 0.12s ease;
+}
+
+.mrow:hover {
+  background:
+    rgba(255, 255, 255, 0.055);
 }
 
 .mrow:active {
-  background: rgba(255, 255, 255, 0.08);
+  background:
+    rgba(255, 255, 255, 0.08);
+
+  transform: scale(0.995);
 }
+
+
+/* ============================================================
+   METRIC HEADER
+   ============================================================ */
 
 .mhead {
   display: flex;
-  justify-content: space-between;
+
   align-items: center;
+  justify-content: space-between;
+
+  gap: 10px;
+
   font-size: 13.5px;
   font-weight: 600;
+
+  line-height: 1.3;
 }
 
-/* Gauge bar */
+
+/* ============================================================
+   GAUGE
+   ============================================================ */
+
 .gauge {
   position: relative;
+
   height: 9px;
-  border-radius: 6px;
+
   margin: 7px 0 3px;
+
   overflow: hidden;
+
+  border-radius: 6px;
+
+  /*
+   * Background is normally supplied by JS.
+   * This fallback keeps the component readable if JS
+   * hasn't painted the gauge yet.
+   */
+  background:
+    rgba(255, 255, 255, 0.08);
 }
 
 .gauge i {
   position: absolute;
+
   top: -3px;
+
   width: 4px;
   height: 15px;
+
   background: #fff;
+
   border-radius: 2px;
-  box-shadow: 0 0 8px #fff;
-  transition: left 0.3s ease;
+
+  box-shadow:
+    0 0 8px #fff;
+
+  transition:
+    left 0.3s ease;
 }
 
-/* Чип с баллом */
+
+/* ============================================================
+   SCORE CHIP
+   ============================================================ */
+
 .chip {
+  flex: none;
+
   padding: 2px 10px;
+
   border-radius: 20px;
-  font-weight: 800;
+
   font-size: 12px;
+  font-weight: 800;
+
+  line-height: 1.4;
+
   white-space: nowrap;
 }
 
-/* ---------- КНОПКА ОТПРАВКИ ---------- */
+
+/* ============================================================
+   SEND BUTTON
+   ============================================================ */
+
 #send {
   position: fixed;
-  left: 16px;
-  right: 16px;
-  bottom: 12px;
-  border: 0;
-  border-radius: var(--radius);
-  padding: 15px;
-  font-weight: 800;
-  font-size: 16px;
-  color: #fff;
-  background: linear-gradient(90deg, var(--acc), var(--acc2));
+
+  left:
+    calc(16px + var(--safe-left));
+
+  right:
+    calc(16px + var(--safe-right));
+
+  bottom:
+    calc(12px + var(--safe-bottom));
+
   z-index: 9;
-  box-shadow: 0 4px 20px rgba(91, 140, 255, 0.3);
+
+  min-height: 50px;
+
+  padding: 15px;
+
+  border: 0;
+
+  border-radius: var(--radius);
+
+  color: #fff;
+
+  background:
+    linear-gradient(
+      90deg,
+      var(--acc),
+      var(--acc2)
+    );
+
+  font-size: 16px;
+  font-weight: 800;
+
+  box-shadow:
+    0 4px 20px
+    rgba(91, 140, 255, 0.30);
 }
 
-/* ---------- СКРОЛЛБАР (для WebKit) ---------- */
+#send:active {
+  box-shadow:
+    0 2px 10px
+    rgba(91, 140, 255, 0.20);
+}
+
+
+/* ============================================================
+   SCROLLBAR
+   ============================================================ */
+
+#mlist {
+  scrollbar-width: thin;
+
+  scrollbar-color:
+    rgba(255, 255, 255, 0.15)
+    transparent;
+}
+
 #mlist::-webkit-scrollbar {
   width: 4px;
 }
@@ -371,68 +941,208 @@ canvas#cv {
 }
 
 #mlist::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background:
+    rgba(255, 255, 255, 0.15);
+
   border-radius: 4px;
 }
 
-/* ---------- SAFE AREA (iPhone notch) ---------- */
-@supports (padding-bottom: env(safe-area-inset-bottom)) {
-  #bar {
-    padding-bottom: calc(10px + env(safe-area-inset-bottom));
-  }
-  #send {
-    bottom: calc(12px + env(safe-area-inset-bottom));
-  }
-}
 
-/* ---------- МЕДИА-ЗАПРОСЫ ---------- */
+/* ============================================================
+   SMALL DEVICES
+   ============================================================ */
 
-/* Маленькие экраны (< 360px) */
 @media (max-width: 359px) {
-  h1 { font-size: 20px; }
-  #pname { font-size: 14px; }
-  #bar button { font-size: 15px; padding: 11px 0; }
-  .mhead { font-size: 12.5px; }
-  #guide { width: 100px; height: 126px; }
-  #loupe { width: 90px; height: 90px; }
+
+  h1 {
+    font-size: 20px;
+  }
+
+  #pname {
+    font-size: 14px;
+  }
+
+  #pdesc {
+    font-size: 11.5px;
+  }
+
+  #bar {
+    gap: 6px;
+  }
+
+  #bar button {
+    min-height: 44px;
+
+    padding: 11px 0;
+
+    font-size: 15px;
+  }
+
+  #guide {
+    width: 100px;
+    height: 126px;
+  }
+
+  #loupe {
+    width: 90px;
+    height: 90px;
+  }
+
+  #mlist {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .mhead {
+    font-size: 12.5px;
+  }
 }
 
-/* Большие экраны (> 768px, планшет/десктоп) */
-@media (min-width: 769px) {
-  #mlist {
-    padding: 16px 24px 100px;
-    max-width: 600px;
-    margin: 0 auto;
+
+/* ============================================================
+   VERY SHORT SCREENS
+   ============================================================ */
+
+@media (max-height: 600px) {
+
+  #guide {
+    top:
+      calc(58px + var(--safe-top));
   }
+
+  #loupe {
+    top:
+      calc(58px + var(--safe-top));
+  }
+
+  #bar button {
+    min-height: 42px;
+
+    padding-top: 9px;
+    padding-bottom: 9px;
+  }
+
+  #rcv {
+    height: 34vh;
+    min-height: 180px;
+  }
+}
+
+
+/* ============================================================
+   LARGE SCREENS
+   ============================================================ */
+
+@media (min-width: 769px) {
+
+  #mlist {
+    max-width: 600px;
+
+    margin:
+      0 auto;
+
+    padding:
+      16px
+      24px
+      100px;
+  }
+
   #rcv {
     height: 45vh;
   }
+
   #send {
     left: 50%;
     right: auto;
-    transform: translateX(-50%);
+
     width: 400px;
+
+    transform:
+      translateX(-50%);
   }
+
+  #send:active {
+    transform:
+      translateX(-50%)
+      scale(0.98);
+  }
+
   .card2 {
     padding: 16px;
   }
 }
 
-/* Тёмная тема принудительная (игнорируем системную светлую) */
-@media (prefers-color-scheme: light) {
-  :root {
-    --bg1: #0b0f1a;
-    --bg2: #141a2e;
-    --txt: #f2f5fa;
-    --mut: #93a0b4;
+
+/* ============================================================
+   LANDSCAPE
+   ============================================================ */
+
+@media (orientation: landscape) {
+
+  #guide {
+    top:
+      calc(58px + var(--safe-top));
+  }
+
+  #loupe {
+    top:
+      calc(58px + var(--safe-top));
+  }
+
+  #bar {
+    padding-top: 7px;
+    padding-bottom:
+      calc(7px + var(--safe-bottom));
+  }
+
+  #bar button {
+    min-height: 40px;
+
+    padding-top: 8px;
+    padding-bottom: 8px;
   }
 }
 
-/* Уменьшение анимаций для пользователей с настройкой reduced-motion */
+
+/* ============================================================
+   REDUCED MOTION
+   ============================================================ */
+
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+
+  *,
+  *::before,
+  *::after {
+    animation-duration:
+      0.01ms !important;
+
+    animation-iteration-count:
+      1 !important;
+
+    transition-duration:
+      0.01ms !important;
+
+    scroll-behavior:
+      auto !important;
+  }
+}
+
+
+/* ============================================================
+   DARK MODE
+   ============================================================ */
+
+/*
+ * Приложение намеренно остаётся тёмным независимо от
+ * системной темы устройства.
+ */
+@media (prefers-color-scheme: light) {
+
+  :root {
+    --bg1: #0b0f1a;
+    --bg2: #141a2e;
+
+    --txt: #f2f5fa;
+    --mut: #93a0b4;
   }
 }
