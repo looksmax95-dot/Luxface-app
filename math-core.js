@@ -1,25 +1,47 @@
 /* ============================================================
-   LUX FACE BOT — math-core.js
-   Версия: v20-looksmax
+   LUX FACE — math-core.js
+   Версия: v23-professional
    Дата: 2026-09-01
-   Назначение: Чистая математика. Никакого DOM. Никакого canvas.
-               Только функции: входные данные → результат.
-   
-   Архитектура: Architecture A (на основе looksmax.org HARM формулы)
-   
-   Поток данных:
-   1. 46 точек → нормализованные координаты (0..1)
-   2. Конвертация в пиксели
-   3. Расчёт 26 метрик через METRIC_FUNCTIONS
-   4. Определение tier (T1-T5) для каждой метрики
-   5. Получение absolute points из METRIC_TABLE[m].pts[tierIndex]
-   6. Сумма баллов по всем метрикам
-   7. Расчёт процентов по категориям
-   8. Штраф за дисбаланс: penalty = spread × 0.5
-   9. Сырой процент: (totalSum / maxSum) × 100
-   10. Линейная нормализация: 0.6711 × adjusted + 6.38
-   11. Лейбл looksmax: SUB3 / SUB5 / LTN / MTN / HTN / CHADLITE / CHAD
-   12. PSL: 1-8 (overall / 12.5)
+
+   ЧИСТАЯ МАТЕМАТИКА.
+   Никакого DOM.
+   Никакого canvas.
+
+   Архитектура:
+
+   POINTS
+      ↓
+   geometry
+      ↓
+   metric values
+      ↓
+   tier / absolute points
+      ↓
+   pillar raw scores
+      ↓
+   pillar normalization 0..10
+      ↓
+   dynamic penalty factors
+      ↓
+   normalized post-penalty weights
+      ↓
+   TRUE_SCORE 0..10
+
+   ВАЖНО:
+
+   Professional formula использует 4 pillars:
+
+     HARM = 32%
+     MISC = 26%
+     ANGU = 22%
+     DIMO = 20%
+
+   Но текущий интерфейс содержит только front-point metrics.
+   Поэтому computeProfessionalScore() принимает уже готовые
+   raw pillar scores.
+
+   Нельзя молча превращать 26 существующих метрик в MISC/ANGU/DIMO:
+   это было бы выдумыванием исходной формулы.
    ============================================================ */
 
 import {
@@ -29,763 +51,2755 @@ import {
   SYMMETRY_PAIRS,
   QUALITY_THRESHOLDS,
   LOOKSMAX_SCALE,
-  NORMALIZATION
+  NORMALIZATION,
+
+  PILLAR_WEIGHTS,
+  PILLAR_NORMALIZATION,
+  PENALTY_FACTORS,
+  HARM_METRICS
 } from './config.js';
 
+
 /* ============================================================
-   РАЗДЕЛ 1: БАЗОВЫЕ ГЕОМЕТРИЧЕСКИЕ ФУНКЦИИ
+   1. БАЗОВЫЕ ЧИСЛОВЫЕ HELPERS
    ============================================================ */
 
-/*
-   Евклидово расстояние между двумя точками.
-   a, b: объекты {x, y} в пикселях
-   Возвращает: расстояние в пикселях
-*/
+export function clamp(value, min, max) {
+  if (!Number.isFinite(value)) return min;
+  return Math.max(min, Math.min(max, value));
+}
+
+
+export function safeNumber(value, fallback) {
+  return Number.isFinite(value) ? value : fallback;
+}
+
+
+export function safeDivide(a, b, fallback = 0) {
+  if (!Number.isFinite(a) || !Number.isFinite(b)) {
+    return fallback;
+  }
+
+  if (Math.abs(b) < 1e-12) {
+    return fallback;
+  }
+
+  return a / b;
+}
+
+
+/* ============================================================
+   2. ГЕОМЕТРИЯ
+   ============================================================ */
+
 export function dist(a, b) {
+  if (!a || !b) return 0;
+
   var dx = a.x - b.x;
   var dy = a.y - b.y;
+
   return Math.sqrt(dx * dx + dy * dy);
 }
 
+
 /*
-   Угол при вершине b в треугольнике a-b-c.
-   a, b, c: объекты {x, y} в пикселях
-   Возвращает: угол в градусах (0-180)
-   
-   Используется для:
-   - Canthal tilt (угол наклона глаз)
-   - Jaw frontal angle (угол при подбородке)
-   - Jawline def (угол линии челюсти)
-   - Ipsilateral alar angle (угол крыла носа)
+   Угол при вершине b.
+
+   Возвращает 0..180°.
 */
+
 export function angleAt(a, b, c) {
+  if (!a || !b || !c) return 0;
+
   var v1x = a.x - b.x;
   var v1y = a.y - b.y;
+
   var v2x = c.x - b.x;
   var v2y = c.y - b.y;
-  
+
   var len1 = Math.sqrt(v1x * v1x + v1y * v1y);
   var len2 = Math.sqrt(v2x * v2x + v2y * v2y);
-  
-  if (len1 < 1e-9 || len2 < 1e-9) return 0;
-  
+
+  if (len1 < 1e-9 || len2 < 1e-9) {
+    return 0;
+  }
+
   var dot = v1x * v2x + v1y * v2y;
+
   var cosVal = dot / (len1 * len2);
-  
-  /* Защита от ошибок округления */
-  cosVal = Math.max(-1, Math.min(1, cosVal));
-  
+
+  cosVal = clamp(cosVal, -1, 1);
+
   return Math.acos(cosVal) * 180 / Math.PI;
 }
 
-/* ============================================================
-   РАЗДЕЛ 2: TIER-СИСТЕМА (T1-T5)
-   ============================================================ */
 
 /*
-   Определяет индекс тира (0-4) для данного значения метрики.
-   
-   value: измеренное значение метрики
-   lo: нижняя граница идеального диапазона
-   hi: верхняя граница идеального диапазона
-   
-   Возвращает: 0 (T1) до 4 (T5)
-   
-   Логика:
-   - Находим центр идеального диапазона: center = (lo + hi) / 2
-   - Находим полуширину: halfRange = (hi - lo) / 2
-   - Считаем отклонение: deviation = |value - center|
-   - Сравниваем с порогами из TIER_THRESHOLDS
+   Подписанный угол линии относительно горизонтали.
+
+   В image coordinates Y направлен вниз.
+
+   Поэтому "положительный вверх" реализуем явно,
+   а не полагаемся на случайный порядок точек.
 */
+
+export function signedLineAngle(a, b) {
+  if (!a || !b) return 0;
+
+  var dx = b.x - a.x;
+  var dy = a.y - b.y;
+
+  if (Math.abs(dx) < 1e-9) {
+    return dy >= 0 ? 90 : -90;
+  }
+
+  return Math.atan2(dy, dx) * 180 / Math.PI;
+}
+
+
+/*
+   Средний абсолютный угол двух линий.
+
+   Используется для метрик, где важна величина наклона,
+   а не направление.
+*/
+
+export function averageAbsoluteAngle(a, b, c, d) {
+  var first = Math.abs(signedLineAngle(a, b));
+  var second = Math.abs(signedLineAngle(c, d));
+
+  return (first + second) / 2;
+}
+
+
+/* ============================================================
+   3. TIER SYSTEM — LEGACY COMPATIBILITY
+   ============================================================
+
+   Старый UI пока ожидает tierIndex.
+
+   ВАЖНО:
+
+   Professional formula не предполагает, что итоговый score
+   строится через старую глобальную T1-T5 таблицу.
+
+   Эта функция пока нужна интерфейсу и старым metric entries.
+   ============================================================ */
+
 export function getTierIndex(value, lo, hi) {
+  if (!Number.isFinite(value)) {
+    return TIER_THRESHOLDS.length - 1;
+  }
+
+  if (!Number.isFinite(lo) || !Number.isFinite(hi)) {
+    return TIER_THRESHOLDS.length - 1;
+  }
+
+  if (hi < lo) {
+    var temp = lo;
+    lo = hi;
+    hi = temp;
+  }
+
   var center = (lo + hi) / 2;
-  var halfRange = (hi - lo) / 2;
-  
-  /* Защита от деления на ноль */
-  if (halfRange < 1e-12) halfRange = 1e-12;
-  
+  var halfRange = Math.max(
+    Math.abs(hi - lo) / 2,
+    1e-12
+  );
+
   var deviation = Math.abs(value - center);
-  
+
   for (var i = 0; i < TIER_THRESHOLDS.length; i++) {
     if (deviation <= halfRange * TIER_THRESHOLDS[i]) {
       return i;
     }
   }
-  
-  /* Если не попали ни в один порог — последний tier */
+
   return TIER_THRESHOLDS.length - 1;
 }
 
-/*
-   Возвращает строковое название тира по индексу.
-   idx: 0-4
-   Возвращает: "T1", "T2", "T3", "T4", "T5" или "T?"
-*/
+
 export function tierName(idx) {
-  var names = ["T1", "T2", "T3", "T4", "T5"];
+  var names = [
+    "T1",
+    "T2",
+    "T3",
+    "T4",
+    "T5"
+  ];
+
   if (idx >= 0 && idx < names.length) {
     return names[idx];
   }
+
   return "T?";
 }
 
+
 /* ============================================================
-   РАЗДЕЛ 3: ШКАЛА LOOKSMAX (ЛЕЙБЛЫ)
+   4. LOOKSMAX LABEL — LEGACY UI
    ============================================================ */
 
-/*
-   Определяет лейбл looksmax по итоговому проценту (0-100).
-   
-   percent: итоговый балл после нормализации
-   Возвращает: "SUB3", "SUB5", "LTN", "MTN", "HTN", "CHADLITE", "CHAD"
-   
-   Использует LOOKSMAX_SCALE из config.js
-*/
 export function looksmaxLabel(percent) {
+  var value = clamp(percent, 0, 100);
+
   for (var i = 0; i < LOOKSMAX_SCALE.length; i++) {
-    if (percent >= LOOKSMAX_SCALE[i].min) {
+    if (value >= LOOKSMAX_SCALE[i].min) {
       return LOOKSMAX_SCALE[i].label;
     }
   }
-  return LOOKSMAX_SCALE[LOOKSMAX_SCALE.length - 1].label;
+
+  return LOOKSMAX_SCALE[
+    LOOKSMAX_SCALE.length - 1
+  ].label;
 }
 
-/* ============================================================
-   РАЗДЕЛ 4: ФОРМУЛЫ РАСЧЁТА 26 МЕТРИК
-   ============================================================ */
 
-/*
-   Каждая функция принимает:
-   - P: объект с ключами = id точек, значения = {x, y} в пикселях
-   - bizy: бизигоматическая ширина (dist(bizR, bizL)) в пикселях
-   - fh: высота лица (dist(hair, chin)) в пикселях
-   
-   Возвращает: числовое значение метрики
-   
-   Имена функций должны ТОЧНО совпадать с name в METRIC_TABLE.
-*/
+/* ============================================================
+   5. МЕТРИКИ
+   ============================================================ */
 
 export var METRIC_FUNCTIONS = {
 
-  /* ==================== 👁 ГЛАЗА ==================== */
+  /* ==========================================================
+     EYES
+     ========================================================== */
 
   "Eye separation": function(P, bizy, fh) {
-    /* IPD (inter-pupillary distance) / bizygomatic width */
+
     var ipd = dist(P.eyeRc, P.eyeLc);
-    return ipd / Math.max(1, bizy);
+
+    return safeDivide(
+      ipd,
+      Math.max(1, bizy),
+      0
+    );
   },
+
+
+  /*
+     Canthal tilt.
+
+     В старом коде:
+
+       atan2(y2-y1, abs(dx))
+
+     давал неправильный знак при image coordinates.
+
+     Теперь используем signedLineAngle().
+  */
 
   "Canthal tilt": function(P, bizy, fh) {
-    /* Средний угол наклона глазных щелей (правый + левый) / 2 */
-    var rightAngle = Math.atan2(
-      P.eyeRi.y - P.eyeRo.y,
-      Math.abs(P.eyeRo.x - P.eyeRi.x)
-    ) * 180 / Math.PI;
-    
-    var leftAngle = Math.atan2(
-      P.eyeLi.y - P.eyeLo.y,
-      Math.abs(P.eyeLo.x - P.eyeLi.x)
-    ) * 180 / Math.PI;
-    
-    return (rightAngle + leftAngle) / 2;
+
+    var rightAngle = signedLineAngle(
+      P.eyeRo,
+      P.eyeRi
+    );
+
+    var leftAngle = signedLineAngle(
+      P.eyeLo,
+      P.eyeLi
+    );
+
+    /*
+       Для симметричных глаз направления левой и правой
+       линии должны интерпретироваться одинаково.
+    */
+
+    return (
+      rightAngle + leftAngle
+    ) / 2;
   },
+
 
   "Eye spacing": function(P, bizy, fh) {
-    /* Inter-canthal distance / средняя ширина глаза */
-    var eyeW = (dist(P.eyeRo, P.eyeRi) + dist(P.eyeLo, P.eyeLi)) / 2;
-    var icd = dist(P.eyeRi, P.eyeLi);
-    return icd / Math.max(1, eyeW);
+
+    var rightWidth = dist(
+      P.eyeRo,
+      P.eyeRi
+    );
+
+    var leftWidth = dist(
+      P.eyeLo,
+      P.eyeLi
+    );
+
+    var eyeWidth = (
+      rightWidth +
+      leftWidth
+    ) / 2;
+
+    var intercanthal = dist(
+      P.eyeRi,
+      P.eyeLi
+    );
+
+    return safeDivide(
+      intercanthal,
+      Math.max(1, eyeWidth),
+      0
+    );
   },
+
 
   "Eye aspect": function(P, bizy, fh) {
-    /* Eye width / eye height (среднее по двум глазам) */
-    var rightW = dist(P.eyeRo, P.eyeRi);
-    var rightH = Math.max(1, dist(P.eyeRu, P.eyeRl));
-    var leftW = dist(P.eyeLo, P.eyeLi);
-    var leftH = Math.max(1, dist(P.eyeLu, P.eyeLl));
-    
-    var rightAspect = rightW / rightH;
-    var leftAspect = leftW / leftH;
-    
-    return (rightAspect + leftAspect) / 2;
+
+    var rightWidth = dist(
+      P.eyeRo,
+      P.eyeRi
+    );
+
+    var rightHeight = Math.max(
+      1,
+      dist(P.eyeRu, P.eyeRl)
+    );
+
+    var leftWidth = dist(
+      P.eyeLo,
+      P.eyeLi
+    );
+
+    var leftHeight = Math.max(
+      1,
+      dist(P.eyeLu, P.eyeLl)
+    );
+
+    var rightAspect =
+      rightWidth / rightHeight;
+
+    var leftAspect =
+      leftWidth / leftHeight;
+
+    return (
+      rightAspect +
+      leftAspect
+    ) / 2;
   },
+
 
   "Eyebrow tilt": function(P, bizy, fh) {
-    /* Средний угол наклона бровей */
-    var rightTilt = Math.atan2(
-      P.browRi.y - P.browRp.y,
-      Math.abs(P.browRo.x - P.browRi.x)
-    ) * 180 / Math.PI;
-    
-    var leftTilt = Math.atan2(
-      P.browLi.y - P.browLp.y,
-      Math.abs(P.browLo.x - P.browLi.x)
-    ) * 180 / Math.PI;
-    
-    return (rightTilt + leftTilt) / 2;
+
+    var rightTilt = signedLineAngle(
+      P.browRi,
+      P.browRo
+    );
+
+    var leftTilt = signedLineAngle(
+      P.browLi,
+      P.browLo
+    );
+
+    /*
+       Усредняем абсолютную величину,
+       потому что левая и правая бровь имеют
+       зеркальную геометрию.
+    */
+
+    return (
+      Math.abs(rightTilt) +
+      Math.abs(leftTilt)
+    ) / 2;
   },
+
 
   "Eyebrow setness": function(P, bizy, fh) {
-    /* Высота глаза / расстояние зрачок-бровь (среднее) */
-    var rightEyeH = dist(P.eyeRc, P.eyeRu);
-    var rightBrowDist = Math.max(1, dist(P.eyeRc, P.browRp));
-    
-    var leftEyeH = dist(P.eyeLc, P.eyeLu);
-    var leftBrowDist = Math.max(1, dist(P.eyeLc, P.browLp));
-    
-    var rightSetness = rightEyeH / rightBrowDist;
-    var leftSetness = leftEyeH / leftBrowDist;
-    
-    return (rightSetness + leftSetness) / 2;
+
+    var rightEyeBrow = dist(
+      P.eyeRc,
+      P.browRp
+    );
+
+    var leftEyeBrow = dist(
+      P.eyeLc,
+      P.browLp
+    );
+
+    var eyeWidthRight = dist(
+      P.eyeRo,
+      P.eyeRi
+    );
+
+    var eyeWidthLeft = dist(
+      P.eyeLo,
+      P.eyeLi
+    );
+
+    /*
+       Нормализуем расстояние до брови
+       относительно ширины глаза.
+
+       Это стабильнее, чем сравнивать расстояние
+       с высотой глаза.
+    */
+
+    var right = safeDivide(
+      rightEyeBrow,
+      Math.max(1, eyeWidthRight),
+      0
+    );
+
+    var left = safeDivide(
+      leftEyeBrow,
+      Math.max(1, eyeWidthLeft),
+      0
+    );
+
+    return (right + left) / 2;
   },
+
+
+  /*
+     ВАЖНО:
+
+     Это не настоящий 3D orbital vector.
+     С текущими 2D точками его невозможно корректно
+     вычислить как 3D-анатомический показатель.
+
+     Поэтому оставляем только как 2D proxy.
+  */
 
   "Orbital vector": function(P, bizy, fh) {
-    /* Относительное положение скулы относительно нижнего века */
-    /* Положительный = скула ниже глаза (хорошо) */
-    var rightVec = (P.zygR.y - P.eyeRl.y) / Math.max(1, fh) * 10;
-    var leftVec = (P.zygL.y - P.eyeLl.y) / Math.max(1, fh) * 10;
-    
-    return (rightVec + leftVec) / 2;
+
+    var right = safeDivide(
+      P.zygR.y - P.eyeRl.y,
+      Math.max(1, fh),
+      0
+    );
+
+    var left = safeDivide(
+      P.zygL.y - P.eyeLl.y,
+      Math.max(1, fh),
+      0
+    );
+
+    return (
+      (right + left) / 2
+    ) * 10;
   },
 
-  /* ==================== 📐 ПРОПОРЦИИ ==================== */
+
+  /* ==========================================================
+     PROPORTIONS
+     ========================================================== */
 
   "Upper third": function(P, bizy, fh) {
-    /* Верхняя треть / полная высота лица */
-    var upper = dist(P.hair, P.nas);
-    return upper / Math.max(1, fh);
+
+    return safeDivide(
+      dist(P.hair, P.nas),
+      Math.max(1, fh),
+      0
+    );
   },
+
 
   "Middle third": function(P, bizy, fh) {
-    /* Средняя треть / полная высота лица */
-    var middle = dist(P.nas, P.sub);
-    return middle / Math.max(1, fh);
+
+    return safeDivide(
+      dist(P.nas, P.sub),
+      Math.max(1, fh),
+      0
+    );
   },
+
 
   "Lower third": function(P, bizy, fh) {
-    /* Нижняя треть / полная высота лица */
-    var lower = dist(P.sub, P.chin);
-    return lower / Math.max(1, fh);
+
+    return safeDivide(
+      dist(P.sub, P.chin),
+      Math.max(1, fh),
+      0
+    );
   },
+
 
   "FWHR": function(P, bizy, fh) {
-    /* Facial Width-to-Height Ratio */
-    /* Bizygomatic width / midface height (nasion to upper lip) */
-    var midfaceH = dist(P.nas, P.lt);
-    return bizy / Math.max(1, midfaceH);
+
+    /*
+       В проекте используется:
+
+       bizygomatic width /
+       nasion → upper-lip height
+
+       Это конкретное определение проекта,
+       а не универсальное определение FWHR.
+    */
+
+    var midfaceHeight = dist(
+      P.nas,
+      P.lt
+    );
+
+    return safeDivide(
+      bizy,
+      Math.max(1, midfaceHeight),
+      0
+    );
   },
+
 
   "Total face H/W": function(P, bizy, fh) {
-    /* Полная высота лица / bizygomatic width */
-    return fh / Math.max(1, bizy);
+
+    return safeDivide(
+      fh,
+      Math.max(1, bizy),
+      0
+    );
   },
+
 
   "Bitemporal": function(P, bizy, fh) {
-    /* Височная ширина / bizygomatic width */
-    var bitemp = dist(P.tempR, P.tempL);
-    return bitemp / Math.max(1, bizy);
+
+    var temporalWidth = dist(
+      P.tempR,
+      P.tempL
+    );
+
+    return safeDivide(
+      temporalWidth,
+      Math.max(1, bizy),
+      0
+    );
   },
 
-  /* ==================== 🦴 ЧЕЛЮСТЬ ==================== */
+
+  /* ==========================================================
+     JAW
+     ========================================================== */
 
   "Bigonial/Bizygomatic": function(P, bizy, fh) {
-    /* Ширина челюсти / bizygomatic width */
-    var gonW = dist(P.gonR, P.gonL);
-    return gonW / Math.max(1, bizy);
+
+    var gonialWidth = dist(
+      P.gonR,
+      P.gonL
+    );
+
+    return safeDivide(
+      gonialWidth,
+      Math.max(1, bizy),
+      0
+    );
   },
+
+
+  /*
+     Старый код фактически делал:
+
+       zygW / bizy
+
+     Но если zygR и zygL — сами точки,
+     определяющие bizygomatic width,
+     показатель почти всегда ≈1.
+
+     Поэтому оставляем значение для совместимости,
+     но явно помечаем его как proxy.
+  */
 
   "Cheekbone setness": function(P, bizy, fh) {
-    /* Ширина скул / bizygomatic width */
-    var zygW = dist(P.zygR, P.zygL);
-    return zygW / Math.max(1, bizy);
+
+    var zygWidth = dist(
+      P.zygR,
+      P.zygL
+    );
+
+    return safeDivide(
+      zygWidth,
+      Math.max(1, bizy),
+      0
+    );
   },
+
 
   "Jaw frontal angle": function(P, bizy, fh) {
-    /* Угол при подбородке между гонионами */
-    return angleAt(P.gonR, P.chin, P.gonL);
+
+    return angleAt(
+      P.gonR,
+      P.chin,
+      P.gonL
+    );
   },
+
 
   "Jawline def": function(P, bizy, fh) {
-    /* Средний угол линии челюсти (правый + левый) / 2 */
-    var rightAngle = angleAt(P.gonR, P.jawMidR, P.jawLowR);
-    var leftAngle = angleAt(P.gonL, P.jawMidL, P.jawLowL);
-    return (rightAngle + leftAngle) / 2;
+
+    var rightAngle = angleAt(
+      P.gonR,
+      P.jawMidR,
+      P.jawLowR
+    );
+
+    var leftAngle = angleAt(
+      P.gonL,
+      P.jawMidL,
+      P.jawLowL
+    );
+
+    return (
+      rightAngle +
+      leftAngle
+    ) / 2;
   },
+
 
   "Temple/Jaw taper": function(P, bizy, fh) {
-    /* Височная ширина / ширина челюсти */
-    var tempW = dist(P.tempR, P.tempL);
-    var gonW = dist(P.gonR, P.gonL);
-    return tempW / Math.max(1, gonW);
+
+    var temporalWidth = dist(
+      P.tempR,
+      P.tempL
+    );
+
+    var gonialWidth = dist(
+      P.gonR,
+      P.gonL
+    );
+
+    return safeDivide(
+      temporalWidth,
+      Math.max(1, gonialWidth),
+      0
+    );
   },
+
 
   "Neck width %": function(P, bizy, fh) {
-    /* Ширина шеи / bigonial width (НЕ bizygomatic) */
-    var neckW = dist(P.neckR, P.neckL);
-    var gonW = dist(P.gonR, P.gonL);
-    return neckW / Math.max(1, gonW);
+
+    var neckWidth = dist(
+      P.neckR,
+      P.neckL
+    );
+
+    var gonialWidth = dist(
+      P.gonR,
+      P.gonL
+    );
+
+    return safeDivide(
+      neckWidth,
+      Math.max(1, gonialWidth),
+      0
+    );
   },
 
-  /* ==================== 👄 РОТ ==================== */
+
+  /* ==========================================================
+     MOUTH
+     ========================================================== */
 
   "Chin/Philtrum": function(P, bizy, fh) {
-    /* Расстояние от нижней губы до подбородка / philtrum */
-    var chinToLip = dist(P.lb, P.chin);
-    var philtrum = dist(P.sub, P.lt);
-    return chinToLip / Math.max(1, philtrum);
+
+    var chinToLip = dist(
+      P.lb,
+      P.chin
+    );
+
+    var philtrum = dist(
+      P.sub,
+      P.lt
+    );
+
+    return safeDivide(
+      chinToLip,
+      Math.max(1, philtrum),
+      0
+    );
   },
+
 
   "Mouth/Nose": function(P, bizy, fh) {
-    /* Ширина рта / ширина носа */
-    var mouthW = dist(P.mouR, P.mouL);
-    var noseW = dist(P.noseR, P.noseL);
-    return mouthW / Math.max(1, noseW);
+
+    var mouthWidth = dist(
+      P.mouR,
+      P.mouL
+    );
+
+    var noseWidth = dist(
+      P.noseR,
+      P.noseL
+    );
+
+    return safeDivide(
+      mouthWidth,
+      Math.max(1, noseWidth),
+      0
+    );
   },
+
 
   "Lower/upper lip": function(P, bizy, fh) {
-    /* Высота нижней губы / высота верхней губы */
-    var lowerLip = dist(P.st, P.lb);
-    var upperLip = dist(P.lt, P.st);
-    return lowerLip / Math.max(1, upperLip);
+
+    var lowerLip = dist(
+      P.st,
+      P.lb
+    );
+
+    var upperLip = dist(
+      P.lt,
+      P.st
+    );
+
+    return safeDivide(
+      lowerLip,
+      Math.max(1, upperLip),
+      0
+    );
   },
 
-  /* ==================== 👃 НОС ==================== */
+
+  /* ==========================================================
+     NOSE
+     ========================================================== */
 
   "Nasal height/width": function(P, bizy, fh) {
-    /* Ширина носа / высота носа */
-    var noseW = dist(P.noseR, P.noseL);
-    var noseH = dist(P.nas, P.ntip);
-    return noseW / Math.max(1, noseH);
+
+    var noseWidth = dist(
+      P.noseR,
+      P.noseL
+    );
+
+    var noseHeight = dist(
+      P.nas,
+      P.ntip
+    );
+
+    return safeDivide(
+      noseWidth,
+      Math.max(1, noseHeight),
+      0
+    );
   },
+
 
   "Ipsilateral alar angle": function(P, bizy, fh) {
-    /* Средний угол крыла носа (правый + левый) / 2 */
-    var rightAngle = angleAt(P.noseR, P.ntip, P.nas);
-    var leftAngle = angleAt(P.noseL, P.ntip, P.nas);
-    return (rightAngle + leftAngle) / 2;
+
+    var rightAngle = angleAt(
+      P.noseR,
+      P.ntip,
+      P.nas
+    );
+
+    var leftAngle = angleAt(
+      P.noseL,
+      P.ntip,
+      P.nas
+    );
+
+    return (
+      rightAngle +
+      leftAngle
+    ) / 2;
   },
 
+
   "IAA-JFA deviation": function(P, bizy, fh) {
-    /* Отклонение между углом крыла носа и углом челюсти */
-    var iaa = (angleAt(P.noseR, P.ntip, P.nas) + angleAt(P.noseL, P.ntip, P.nas)) / 2;
-    var jfa = angleAt(P.gonR, P.chin, P.gonL);
+
+    var iaa = (
+      angleAt(
+        P.noseR,
+        P.ntip,
+        P.nas
+      ) +
+      angleAt(
+        P.noseL,
+        P.ntip,
+        P.nas
+      )
+    ) / 2;
+
+    var jfa = angleAt(
+      P.gonR,
+      P.chin,
+      P.gonL
+    );
+
     return iaa - jfa;
   },
 
-  /* ==================== 🪞 СИММЕТРИЯ ==================== */
+
+  /* ==========================================================
+     SYMMETRY
+     ========================================================== */
 
   "Symmetry": function(P, bizy, fh) {
-    /* Вычисляется отдельной функцией computeSymmetry */
-    return computeSymmetry(P, bizy, fh);
+
+    return computeSymmetry(
+      P,
+      bizy,
+      fh
+    );
   }
+
 };
 
+
 /* ============================================================
-   РАЗДЕЛ 5: РАСЧЁТ СИММЕТРИИ
+   6. SYMMETRY
+   ============================================================
+
+   Старый алгоритм:
+
+     1 - average deviation * 5
+
+   был произвольным.
+
+   Здесь:
+
+   1. Строим центральную ось через центральные точки.
+   2. Для каждой пары сравниваем горизонтальное расстояние
+      до оси.
+   3. Сравниваем вертикальные координаты.
+   4. Нормализуем отдельно.
+   5. Преобразуем среднюю ошибку в 0..1.
+
+   Это всё ещё 2D proxy symmetry, а не полноценная
+   3D facial symmetry analysis.
    ============================================================ */
 
-/*
-   Симметрия считается по 11 парам билатеральных точек.
-   
-   Для каждой пары:
-   - Отклонение по X относительно центральной линии (нормализовано на bizy)
-   - Отклонение по Y между парными точками (нормализовано на fh)
-   
-   Центральная линия определяется по 4 точкам: hair, chin, nas, sub
-   
-   Результат: 0..1 (потом используется как значение метрики Symmetry)
-*/
 export function computeSymmetry(P, bizy, fh) {
-  /* Центральная линия (среднее X 4 центральных точек) */
-  var cx = (P.hair.x + P.chin.x + P.nas.x + P.sub.x) / 4;
-  
-  var deviations = [];
-  
-  for (var i = 0; i < SYMMETRY_PAIRS.length; i++) {
-    var pairId = SYMMETRY_PAIRS[i];
-    var R = P[pairId[0]];
-    var L = P[pairId[1]];
-    
-    if (!R || !L) continue;
-    
-    /* Отклонение по X: разница расстояний от центра */
-    var rDistFromCenter = Math.abs(R.x - cx);
-    var lDistFromCenter = Math.abs(L.x - cx);
-    var xDev = Math.abs(rDistFromCenter - lDistFromCenter) / Math.max(1, bizy);
-    deviations.push(xDev);
-    
-    /* Отклонение по Y: разница высот */
-    var yDev = Math.abs(R.y - L.y) / Math.max(1, fh);
-    deviations.push(yDev);
+
+  if (!P || !Number.isFinite(bizy) || !Number.isFinite(fh)) {
+    return 0;
   }
-  
-  if (deviations.length === 0) return 1.0;
-  
-  /* Среднее отклонение */
-  var avgDev = 0;
-  for (var j = 0; j < deviations.length; j++) {
-    avgDev += deviations[j];
+
+  if (bizy <= 0 || fh <= 0) {
+    return 0;
   }
-  avgDev /= deviations.length;
-  
-  /* Преобразование: 1 - avgDev × 5, ограниченное 0..1 */
-  var symmetryRaw = Math.max(0, Math.min(1, 1 - avgDev * 5));
-  
-  return symmetryRaw;
+
+  var centerIds = [
+    "hair",
+    "nas",
+    "sub",
+    "chin"
+  ];
+
+  var centerX = 0;
+  var centerCount = 0;
+
+  for (var c = 0; c < centerIds.length; c++) {
+
+    var cp = P[centerIds[c]];
+
+    if (!cp) continue;
+
+    centerX += cp.x;
+    centerCount++;
+  }
+
+  if (centerCount === 0) {
+    return 0;
+  }
+
+  centerX /= centerCount;
+
+  var errors = [];
+
+  for (
+    var i = 0;
+    i < SYMMETRY_PAIRS.length;
+    i++
+  ) {
+
+    var pair = SYMMETRY_PAIRS[i];
+
+    var right = P[pair[0]];
+    var left = P[pair[1]];
+
+    if (!right || !left) {
+      continue;
+    }
+
+    var rightX = Math.abs(
+      right.x - centerX
+    );
+
+    var leftX = Math.abs(
+      left.x - centerX
+    );
+
+    var xError = Math.abs(
+      rightX - leftX
+    ) / bizy;
+
+    var yError = Math.abs(
+      right.y - left.y
+    ) / fh;
+
+    /*
+       Horizontal and vertical error имеют разные масштабы,
+       поэтому используем RMS внутри пары.
+    */
+
+    var pairError = Math.sqrt(
+      (
+        xError * xError +
+        yError * yError
+      ) / 2
+    );
+
+    errors.push(pairError);
+  }
+
+  if (errors.length === 0) {
+    return 0;
+  }
+
+  var sum = 0;
+
+  for (var j = 0; j < errors.length; j++) {
+    sum += errors[j];
+  }
+
+  var meanError =
+    sum / errors.length;
+
+  /*
+     Экспоненциальное преобразование:
+
+       symmetry = exp(-k * error)
+
+     Оно не создаёт искусственного жёсткого
+     "100 → 0" порога.
+
+     k = 8 выбран как scale parameter,
+     а не как часть professional pillar formula.
+  */
+
+  var symmetry = Math.exp(
+    -8 * meanError
+  );
+
+  return clamp(
+    symmetry,
+    0,
+    1
+  );
 }
 
+
 /* ============================================================
-   РАЗДЕЛ 6: РАСЧЁТ КАЧЕСТВА (CONFIDENCE)
-   НЕ ВЛИЯЕТ НА БАЛЛ. Только показывает доверие.
+   7. PHOTO QUALITY
    ============================================================ */
 
-/*
-   Оценивает качество фото на основе:
-   - Размер лица на фото
-   - Наклон головы (roll)
-   - Поворот головы (yaw)
-   - Ракурс сверху/снизу (pitch)
-   
-   Возвращает объект:
-   {
-     conf: 40-100 (процент доверия),
-     roll: число (градусы),
-     yaw: число (градусы),
-     pitch: число (градусы),
-     warns: массив строк с предупреждениями,
-     faceFrac: число (доля лица на фото)
-   }
-*/
-export function computeQuality(P, imgWidth, imgHeight, bizy, fh) {
+export function computeQuality(
+  P,
+  imgWidth,
+  imgHeight,
+  bizy,
+  fh
+) {
+
   var QT = QUALITY_THRESHOLDS;
+
   var conf = 100;
+
   var warns = [];
-  
-  /* Размер лица на фото */
-  var faceFrac = fh / imgHeight;
+
+
+  /* ---------- FACE SIZE ---------- */
+
+  var faceFrac = safeDivide(
+    fh,
+    Math.max(1, imgHeight),
+    0
+  );
+
   if (faceFrac < QT.minFaceFrac) {
+
     conf -= QT.faceFracPenalty;
+
     warns.push("лицо мелкое");
   }
-  
-  /* Наклон головы (roll) */
-  var roll = Math.abs(
-    Math.atan2(P.eyeLc.y - P.eyeRc.y, P.eyeLc.x - P.eyeRc.x)
-  ) * 180 / Math.PI;
-  
+
+
+  /* ---------- ROLL ---------- */
+
+  var roll = 0;
+
+  if (P.eyeRc && P.eyeLc) {
+
+    roll = Math.abs(
+      signedLineAngle(
+        P.eyeRc,
+        P.eyeLc
+      )
+    );
+  }
+
   if (roll > QT.maxRoll) {
-    conf -= Math.min(25, (roll - QT.maxRoll) * QT.rollPenaltyPerDeg);
-    warns.push("наклон " + roll.toFixed(0) + "°");
+
+    conf -= Math.min(
+      25,
+      (
+        roll -
+        QT.maxRoll
+      ) *
+      QT.rollPenaltyPerDeg
+    );
+
+    warns.push(
+      "наклон " +
+      roll.toFixed(0) +
+      "°"
+    );
   }
-  
-  /* Поворот головы (yaw) */
-  var cx = (P.hair.x + P.chin.x + P.nas.x + P.sub.x) / 4;
-  var yaw = Math.abs(
-    Math.abs(cx - P.eyeRc.x) - Math.abs(P.eyeLc.x - cx)
-  ) / Math.max(1, bizy) * 90;
-  
+
+
+  /* ---------- YAW ---------- */
+
+  var cx = 0;
+  var count = 0;
+
+  var centerIds = [
+    "hair",
+    "chin",
+    "nas",
+    "sub"
+  ];
+
+  for (
+    var i = 0;
+    i < centerIds.length;
+    i++
+  ) {
+
+    var point = P[centerIds[i]];
+
+    if (!point) continue;
+
+    cx += point.x;
+    count++;
+  }
+
+  if (count > 0) {
+    cx /= count;
+  }
+
+  var yaw = 0;
+
+  if (P.eyeRc && P.eyeLc) {
+
+    yaw =
+      Math.abs(
+        Math.abs(
+          cx - P.eyeRc.x
+        ) -
+        Math.abs(
+          P.eyeLc.x - cx
+        )
+      ) /
+      Math.max(1, bizy) *
+      90;
+  }
+
   if (yaw > QT.maxYaw) {
-    conf -= Math.min(25, (yaw - QT.maxYaw) * QT.yawPenaltyPerDeg);
-    warns.push("поворот ~" + yaw.toFixed(0) + "°");
+
+    conf -= Math.min(
+      25,
+      (
+        yaw -
+        QT.maxYaw
+      ) *
+      QT.yawPenaltyPerDeg
+    );
+
+    warns.push(
+      "поворот ~" +
+      yaw.toFixed(0) +
+      "°"
+    );
   }
-  
-  /* Ракурс сверху/снизу (pitch) */
-  var upper = dist(P.hair, P.nas);
-  var lower = dist(P.sub, P.chin);
-  var pitch = Math.abs(lower - upper) / Math.max(1, fh) * 60;
-  
+
+
+  /* ---------- PITCH ---------- */
+
+  var pitch = 0;
+
+  if (
+    P.hair &&
+    P.nas &&
+    P.sub &&
+    P.chin
+  ) {
+
+    var upper = dist(
+      P.hair,
+      P.nas
+    );
+
+    var lower = dist(
+      P.sub,
+      P.chin
+    );
+
+    pitch =
+      Math.abs(
+        lower - upper
+      ) /
+      Math.max(1, fh) *
+      60;
+  }
+
   if (pitch > QT.maxPitch) {
-    conf -= Math.min(20, (pitch - QT.maxPitch) * QT.pitchPenaltyPerDeg);
-    warns.push("ракурс сверху/снизу");
+
+    conf -= Math.min(
+      20,
+      (
+        pitch -
+        QT.maxPitch
+      ) *
+      QT.pitchPenaltyPerDeg
+    );
+
+    warns.push(
+      "ракурс сверху/снизу"
+    );
   }
-  
-  var finalConf = Math.max(QT.minConfidence, Math.min(QT.maxConfidence, conf));
-  
+
+
+  var finalConf = clamp(
+    conf,
+    QT.minConfidence,
+    QT.maxConfidence
+  );
+
+
   return {
+
     conf: finalConf,
+
     roll: roll,
+
     yaw: yaw,
+
     pitch: pitch,
+
     warns: warns,
+
     faceFrac: faceFrac
+
   };
 }
 
+
 /* ============================================================
-   РАЗДЕЛ 7: ГЛАВНАЯ ФУНКЦИЯ РАСЧЁТА (v20)
-   Architecture A: tier → absolute points → sum → penalty → normalize
+   8. PROFESSIONAL PILLAR NORMALIZATION
    ============================================================ */
 
-/*
-   Вход:
-   - placedPoints: массив [{id, x, y}, ...] в нормализованных координатах (0..1)
-   - imgWidth: ширина изображения в пикселях
-   - imgHeight: высота изображения в пикселях
-   
-   Выход:
-   {
-     metrics: [{name, cat, value, unit, lo, hi, tierIndex, points, maxPoints, score, weight}],
-     catScores: {"👁 Глаза": 72.5, ...},
-     overall: 68.3 (нормализованный процент 0-100),
-     label: "MTN" (лейбл looksmax),
-     rawSum: 188.7 (сумма absolute points),
-     maxSum: 284.0 (максимально возможная сумма),
-     rawPercent: 66.4 (сырой процент до нормализации),
-     penalty: 9.9 (штраф за дисбаланс),
-     spread: 19.8 (разброс категорий),
-     symmetry: 0.92,
-     quality: {conf, roll, yaw, pitch, warns, faceFrac},
-     bizy: число,
-     fh: число,
-     PTS: объект с точками в пикселях
-   }
-*/
-export function computeAllMetrics(placedPoints, imgWidth, imgHeight) {
-  /* Шаг 1: Конвертация нормализованных координат в пиксели */
-  var P = {};
-  for (var i = 0; i < placedPoints.length; i++) {
-    P[placedPoints[i].id] = {
-      x: placedPoints[i].x * imgWidth,
-      y: placedPoints[i].y * imgHeight
+export function normalizePillar(
+  rawScore,
+  pillar
+) {
+
+  var config =
+    PILLAR_NORMALIZATION[pillar];
+
+  if (!config) {
+    throw new Error(
+      "Unknown pillar: " +
+      pillar
+    );
+  }
+
+  var max =
+    config.max;
+
+  var worst =
+    config.worst;
+
+  if (
+    !Number.isFinite(rawScore) ||
+    !Number.isFinite(max) ||
+    !Number.isFinite(worst)
+  ) {
+
+    return {
+      raw: rawScore,
+      percent: 0,
+      score10: 0
     };
   }
-  
-  /* Шаг 2: Базовые измерения */
-  var bizy = dist(P.bizR, P.bizL);
-  var fh = dist(P.hair, P.chin);
-  
-  /* Шаг 3: Расчёт каждой метрики */
+
+  var range =
+    max - worst;
+
+  if (range <= 0) {
+
+    return {
+      raw: rawScore,
+      percent: 0,
+      score10: 0
+    };
+  }
+
+  /*
+     Exact source formula:
+
+     ((raw - worst) /
+      (max - worst)) * 100
+
+     then /10.
+  */
+
+  var percent =
+    (
+      (rawScore - worst) /
+      range
+    ) * 100;
+
+  /*
+     A score outside the theoretical raw range
+     is clipped to the 0..10 output domain.
+  */
+
+  var score10 =
+    clamp(
+      percent / 10,
+      0,
+      10
+    );
+
+  return {
+
+    raw: rawScore,
+
+    percent: clamp(
+      percent,
+      0,
+      100
+    ),
+
+    score10: score10
+
+  };
+}
+
+
+/* ============================================================
+   9. DYNAMIC PENALTY FACTOR
+   ============================================================ */
+
+export function getPenaltyFactor(
+  score10
+) {
+
+  var score =
+    clamp(
+      safeNumber(score10, 0),
+      0,
+      10
+    );
+
+  /*
+     Важно:
+
+     Таблица читается сверху вниз.
+
+     Первый threshold, который удовлетворяет
+     score >= min, используется.
+
+     Это буквально соответствует правилу
+     "highest single threshold condition".
+  */
+
+  for (
+    var i = 0;
+    i < PENALTY_FACTORS.length;
+    i++
+  ) {
+
+    var row =
+      PENALTY_FACTORS[i];
+
+    if (score >= row.min) {
+      return row.factor;
+    }
+  }
+
+  return 3.85;
+}
+
+
+/* ============================================================
+   10. PROFESSIONAL SCORE
+   ============================================================
+
+   Вход:
+
+     {
+       HARM: raw score,
+       MISC: raw score,
+       ANGU: raw score,
+       DIMO: raw score
+     }
+
+   Пример:
+
+     computeProfessionalScore({
+       HARM: 250,
+       MISC: 600,
+       ANGU: 110,
+       DIMO: 90
+     });
+
+   Этапы:
+
+     raw
+       ↓
+     pillar 0..10
+       ↓
+     penalty factor
+       ↓
+     score × baseWeight × penaltyFactor
+       ↓
+     normalize weights
+       ↓
+     TRUE_SCORE
+   ============================================================ */
+
+export function computeProfessionalScore(
+  rawPillars
+) {
+
+  if (!rawPillars) {
+    throw new Error(
+      "computeProfessionalScore requires rawPillars"
+    );
+  }
+
+
+  var names = [
+    "HARM",
+    "MISC",
+    "ANGU",
+    "DIMO"
+  ];
+
+
+  var pillars = {};
+
+  var totalPenalized =
+    0;
+
+
+  /* ==========================================================
+     STEP 1 + 2 + 3
+     Normalize + assign penalty + contribution
+     ========================================================== */
+
+  for (
+    var i = 0;
+    i < names.length;
+    i++
+  ) {
+
+    var name = names[i];
+
+    var raw =
+      Number(rawPillars[name]);
+
+
+    var normalized =
+      normalizePillar(
+        raw,
+        name
+      );
+
+
+    var score10 =
+      normalized.score10;
+
+
+    var baseWeight =
+      PILLAR_WEIGHTS[name];
+
+
+    var penaltyFactor =
+      getPenaltyFactor(
+        score10
+      );
+
+
+    var penalizedContribution =
+      score10 *
+      baseWeight *
+      penaltyFactor;
+
+
+    pillars[name] = {
+
+      raw: raw,
+
+      percent:
+        normalized.percent,
+
+      score10:
+        score10,
+
+      baseWeight:
+        baseWeight,
+
+      penaltyFactor:
+        penaltyFactor,
+
+      penalizedContribution:
+        penalizedContribution,
+
+      weight:
+        0
+
+    };
+
+
+    totalPenalized +=
+      penalizedContribution;
+  }
+
+
+  /* ==========================================================
+     STEP 4
+     NORMALIZED POST-PENALTY WEIGHTS
+     ========================================================== */
+
+  if (
+    !Number.isFinite(totalPenalized) ||
+    totalPenalized <= 0
+  ) {
+
+    /*
+       This should never happen for valid scores,
+       but returning equal weights is safer than NaN.
+    */
+
+    for (
+      var e = 0;
+      e < names.length;
+      e++
+    ) {
+
+      pillars[names[e]].weight =
+        0.25;
+    }
+
+  } else {
+
+    for (
+      var w = 0;
+      w < names.length;
+      w++
+    ) {
+
+      var pillarName =
+        names[w];
+
+      pillars[pillarName].weight =
+        pillars[pillarName]
+          .penalizedContribution /
+        totalPenalized;
+    }
+  }
+
+
+  /* ==========================================================
+     STEP 5
+     TRUE SCORE
+     ========================================================== */
+
+  var trueScore = 0;
+
+  for (
+    var s = 0;
+    s < names.length;
+    s++
+  ) {
+
+    var p =
+      pillars[names[s]];
+
+    trueScore +=
+      p.score10 *
+      p.weight;
+  }
+
+
+  trueScore =
+    clamp(
+      trueScore,
+      0,
+      10
+    );
+
+
+  /*
+     Check that weights really sum to 1.
+  */
+
+  var weightSum = 0;
+
+  for (
+    var q = 0;
+    q < names.length;
+    q++
+  ) {
+
+    weightSum +=
+      pillars[names[q]].weight;
+  }
+
+
+  return {
+
+    pillars: pillars,
+
+    totalPenalized:
+      totalPenalized,
+
+    weightSum:
+      weightSum,
+
+    trueScore:
+      trueScore,
+
+    scaleLabel:
+      professionalScaleLabel(
+        trueScore
+      )
+
+  };
+}
+
+
+/* ============================================================
+   11. PROFESSIONAL SCALE LABEL
+   ============================================================ */
+
+export function professionalScaleLabel(
+  score10
+) {
+
+  var score =
+    clamp(
+      score10,
+      0,
+      10
+    );
+
+
+  if (score >= 9) {
+    return "Near perfect";
+  }
+
+  if (score >= 8) {
+    return "Extremely attractive";
+  }
+
+  if (score >= 7) {
+    return "Very attractive";
+  }
+
+  if (score >= 6) {
+    return "Noticeably attractive";
+  }
+
+  if (score >= 5) {
+    return "Slightly above average";
+  }
+
+  if (score >= 4) {
+    return "Below average";
+  }
+
+  if (score >= 3) {
+    return "Very unattractive";
+  }
+
+  if (score >= 2) {
+    return "Extremely unattractive";
+  }
+
+  return "Unbelievably unattractive";
+}
+
+
+/* ============================================================
+   12. HARM METRIC HELPERS
+   ============================================================
+
+   Professional HARM metrics в config.js хранят абсолютные
+   tier points.
+
+   Эта функция превращает tier index в points.
+
+   Здесь нет дополнительного weight multiplication.
+   ============================================================ */
+
+export function harmTierPoints(
+  metric,
+  tierIndex
+) {
+
+  if (!metric || !Array.isArray(metric.tiers)) {
+    return 0;
+  }
+
+  var index = clamp(
+    Math.floor(tierIndex),
+    0,
+    metric.tiers.length - 1
+  );
+
+  return metric.tiers[index];
+}
+
+
+/* ============================================================
+   13. GENERIC HARM RAW SCORE
+   ============================================================
+
+   metrics:
+
+     [
+       {
+         id: "jawWidth",
+         tier: 0
+       },
+       ...
+     ]
+
+   Возвращает сумму absolute points.
+
+   ВАЖНО:
+
+   Здесь нет normalization.
+   HARM normalization происходит отдельно через
+   normalizePillar(raw, "HARM").
+   ============================================================ */
+
+export function computeHarmRaw(
+  tierAssignments
+) {
+
+  if (!Array.isArray(tierAssignments)) {
+    return 0;
+  }
+
+  var raw = 0;
+
+  for (
+    var i = 0;
+    i < tierAssignments.length;
+    i++
+  ) {
+
+    var assignment =
+      tierAssignments[i];
+
+    if (!assignment) continue;
+
+
+    var metric = null;
+
+    for (
+      var m = 0;
+      m < HARM_METRICS.length;
+      m++
+    ) {
+
+      if (
+        HARM_METRICS[m].id ===
+        assignment.id
+      ) {
+
+        metric =
+          HARM_METRICS[m];
+
+        break;
+      }
+    }
+
+
+    if (!metric) continue;
+
+
+    raw +=
+      harmTierPoints(
+        metric,
+        assignment.tier
+      );
+  }
+
+  return raw;
+}
+
+
+/* ============================================================
+   14. COMPUTE ALL FRONT METRICS
+   ============================================================
+
+   Этот интерфейс оставлен совместимым с текущим app-logic.js.
+
+   Он пока НЕ подменяет четыре pillars фальшивой агрегацией.
+
+   Результат содержит:
+
+     metrics
+     catScores
+     overallLegacy
+     professional
+     quality
+     symmetry
+     geometry
+
+   После обновления app-logic.js UI будет брать
+   professional.trueScore вместо legacy overall.
+   ============================================================ */
+
+export function computeAllMetrics(
+  placedPoints,
+  imgWidth,
+  imgHeight
+) {
+
+  if (!Array.isArray(placedPoints)) {
+    throw new Error(
+      "placedPoints must be an array"
+    );
+  }
+
+  if (
+    !Number.isFinite(imgWidth) ||
+    !Number.isFinite(imgHeight) ||
+    imgWidth <= 0 ||
+    imgHeight <= 0
+  ) {
+
+    throw new Error(
+      "Invalid image dimensions"
+    );
+  }
+
+
+  /* ==========================================================
+     STEP 1
+     NORMALIZED → PIXELS
+     ========================================================== */
+
+  var P = {};
+
+  for (
+    var i = 0;
+    i < placedPoints.length;
+    i++
+  ) {
+
+    var point =
+      placedPoints[i];
+
+    if (!point || !point.id) {
+      continue;
+    }
+
+    P[point.id] = {
+
+      x:
+        clamp(
+          Number(point.x),
+          0,
+          1
+        ) * imgWidth,
+
+      y:
+        clamp(
+          Number(point.y),
+          0,
+          1
+        ) * imgHeight
+
+    };
+  }
+
+
+  /* ==========================================================
+     STEP 2
+     BASE GEOMETRY
+     ========================================================== */
+
+  var bizy =
+    dist(
+      P.bizR,
+      P.bizL
+    );
+
+  var fh =
+    dist(
+      P.hair,
+      P.chin
+    );
+
+
+  /* ==========================================================
+     STEP 3
+     METRICS
+     ========================================================== */
+
   var metrics = [];
-  var totalSum = 0;
-  var maxSum = 0;
-  
-  /* Суммы по категориям (для штрафа за дисбаланс) */
+
+
+  /*
+     Legacy category totals are retained ONLY for UI breakdown.
+     They do not feed professional TRUE_SCORE.
+  */
+
   var catSum = {};
   var catMax = {};
-  for (var c0 = 0; c0 < CATS.length; c0++) {
+
+  for (
+    var c0 = 0;
+    c0 < CATS.length;
+    c0++
+  ) {
+
     catSum[CATS[c0]] = 0;
     catMax[CATS[c0]] = 0;
   }
-  
-  for (var m = 0; m < METRIC_TABLE.length; m++) {
-    var mt = METRIC_TABLE[m];
-    var fn = METRIC_FUNCTIONS[mt.name];
-    
-    /* Вычисляем значение метрики */
-    var value = fn ? fn(P, bizy, fh) : 0;
-    
-    /* Определяем tier (0-4) */
-    var tIdx = getTierIndex(value, mt.lo, mt.hi);
-    
-    /* Получаем absolute points за этот tier */
-    var points = mt.pts[tIdx];
-    var maxPts = mt.pts[0]; /* T1 = максимум */
-    
-    /* Накапливаем суммы */
-    totalSum += points;
-    maxSum += maxPts;
-    catSum[mt.cat] += points;
-    catMax[mt.cat] += maxPts;
-    
-    /* Добавляем метрику в массив */
+
+
+  var totalSum = 0;
+  var maxSum = 0;
+
+
+  for (
+    var m = 0;
+    m < METRIC_TABLE.length;
+    m++
+  ) {
+
+    var mt =
+      METRIC_TABLE[m];
+
+    var fn =
+      METRIC_FUNCTIONS[
+        mt.name
+      ];
+
+
+    var value = 0;
+
+    if (typeof fn === "function") {
+
+      try {
+
+        value =
+          fn(
+            P,
+            bizy,
+            fh
+          );
+
+      } catch (error) {
+
+        value = 0;
+      }
+    }
+
+
+    value =
+      safeNumber(
+        value,
+        0
+      );
+
+
+    var tierIndex =
+      getTierIndex(
+        value,
+        mt.lo,
+        mt.hi
+      );
+
+
+    var points =
+      Array.isArray(mt.pts)
+        ? safeNumber(
+            mt.pts[
+              Math.min(
+                tierIndex,
+                mt.pts.length - 1
+              )
+            ],
+            0
+          )
+        : 0;
+
+
+    var maxPoints =
+      Array.isArray(mt.pts)
+        ? safeNumber(
+            mt.pts[0],
+            0
+          )
+        : 0;
+
+
+    totalSum +=
+      points;
+
+    maxSum +=
+      maxPoints;
+
+
+    if (
+      catSum[mt.cat] !== undefined
+    ) {
+
+      catSum[mt.cat] +=
+        points;
+
+      catMax[mt.cat] +=
+        maxPoints;
+    }
+
+
+    /*
+       Display score.
+
+       Negative absolute points are allowed by
+       the professional-like metric table, but the UI
+       score is constrained to 0..100.
+    */
+
+    var displayScore =
+      maxPoints > 0
+        ? (
+            points /
+            maxPoints
+          ) * 100
+        : 0;
+
+
+    displayScore =
+      clamp(
+        displayScore,
+        0,
+        100
+      );
+
+
     metrics.push({
-      name: mt.name,
-      cat: mt.cat,
-      value: value,
-      unit: mt.u,
-      lo: mt.lo,
-      hi: mt.hi,
-      tierIndex: tIdx,
-      points: points,
-      maxPoints: maxPts,
-      score: Math.max(0, Math.min(100, (points / maxPts) * 100)), /* процент для отображения */
-      weight: mt.w
+
+      name:
+        mt.name,
+
+      cat:
+        mt.cat,
+
+      value:
+        value,
+
+      unit:
+        mt.u || "",
+
+      lo:
+        mt.lo,
+
+      hi:
+        mt.hi,
+
+      tierIndex:
+        tierIndex,
+
+      points:
+        points,
+
+      maxPoints:
+        maxPoints,
+
+      score:
+        displayScore,
+
+      weight:
+        mt.w || 0
+
     });
   }
-  
-  /* Шаг 4: Категории в процентах */
+
+
+  /* ==========================================================
+     STEP 4
+     LEGACY CATEGORY DISPLAY SCORES
+     ========================================================== */
+
   var catScores = {};
-  var minCat = Infinity;
-  var maxCat = -Infinity;
-  
-  for (var c = 0; c < CATS.length; c++) {
-    var cn = CATS[c];
-    var cp = catMax[cn] > 0 ? (catSum[cn] / catMax[cn]) * 100 : 0;
-    catScores[cn] = Math.max(0, Math.min(100, cp));
-    
-    if (catScores[cn] < minCat) minCat = catScores[cn];
-    if (catScores[cn] > maxCat) maxCat = catScores[cn];
+
+  for (
+    var c = 0;
+    c < CATS.length;
+    c++
+  ) {
+
+    var category =
+      CATS[c];
+
+    var score =
+      catMax[category] > 0
+        ? (
+            catSum[category] /
+            catMax[category]
+          ) * 100
+        : 0;
+
+
+    catScores[category] =
+      clamp(
+        score,
+        0,
+        100
+      );
   }
-  
-  /* Шаг 5: Штраф за дисбаланс */
-  var spread = maxCat - minCat;
-  var penalty = spread * 0.5;
-  
-  /* Шаг 6: Сырой процент */
-  var rawPercent = maxSum > 0 ? (totalSum / maxSum) * 100 : 0;
-  
-  /* Шаг 7: Линейная нормализация под шкалу looksmax */
-  var adjusted = rawPercent - penalty;
-  var overall = NORMALIZATION.a * adjusted + NORMALIZATION.b;
-  
-  /* Ограничение 0-100 */
-  overall = Math.max(0, Math.min(100, overall));
-  
-  /* Шаг 8: Лейбл looksmax */
-  var label = looksmaxLabel(overall);
-  
-  /* Шаг 9: Симметрия и качество */
-  var symmetry = computeSymmetry(P, bizy, fh);
-  var quality = computeQuality(P, imgWidth, imgHeight, bizy, fh);
-  
+
+
+  /* ==========================================================
+     STEP 5
+     LEGACY RAW PERCENT
+     ========================================================== */
+
+  var rawPercent =
+    maxSum > 0
+      ? (
+          totalSum /
+          maxSum
+        ) * 100
+      : 0;
+
+
+  /*
+     НЕ называем это professional overall.
+
+     Это legacyFrontPercent.
+  */
+
+  var legacyFrontPercent =
+    clamp(
+      rawPercent,
+      0,
+      100
+    );
+
+
+  /* ==========================================================
+     STEP 6
+     QUALITY
+     ========================================================== */
+
+  var symmetry =
+    computeSymmetry(
+      P,
+      bizy,
+      fh
+    );
+
+
+  var quality =
+    computeQuality(
+      P,
+      imgWidth,
+      imgHeight,
+      bizy,
+      fh
+    );
+
+
+  /* ==========================================================
+     STEP 7
+     RETURN
+     ========================================================== */
+
   return {
-    metrics: metrics,
-    catScores: catScores,
-    overall: overall,
-    label: label,
-    rawSum: totalSum,
-    maxSum: maxSum,
-    rawPercent: rawPercent,
-    penalty: penalty,
-    spread: spread,
-    symmetry: symmetry,
-    quality: quality,
-    bizy: bizy,
-    fh: fh,
-    PTS: P
+
+    /*
+       Пока UI не переведён:
+       overall сохраняем как legacy value.
+
+       В следующем app-logic.js эта строка будет
+       переключена на professional.trueScore.
+    */
+
+    overall:
+      legacyFrontPercent,
+
+    overallScale:
+      "legacy-0-100",
+
+    label:
+      looksmaxLabel(
+        legacyFrontPercent
+      ),
+
+
+    /* Legacy data */
+
+    rawSum:
+      totalSum,
+
+    maxSum:
+      maxSum,
+
+    rawPercent:
+      rawPercent,
+
+    penalty:
+      0,
+
+    spread:
+      0,
+
+    catScores:
+      catScores,
+
+    metrics:
+      metrics,
+
+
+    /* Geometry */
+
+    symmetry:
+      symmetry,
+
+    bizy:
+      bizy,
+
+    fh:
+      fh,
+
+    PTS:
+      P,
+
+
+    /* Quality */
+
+    quality:
+      quality,
+
+
+    /*
+       Professional engine пока не получает
+       все четыре raw pillar scores.
+    */
+
+    professional:
+      null
+
   };
 }
 
+
 /* ============================================================
-   РАЗДЕЛ 8: ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+   15. CONVERT EXISTING HARM ASSIGNMENTS
    ============================================================ */
 
-/*
-   Цвет по баллу (для UI).
-   score: процент 0-100
-   Возвращает: HEX-цвет
-*/
-export function colorOf(score) {
-  if (score >= 80) return "#3ddc84"; /* зелёный */
-  if (score >= 50) return "#ffd166"; /* жёлтый */
-  return "#ff5c7a"; /* красный */
+export function buildProfessionalFromRaw(
+  rawHarm,
+  rawMisc,
+  rawAngu,
+  rawDimo
+) {
+
+  return computeProfessionalScore({
+
+    HARM:
+      rawHarm,
+
+    MISC:
+      rawMisc,
+
+    ANGU:
+      rawAngu,
+
+    DIMO:
+      rawDimo
+
+  });
 }
 
-/*
-   Расчёт PSL (Pretty Scale Level) из итогового балла.
-   overall: процент 0-100
-   Возвращает: 1-8 (максимум 8, не 10)
-   
-   Формула: overall / 12.5 (чтобы 100 → 8)
-*/
-export function computePSL(overall) {
-  var psl = overall / 12.5;
-  return Math.max(1, Math.min(8, psl));
-}
 
-/*
-   Расчёт третей лица в процентах.
-   P: объект с точками в пикселях
-   Возвращает: [upper%, middle%, lower%]
-*/
+/* ============================================================
+   16. THIRD PROPORTIONS
+   ============================================================ */
+
 export function computeThirds(P) {
-  var upper = dist(P.hair, P.nas);
-  var middle = dist(P.nas, P.sub);
-  var lower = dist(P.sub, P.chin);
-  var total = upper + middle + lower;
-  
-  if (total < 1e-9) return [33.3, 33.3, 33.4];
-  
+
+  if (
+    !P ||
+    !P.hair ||
+    !P.nas ||
+    !P.sub ||
+    !P.chin
+  ) {
+
+    return [
+      33.3,
+      33.3,
+      33.4
+    ];
+  }
+
+
+  var upper =
+    dist(
+      P.hair,
+      P.nas
+    );
+
+  var middle =
+    dist(
+      P.nas,
+      P.sub
+    );
+
+  var lower =
+    dist(
+      P.sub,
+      P.chin
+    );
+
+
+  var total =
+    upper +
+    middle +
+    lower;
+
+
+  if (total < 1e-9) {
+
+    return [
+      33.3,
+      33.3,
+      33.4
+    ];
+  }
+
+
   return [
-    (upper / total) * 100,
-    (middle / total) * 100,
-    (lower / total) * 100
+
+    upper /
+      total *
+      100,
+
+    middle /
+      total *
+      100,
+
+    lower /
+      total *
+      100
+
   ];
 }
 
-/*
-   Расчёт значений для 4 профилей (осей).
-   metrics: массив метрик из computeAllMetrics
-   AXES_CONFIG: объект из config.js
-   
-   Возвращает: {"Гармония": 72.5, "Угловатость": 68.3, ...}
-*/
-export function computeAxes(metrics, AXES_CONFIG) {
+
+/* ============================================================
+   17. AXES — UI ONLY
+   ============================================================ */
+
+export function computeAxes(
+  metrics,
+  AXES_CONFIG
+) {
+
   var result = {};
-  var names = Object.keys(AXES_CONFIG);
-  
-  for (var a = 0; a < names.length; a++) {
-    var axName = names[a];
-    var metricNames = AXES_CONFIG[axName];
+
+  if (
+    !Array.isArray(metrics) ||
+    !AXES_CONFIG
+  ) {
+
+    return result;
+  }
+
+
+  var names =
+    Object.keys(
+      AXES_CONFIG
+    );
+
+
+  for (
+    var a = 0;
+    a < names.length;
+    a++
+  ) {
+
+    var axisName =
+      names[a];
+
+    var metricNames =
+      AXES_CONFIG[
+        axisName
+      ];
+
+
     var scores = [];
-    
-    /* Ищем метрики по именам */
-    for (var mi = 0; mi < metricNames.length; mi++) {
-      var mName = metricNames[mi];
-      for (var ni = 0; ni < metrics.length; ni++) {
-        if (metrics[ni].name === mName) {
-          scores.push(metrics[ni].score);
+
+
+    for (
+      var mi = 0;
+      mi < metricNames.length;
+      mi++
+    ) {
+
+      var target =
+        metricNames[mi];
+
+
+      for (
+        var ni = 0;
+        ni < metrics.length;
+        ni++
+      ) {
+
+        if (
+          metrics[ni].name ===
+          target
+        ) {
+
+          scores.push(
+            clamp(
+              metrics[ni].score,
+              0,
+              100
+            )
+          );
+
           break;
         }
       }
     }
-    
-    /* Среднее арифметическое */
-    var sum = 0;
-    for (var s = 0; s < scores.length; s++) {
-      sum += scores[s];
+
+
+    if (scores.length === 0) {
+
+      result[axisName] = 0;
+
+      continue;
     }
-    
-    result[axName] = scores.length > 0 ? sum / scores.length : 0;
+
+
+    var sum = 0;
+
+    for (
+      var s = 0;
+      s < scores.length;
+      s++
+    ) {
+
+      sum +=
+        scores[s];
+    }
+
+
+    result[axisName] =
+      sum /
+      scores.length;
   }
-  
+
+
   return result;
 }
 
-/*
-   Формирование текстового отчёта для отправки боту.
-   result: объект из computeAllMetrics
-   
-   Возвращает: строка с полным отчётом
-*/
-export function buildReportText(result) {
-  var lines = [];
-  
-  /* Заголовок */
-  lines.push("📊 LUX PRO v20: " + result.overall.toFixed(1) + "/100 [" + result.label + "]");
-  lines.push("Raw: " + result.rawSum.toFixed(1) + "/" + result.maxSum.toFixed(1) + 
-             " (" + result.rawPercent.toFixed(1) + "%)");
-  lines.push("Penalty: -" + result.penalty.toFixed(1) + " (spread " + result.spread.toFixed(1) + ")");
-  lines.push("Confidence: " + Math.round(result.quality.conf) + "%");
-  lines.push("PSL: " + computePSL(result.overall).toFixed(1) + "/8");
-  lines.push("");
-  
-  /* Категории */
-  for (var c = 0; c < CATS.length; c++) {
-    var catName = CATS[c];
-    var catScore = result.catScores[catName];
-    lines.push(catName + ": " + Math.round(catScore) + "/100");
+
+/* ============================================================
+   18. PSL
+   ============================================================
+
+   Professional formula is 0..10.
+
+   Поэтому PSL теперь не:
+
+      overall / 12.5
+
+   а напрямую соответствует TRUE_SCORE.
+
+   Для legacy 0..100 UI вызывающий код может передать
+   процент через computePSLFromPercent().
+   ============================================================ */
+
+export function computePSL(score10) {
+
+  return clamp(
+    Number(score10),
+    0,
+    10
+  );
+}
+
+
+export function computePSLFromPercent(
+  percent
+) {
+
+  return clamp(
+    Number(percent) / 10,
+    0,
+    10
+  );
+}
+
+
+/* ============================================================
+   19. COLORS
+   ============================================================ */
+
+export function colorOf(score) {
+
+  var value =
+    clamp(
+      Number(score),
+      0,
+      100
+    );
+
+
+  if (value >= 80) {
+    return "#3ddc84";
   }
-  
-  lines.push("");
-  lines.push("--- Детали ---");
-  
-  /* Отдельные метрики */
-  for (var m = 0; m < result.metrics.length; m++) {
-    var met = result.metrics[m];
-    var sign = met.points >= 0 ? "+" : "";
+
+  if (value >= 50) {
+    return "#ffd166";
+  }
+
+  return "#ff5c7a";
+}
+
+
+/* ============================================================
+   20. REPORT
+   ============================================================ */
+
+export function buildReportText(
+  result
+) {
+
+  var lines = [];
+
+
+  /*
+     Если результат уже содержит professional score,
+     используем его.
+  */
+
+  if (
+    result &&
+    result.professional
+  ) {
+
+    var pro =
+      result.professional;
+
+
     lines.push(
-      "• " + met.name + ": " + met.value.toFixed(2) + met.unit +
-      " | " + sign + met.points.toFixed(2) + " pts" +
-      " [" + tierName(met.tierIndex) + "]"
+      "📊 LUX PRO v23"
+    );
+
+    lines.push(
+      "TRUE SCORE: " +
+      pro.trueScore.toFixed(2) +
+      "/10"
+    );
+
+    lines.push(
+      "Rating: " +
+      pro.scaleLabel
+    );
+
+    lines.push("");
+
+
+    var names = [
+      "HARM",
+      "MISC",
+      "ANGU",
+      "DIMO"
+    ];
+
+
+    for (
+      var i = 0;
+      i < names.length;
+      i++
+    ) {
+
+      var name =
+        names[i];
+
+      var p =
+        pro.pillars[name];
+
+
+      lines.push(
+        name +
+        ": " +
+        p.score10.toFixed(2) +
+        "/10"
+      );
+    }
+
+
+    lines.push("");
+
+    lines.push(
+      "Post-penalty weights:"
+    );
+
+
+    for (
+      var w = 0;
+      w < names.length;
+      w++
+    ) {
+
+      var wn =
+        names[w];
+
+      lines.push(
+        wn +
+        ": " +
+        pro.pillars[wn]
+          .weight
+          .toFixed(4)
+      );
+    }
+
+
+    lines.push("");
+
+    lines.push(
+      "Confidence: " +
+      Math.round(
+        result.quality.conf
+      ) +
+      "%"
+    );
+
+
+    if (
+      result.quality.warns.length > 0
+    ) {
+
+      lines.push(
+        "⚠️ " +
+        result.quality.warns.join(
+          ", "
+        )
+      );
+    }
+
+
+    return lines.join("\n");
+  }
+
+
+  /*
+     Legacy fallback.
+  */
+
+  lines.push(
+    "📊 LUX PRO v23"
+  );
+
+  lines.push(
+    "Front metrics: " +
+    result.overall.toFixed(1) +
+    "/100"
+  );
+
+  lines.push(
+    "Legacy front score — professional score not initialized"
+  );
+
+  lines.push(
+    "Confidence: " +
+    Math.round(
+      result.quality.conf
+    ) +
+    "%"
+  );
+
+
+  lines.push("");
+
+  lines.push(
+    "--- Детали ---"
+  );
+
+
+  for (
+    var m = 0;
+    m < result.metrics.length;
+    m++
+  ) {
+
+    var met =
+      result.metrics[m];
+
+    var sign =
+      met.points >= 0
+        ? "+"
+        : "";
+
+
+    lines.push(
+
+      "• " +
+      met.name +
+      ": " +
+      met.value.toFixed(2) +
+      met.unit +
+      " | " +
+      sign +
+      met.points.toFixed(2) +
+      " pts [" +
+      tierName(
+        met.tierIndex
+      ) +
+      "]"
+
     );
   }
-  
-  /* Предупреждения */
-  if (result.quality.warns.length > 0) {
+
+
+  if (
+    result.quality.warns.length > 0
+  ) {
+
     lines.push("");
-    lines.push("⚠️ " + result.quality.warns.join(", "));
+
+    lines.push(
+      "⚠️ " +
+      result.quality.warns.join(
+        ", "
+      )
+    );
   }
-  
+
+
   return lines.join("\n");
+}
+
+
+/* ============================================================
+   21. PROFESSIONAL DEBUG REPORT
+   ============================================================
+
+   Полезно для проверки формулы.
+
+   Показывает все промежуточные значения.
+   ============================================================ */
+
+export function professionalDebug(
+  rawPillars
+) {
+
+  var result =
+    computeProfessionalScore(
+      rawPillars
+    );
+
+
+  var names = [
+    "HARM",
+    "MISC",
+    "ANGU",
+    "DIMO"
+  ];
+
+
+  var output = [];
+
+
+  output.push(
+    "=== PROFESSIONAL SCORE DEBUG ==="
+  );
+
+
+  for (
+    var i = 0;
+    i < names.length;
+    i++
+  ) {
+
+    var name =
+      names[i];
+
+    var p =
+      result.pillars[name];
+
+
+    output.push(
+      name + ":"
+    );
+
+    output.push(
+      "  raw = " +
+      p.raw.toFixed(4)
+    );
+
+    output.push(
+      "  normalized = " +
+      p.score10.toFixed(4) +
+      "/10"
+    );
+
+    output.push(
+      "  baseWeight = " +
+      p.baseWeight.toFixed(4)
+    );
+
+    output.push(
+      "  penaltyFactor = " +
+      p.penaltyFactor.toFixed(4)
+    );
+
+    output.push(
+      "  penalized = " +
+      p.penalizedContribution
+        .toFixed(4)
+    );
+
+    output.push(
+      "  finalWeight = " +
+      p.weight.toFixed(4)
+    );
   }
+
+
+  output.push("");
+
+  output.push(
+    "Total penalized = " +
+    result.totalPenalized
+      .toFixed(4)
+  );
+
+  output.push(
+    "Weight sum = " +
+    result.weightSum
+      .toFixed(4)
+  );
+
+  output.push(
+    "TRUE_SCORE = " +
+    result.trueScore
+      .toFixed(4) +
+    "/10"
+  );
+
+  output.push(
+    "Label = " +
+    result.scaleLabel
+  );
+
+
+  return output.join("\n");
+}
+
+
+/* ============================================================
+   END OF math-core.js
+   ============================================================ */
