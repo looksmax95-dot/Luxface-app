@@ -25,7 +25,6 @@
             flex-direction: column;
         }
 
-        /* Верхняя панель */
         .top-bar {
             display: flex;
             justify-content: space-between;
@@ -49,7 +48,6 @@
             border-radius: 16px;
         }
 
-        /* Подсказка */
         .hint {
             padding: 10px 16px;
             background: #1e293b;
@@ -61,7 +59,6 @@
             align-items: center;
         }
 
-        /* Область с фото */
         .canvas-wrap {
             flex: 1;
             position: relative;
@@ -74,7 +71,6 @@
             touch-action: none;
         }
 
-        /* ПРИЦЕЛ В ЦЕНТРЕ - всегда виден */
         .crosshair {
             position: absolute;
             top: 50%;
@@ -148,7 +144,6 @@
             bottom: 0;
         }
 
-        /* Кнопки зума */
         .zoom-btns {
             position: absolute;
             top: 10px;
@@ -181,7 +176,6 @@
             background: #2563eb;
         }
 
-        /* Подсказка с точками */
         .points-hint {
             position: absolute;
             bottom: 10px;
@@ -205,7 +199,6 @@
             color: #3b82f6;
         }
 
-        /* Нижние кнопки */
         .bottom-bar {
             display: flex;
             gap: 10px;
@@ -267,7 +260,6 @@
             display: flex;
         }
 
-        /* Экран результатов */
         .results {
             display: none;
             position: fixed;
@@ -350,20 +342,16 @@
 </head>
 <body>
 
-    <!-- Верхняя панель -->
     <div class="top-bar">
         <h1>HARM 49</h1>
         <div class="counter" id="counter">0 / 49</div>
     </div>
 
-    <!-- Подсказка -->
     <div class="hint" id="hint">Загрузите фото лица анфас</div>
 
-    <!-- Область с фото -->
     <div class="canvas-wrap" id="canvasWrap">
         <canvas id="canvas"></canvas>
         
-        <!-- Прицел -->
         <div class="crosshair" id="crosshair">
             <div class="cross-line h"></div>
             <div class="cross-line h right"></div>
@@ -371,18 +359,15 @@
             <div class="cross-line v bottom"></div>
         </div>
 
-        <!-- Кнопки зума -->
         <div class="zoom-btns" id="zoomBtns">
             <div class="zoom-btn" id="zoomIn">+</div>
             <div class="zoom-btn" id="zoomOut">−</div>
             <div class="zoom-btn" id="zoomReset">⟲</div>
         </div>
 
-        <!-- Подсказка точек -->
         <div class="points-hint" id="pointsHint"></div>
     </div>
 
-    <!-- Нижние кнопки -->
     <div class="bottom-bar">
         <button class="btn btn-small btn-reset" id="btnReset" disabled>✕</button>
         <button class="btn btn-small btn-undo" id="btnUndo" disabled>↩</button>
@@ -391,7 +376,6 @@
         <button class="btn btn-calc" id="btnCalc">📊 Посчитать</button>
     </div>
 
-    <!-- Экран результатов -->
     <div class="results" id="results">
         <div class="results-header">
             <h2>Результаты</h2>
@@ -400,7 +384,6 @@
         <div id="resultsContent"></div>
     </div>
 
-    <!-- Скрытый input для файла -->
     <input type="file" id="fileInput" accept="image/*" style="display:none">
 
     <script>
@@ -500,13 +483,6 @@
         let userZoom = 1;
         let targetPoint = null;
 
-        // Touch state
-        let isDragging = false;
-        let lastTouchX = 0;
-        let lastTouchY = 0;
-        let pinchStartDist = 0;
-        let pinchStartZoom = 1;
-
         // ============================================================
         // ЗАГРУЗКА ФОТО
         // ============================================================
@@ -524,6 +500,8 @@
                 img.onload = () => {
                     points = [];
                     userZoom = 1;
+                    offsetX = 0;
+                    offsetY = 0;
                     fitImage();
                     draw();
                     updateUI();
@@ -562,7 +540,7 @@
         }
 
         // ============================================================
-        // ЗУМ
+        // ЗУМ КНОПКАМИ
         // ============================================================
         document.getElementById('zoomIn').onclick = () => {
             if (img && userZoom < 4) {
@@ -591,73 +569,85 @@
         };
 
         // ============================================================
-        // TOUCH - ПЕРЕТАСКИВАНИЕ И ЗУМ
+        // ОБРАБОТКА ТАПОВ И ПЕРЕТАСКИВАНИЯ (ИСПРАВЛЕНО)
         // ============================================================
-        canvas.addEventListener('touchstart', (e) => {
+        let pointerStartTime = 0;
+        let pointerStartX = 0;
+        let pointerStartY = 0;
+        let isPointerMoved = false;
+        let isDragging = false;
+        let lastPointerX = 0;
+        let lastPointerY = 0;
+
+        // Тап по канвасу - выбор точки
+        canvas.addEventListener('pointerdown', (e) => {
             if (!img) return;
-            e.preventDefault();
+            
+            pointerStartTime = Date.now();
+            pointerStartX = e.clientX;
+            pointerStartY = e.clientY;
+            isPointerMoved = false;
+            
+            isDragging = true;
+            lastPointerX = e.clientX;
+            lastPointerY = e.clientY;
+        });
 
-            if (e.touches.length === 1) {
-                isDragging = true;
-                lastTouchX = e.touches[0].clientX;
-                lastTouchY = e.touches[0].clientY;
-            } else if (e.touches.length === 2) {
-                isDragging = false;
-                pinchStartDist = getTouchDistance(e.touches);
-                pinchStartZoom = userZoom;
-            }
-        }, { passive: false });
-
-        canvas.addEventListener('touchmove', (e) => {
+        canvas.addEventListener('pointermove', (e) => {
             if (!img) return;
-            e.preventDefault();
-
-            if (e.touches.length === 1 && isDragging) {
-                const dx = e.touches[0].clientX - lastTouchX;
-                const dy = e.touches[0].clientY - lastTouchY;
-                offsetX += dx;
-                offsetY += dy;
-                lastTouchX = e.touches[0].clientX;
-                lastTouchY = e.touches[0].clientY;
-                draw();
-            } else if (e.touches.length === 2) {
-                const dist = getTouchDistance(e.touches);
-                const factor = dist / pinchStartDist;
-                userZoom = Math.max(0.5, Math.min(4, pinchStartZoom * factor));
-                fitImage();
+            
+            // Если двигали пальцем - это перетаскивание
+            const dx = Math.abs(e.clientX - pointerStartX);
+            const dy = Math.abs(e.clientY - pointerStartY);
+            if (dx > 10 || dy > 10) {
+                isPointerMoved = true;
+            }
+            
+            // Перетаскивание фото
+            if (isDragging) {
+                const moveX = e.clientX - lastPointerX;
+                const moveY = e.clientY - lastPointerY;
+                offsetX += moveX;
+                offsetY += moveY;
+                lastPointerX = e.clientX;
+                lastPointerY = e.clientY;
                 draw();
             }
-        }, { passive: false });
+        });
 
-        canvas.addEventListener('touchend', () => {
+        canvas.addEventListener('pointerup', (e) => {
+            if (!img) return;
+            
+            isDragging = false;
+            
+            // Если это был короткий тап без движения - ставим точку
+            const duration = Date.now() - pointerStartTime;
+            if (!isPointerMoved && duration < 500 && points.length < 49) {
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                const imgX = (x - offsetX) / scale;
+                const imgY = (y - offsetY) / scale;
+
+                if (imgX >= 0 && imgX <= img.width && imgY >= 0 && imgY <= img.height) {
+                    targetPoint = { x: imgX, y: imgY };
+                    draw();
+                    
+                    if (tg?.HapticFeedback) {
+                        tg.HapticFeedback.selectionChanged();
+                    }
+                }
+            }
+        });
+
+        canvas.addEventListener('pointercancel', () => {
             isDragging = false;
         });
 
-        function getTouchDistance(touches) {
-            const dx = touches[0].clientX - touches[1].clientX;
-            const dy = touches[0].clientY - touches[1].clientY;
-            return Math.sqrt(dx * dx + dy * dy);
-        }
-
-        // ============================================================
-        // КЛИК ПО CANVAS - ВЫБОР ТОЧКИ
-        // ============================================================
-        canvas.addEventListener('click', (e) => {
-            if (!img || points.length >= 49) return;
-
-            const rect = canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-
-            // Перевод в координаты изображения
-            const imgX = (x - offsetX) / scale;
-            const imgY = (y - offsetY) / scale;
-
-            if (imgX >= 0 && imgX <= img.width && imgY >= 0 && imgY <= img.height) {
-                targetPoint = { x: imgX, y: imgY };
-                draw();
-            }
-        });
+        // Блокируем стандартные события
+        canvas.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
+        canvas.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
 
         // ============================================================
         // КНОПКА "ПОСТАВИТЬ ТОЧКУ"
@@ -698,7 +688,7 @@
                 showResults(metrics);
             } catch (err) {
                 console.error('Ошибка расчета:', err);
-                showToast('Ошибка при расчете: ' + err.message);
+                showToast('Ошибка при расчете');
             }
         };
 
@@ -752,10 +742,9 @@
 
             if (!img) return;
 
-            // Рисуем изображение
             ctx.drawImage(img, offsetX, offsetY, img.width * scale, img.height * scale);
 
-            // Рисуем поставленные точки
+            // Поставленные точки
             points.forEach((p, i) => {
                 const x = offsetX + p.x * scale;
                 const y = offsetY + p.y * scale;
@@ -769,7 +758,7 @@
                 ctx.stroke();
             });
 
-            // Рисуем целевую точку (предпросмотр)
+            // Целевая точка (предпросмотр)
             if (targetPoint) {
                 const x = offsetX + targetPoint.x * scale;
                 const y = offsetY + targetPoint.y * scale;
@@ -793,7 +782,6 @@
         // РАСЧЕТ МЕТРИК
         // ============================================================
         function calculateMetrics(pts) {
-            // Вспомогательные функции
             const d = (p1, p2) => {
                 return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
             };
@@ -802,7 +790,6 @@
                 return Math.atan2(p2.y - p1.y, p2.x - p1.x) * (180 / Math.PI);
             };
 
-            // Основные измерения
             const cheekW = d(pts[43], pts[44]);
             const faceH = d(pts[0], pts[8]);
             const midFaceH = d(pts[21], pts[35]);
@@ -813,7 +800,6 @@
             const noseW = d(pts[25], pts[26]);
             const mouthW = d(pts[36], pts[37]);
 
-            // 30 метрик
             const raw = [
                 { id: 1, name: "FWHR", val: cheekW / midFaceH, ideal: 1.93 },
                 { id: 2, name: "tFWHR", val: cheekW / faceH, ideal: 1.33 },
@@ -830,12 +816,12 @@
                 { id: 13, name: "PFL:PHL", val: eyeW / Math.max(1, d(pts[11], {x: pts[11].x, y: pts[9].y})), ideal: 2.94 },
                 { id: 14, name: "Lower Third", val: (d(pts[24], pts[8]) / faceH) * 100, ideal: 36.0, unit: "%" },
                 { id: 15, name: "Cheekbones H", val: 0.79, ideal: 0.79 },
-                { id: 16, name: "Chin to Philtrum", val: d(pts[39], pts[8]) / d(pts[24], pts[35]), ideal: 2.18 },
-                { id: 17, name: "Lip Proportions", val: d(pts[32], pts[35]) / d(pts[38], pts[39]), ideal: 1.29 },
-                { id: 18, name: "Mouth to Nose", val: noseW / mouthW, ideal: 0.69 },
+                { id: 16, name: "Chin to Philtrum", val: d(pts[39], pts[8]) / Math.max(1, d(pts[24], pts[35])), ideal: 2.18 },
+                { id: 17, name: "Lip Proportions", val: d(pts[32], pts[35]) / Math.max(1, d(pts[38], pts[39])), ideal: 1.29 },
+                { id: 18, name: "Mouth to Nose", val: noseW / Math.max(1, mouthW), ideal: 0.69 },
                 { id: 19, name: "Nose to Zygo", val: noseW / cheekW, ideal: 0.246 },
-                { id: 20, name: "Nose to ICD", val: eyeDist / noseW, ideal: 0.91 },
-                { id: 21, name: "Nose W:H", val: noseW / d(pts[22], pts[24]), ideal: 0.73 },
+                { id: 20, name: "Nose to ICD", val: eyeDist / Math.max(1, noseW), ideal: 0.91 },
+                { id: 21, name: "Nose W:H", val: noseW / Math.max(1, d(pts[22], pts[24])), ideal: 0.73 },
                 { id: 22, name: "Alar Angle", val: 95.0, ideal: 95.0, unit: "°" },
                 { id: 23, name: "EME Angle", val: 48.0, ideal: 48.0, unit: "°" },
                 { id: 24, name: "Nose to Chin", val: 0.588, ideal: 0.588 },
@@ -847,7 +833,6 @@
                 { id: 30, name: "Eyebrows Tilt", val: Math.abs(angle(pts[15], pts[17])), ideal: 8.2, unit: "°" }
             ];
 
-            // Рассчитываем тиры
             return raw.map(m => {
                 const dev = Math.abs((m.val - m.ideal) / m.ideal) * 100;
                 let tier = "T1";
