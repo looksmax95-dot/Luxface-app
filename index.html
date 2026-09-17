@@ -3,67 +3,103 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
-<title>Looksmax HARM 49</title>
+<title>HARM 30 Metrics Engine</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-*{box-sizing:border-box;margin:0;padding:0;user-select:none;-webkit-user-select:none}
-body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#09090b;color:#f4f4f5;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+*{box-sizing:border-box;margin:0;padding:0;user-select:none}
+body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#09090b;color:#f4f4f5;height:100vh;overflow:hidden;display:flex;flex-direction:column}
 #app{display:flex;flex-direction:column;height:100%;padding:8px;gap:8px}
 .header{display:flex;justify-content:space-between;align-items:center;background:#18181b;padding:10px 14px;border-radius:10px;border:1px solid #27272a}
-.title{font-size:14px;font-weight:700;color:#38bdf8;letter-spacing:.5px}
+.title{font-size:14px;font-weight:700;color:#38bdf8}
 .badge-count{font-size:12px;background:#0284c7;color:#fff;padding:2px 8px;border-radius:12px;font-weight:600}
 .step-banner{background:#18181b;padding:8px 12px;border-radius:8px;font-size:12px;color:#a1a1aa;border-left:3px solid #38bdf8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #viewport{flex:1;position:relative;background:#000;border-radius:12px;overflow:hidden;border:1px solid #27272a;display:flex;align-items:center;justify-content:center}
 canvas{touch-action:none;display:block}
-.controls{display:flex;gap:8px}
-button{flex:1;padding:12px;border:none;border-radius:8px;font-weight:700;font-size:13px;background:#0284c7;color:#fff;cursor:pointer;transition:all .15s ease}
-button:active{transform:scale(.98);opacity:.9}
-button:disabled{background:#27272a;color:#52525b;cursor:not-allowed;transform:none}
-.btn-undo{flex:0 0 50px;background:#27272a;color:#f4f4f5}
-.btn-reset{flex:0 0 50px;background:#3f3f46;color:#f4f4f5}
+.zoom-tools{position:absolute;top:10px;right:10px;display:flex;flex-direction:column;gap:6px;z-index:10}
+.btn-icon{width:36px;height:36px;border-radius:8px;background:rgba(24,24,27,0.85);border:1px solid #3f3f46;color:#fff;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(4px)}
+.controls{display:flex;gap:6px}
+button{flex:1;padding:12px;border:none;border-radius:8px;font-weight:700;font-size:13px;background:#0284c7;color:#fff;cursor:pointer}
+button:disabled{background:#27272a;color:#52525b;cursor:not-allowed}
+.btn-undo{flex:0 0 46px;background:#27272a;color:#f4f4f5}
+.btn-reset{flex:0 0 46px;background:#3f3f46;color:#f4f4f5}
+.btn-confirm{background:#16a34a}
+
+/* Results */
 #result-screen{display:none;position:fixed;inset:0;background:#09090b;z-index:100;overflow-y:auto;padding:16px}
-.score-card{background:linear-gradient(135deg,#18181b 0%,#09090b 100%);border:1px solid #3f3f46;border-radius:16px;padding:20px;text-align:center;margin-bottom:16px}
-.score-val{font-size:56px;font-weight:900;background:linear-gradient(to right,#38bdf8,#818cf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.tier-tag{display:inline-block;margin-top:8px;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+.score-card{background:#18181b;border:1px solid #3f3f46;border-radius:16px;padding:20px;text-align:center;margin-bottom:16px}
+.score-val{font-size:56px;font-weight:900;color:#38bdf8}
+.tier-tag{display:inline-block;margin-top:8px;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;text-transform:uppercase}
 .t1{background:#052e16;color:#4ade80;border:1px solid #166534}
 .t2{background:#172554;color:#60a5fa;border:1px solid #1e40af}
 .t3{background:#451a03;color:#fbbf24;border:1px solid #92400e}
 .t4{background:#450a0a;color:#f87171;border:1px solid #991b1b}
-.metric-group{margin-bottom:16px}
-.group-title{font-size:12px;font-weight:700;color:#71717a;text-transform:uppercase;margin-bottom:8px;letter-spacing:.5px}
-.metric-row{background:#18181b;border:1px solid #27272a;border-radius:10px;padding:10px 12px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
-.m-name{font-size:13px;font-weight:600}
-.m-sub{font-size:11px;color:#71717a;margin-top:2px}
-.m-badge{padding:4px 8px;border-radius:6px;font-size:11px;font-weight:700}
-.status-green{background:#052e16;color:#4ade80}
-.status-yellow{background:#451a03;color:#fbbf24}
-.status-red{background:#450a0a;color:#f87171}
+.t5{background:#27272a;color:#a1a1aa;border:1px solid #3f3f46}
+
+.metric-card{background:#18181b;border:1px solid #27272a;border-radius:12px;padding:12px;margin-bottom:8px;cursor:pointer}
+.metric-card:active{border-color:#38bdf8}
+.m-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.m-title{font-size:13px;font-weight:700;color:#f4f4f5}
+.m-vals{font-size:11px;color:#a1a1aa}
+.m-badge{font-size:11px;padding:2px 8px;border-radius:4px;font-weight:700}
+
+.scale-wrapper{position:relative;margin-top:8px;height:14px}
+.scale-bar{height:5px;border-radius:3px;background:linear-gradient(to right, #ef4444 0%, #f59e0b 25%, #10b981 50%, #f59e0b 75%, #ef4444 100%);position:relative;top:4px}
+.scale-pointer{position:absolute;top:0;width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:6px solid #fff;transform:translateX(-50%);transition:left 0.3s}
+
+#inspector-modal{display:none;position:fixed;inset:0;background:rgba(9,9,11,0.95);z-index:200;flex-direction:column;padding:12px}
+.insp-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+#insp-viewport{flex:1;position:relative;background:#000;border-radius:12px;overflow:hidden;border:1px solid #27272a}
+.insp-info{background:#18181b;border-radius:10px;padding:12px;margin-top:8px}
 </style>
 </head>
 <body>
 <div id="app">
   <div class="header">
-    <span class="title">LOOKSMAX HARM 49</span>
+    <span class="title">HARM 30 ENGINE</span>
     <span class="badge-count" id="pt-count">0 / 49</span>
   </div>
-  <div class="step-banner" id="step-txt">Загрузите четкое фото лица (анфас)</div>
-  <div id="viewport"><canvas id="cvs"></canvas></div>
+  <div class="step-banner" id="step-txt">Загрузите фото лица</div>
+  <div id="viewport">
+    <div class="zoom-tools" id="zoom-ctrls" style="display:none">
+      <div class="btn-icon" id="z-in">＋</div>
+      <div class="btn-icon" id="z-out">－</div>
+      <div class="btn-icon" id="z-reset">🔄</div>
+    </div>
+    <canvas id="cvs"></canvas>
+  </div>
   <input type="file" id="file-inp" accept="image/*" style="display:none">
   <div class="controls">
     <button class="btn-reset" id="btn-reset" disabled>✕</button>
     <button class="btn-undo" id="btn-undo" disabled>↩</button>
     <button id="btn-main">📸 Загрузить фото</button>
+    <button class="btn-confirm" id="btn-confirm" style="display:none">📍 Поставить точку</button>
   </div>
 </div>
 
 <div id="result-screen">
   <div class="score-card">
-    <div style="font-size:12px;color:#a1a1aa;text-transform:uppercase;letter-spacing:1px">HARM Overall Index</div>
+    <div style="font-size:12px;color:#a1a1aa;text-transform:uppercase">HARM Overall Index</div>
     <div class="score-val" id="res-score">0</div>
     <div class="tier-tag" id="res-tier">T5</div>
+    <div style="font-size:11px;color:#71717a;margin-top:8px">Кликни на метрику для просмотра линий замера</div>
   </div>
   <div id="metrics-container"></div>
-  <button id="btn-restart" style="width:100%;margin-top:12px;padding:14px">Сделать новый расчет</button>
+  <button id="btn-restart" style="width:100%;margin-top:12px;padding:14px">Новый расчет</button>
+</div>
+
+<div id="inspector-modal">
+  <div class="insp-header">
+    <span class="title" id="insp-title">Метрика</span>
+    <button id="btn-close-insp" style="width:auto;padding:6px 14px;background:#27272a">Закрыть</button>
+  </div>
+  <div id="insp-viewport"><canvas id="insp-cvs"></canvas></div>
+  <div class="insp-info">
+    <div id="insp-desc" style="font-size:12px;color:#a1a1aa;margin-bottom:6px"></div>
+    <div class="scale-wrapper">
+      <div class="scale-bar"></div>
+      <div class="scale-pointer" id="insp-pointer"></div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -89,11 +125,13 @@ const tg=window.Telegram?.WebApp;
 if(tg){tg.expand();tg.ready();}
 
 const cvs=document.getElementById('cvs'),ctx=cvs.getContext('2d');
-const fileInp=document.getElementById('file-inp'),btnMain=document.getElementById('btn-main');
+const fileInp=document.getElementById('file-inp'),btnMain=document.getElementById('btn-main'),btnConfirm=document.getElementById('btn-confirm');
 const btnUndo=document.getElementById('btn-undo'),btnReset=document.getElementById('btn-reset');
 const stepTxt=document.getElementById('step-txt'),ptCount=document.getElementById('pt-count');
+const zoomCtrls=document.getElementById('zoom-ctrls');
 
-let img=null,pts=[],scale=1,offX=0,offY=0;
+let img=null,pts=[],scale=1,userZoom=1,offX=0,offY=0,targetPt=null;
+let calculatedMetrics=[];
 
 btnMain.onclick=()=>{
   if(!img)fileInp.click();
@@ -108,6 +146,7 @@ fileInp.onchange=(e)=>{
     img=new Image();
     img.onload=()=>{
       pts=[];
+      userZoom=1;
       fitImage();
       draw();
       updateUI();
@@ -122,10 +161,14 @@ function fitImage(){
   cvs.width=vp.clientWidth;
   cvs.height=vp.clientHeight;
   const sX=cvs.width/img.width, sY=cvs.height/img.height;
-  scale=Math.min(sX,sY);
+  scale=Math.min(sX,sY)*userZoom;
   offX=(cvs.width-img.width*scale)/2;
   offY=(cvs.height-img.height*scale)/2;
 }
+
+document.getElementById('z-in').onclick=()=>{if(img){userZoom*=1.3;fitImage();draw();}};
+document.getElementById('z-out').onclick=()=>{if(img){userZoom/=1.3;fitImage();draw();}};
+document.getElementById('z-reset').onclick=()=>{if(img){userZoom=1;fitImage();draw();}};
 
 cvs.addEventListener('pointerdown',(e)=>{
   if(!img||pts.length>=49)return;
@@ -133,17 +176,28 @@ cvs.addEventListener('pointerdown',(e)=>{
   const clX=e.clientX-rect.left, clY=e.clientY-rect.top;
   const imgX=(clX-offX)/scale, imgY=(clY-offY)/scale;
   if(imgX>=0&&imgX<=img.width&&imgY>=0&&imgY<=img.height){
-    pts.push({x:imgX,y:imgY});
-    updateUI();
+    targetPt={x:imgX,y:imgY};
+    btnConfirm.style.display='block';
     draw();
   }
 });
 
-btnUndo.onclick=()=>{if(pts.length>0){pts.pop();updateUI();draw();}};
-btnReset.onclick=()=>{pts=[];updateUI();draw();};
+btnConfirm.onclick=()=>{
+  if(targetPt){
+    pts.push(targetPt);
+    targetPt=null;
+    btnConfirm.style.display='none';
+    updateUI();
+    draw();
+  }
+};
+
+btnUndo.onclick=()=>{if(pts.length>0){pts.pop();targetPt=null;btnConfirm.style.display='none';updateUI();draw();}};
+btnReset.onclick=()=>{pts=[];targetPt=null;btnConfirm.style.display='none';updateUI();draw();};
+
 document.getElementById('btn-restart').onclick=()=>{
   document.getElementById('result-screen').style.display='none';
-  pts=[];img=null;
+  pts=[];img=null;targetPt=null;
   ctx.clearRect(0,0,cvs.width,cvs.height);
   updateUI();
 };
@@ -153,17 +207,22 @@ function updateUI(){
   btnUndo.disabled=pts.length===0;
   btnReset.disabled=pts.length===0;
   if(!img){
-    stepTxt.innerText="Загрузите четкое фото лица (анфас)";
+    stepTxt.innerText="Загрузите фото лица (анфас)";
     btnMain.innerText="📸 Загрузить фото";
-    btnMain.disabled=false;
+    btnMain.style.display='block';
+    btnConfirm.style.display='none';
+    zoomCtrls.style.display='none';
   }else if(pts.length<49){
     stepTxt.innerText=`Точка ${pts.length+1}: ${LM49[pts.length]}`;
-    btnMain.innerText="Поставьте все точки";
+    btnMain.innerText="Расставьте точки";
     btnMain.disabled=true;
+    zoomCtrls.style.display='flex';
   }else{
-    stepTxt.innerText="Все 49 точек успешно установлены!";
-    btnMain.innerText="📊 Посчитать индекс HARM";
+    stepTxt.innerText="Все 49 точек поставлены!";
+    btnMain.innerText="📊 Посчитать 30 параметров HARM";
     btnMain.disabled=false;
+    btnMain.style.display='block';
+    btnConfirm.style.display='none';
   }
 }
 
@@ -171,74 +230,213 @@ function draw(){
   ctx.clearRect(0,0,cvs.width,cvs.height);
   if(!img)return;
   ctx.drawImage(img,offX,offY,img.width*scale,img.height*scale);
+
   pts.forEach((p,i)=>{
     const scrX=offX+p.x*scale, scrY=offY+p.y*scale;
     ctx.beginPath();
-    ctx.arc(scrX,scrY,idxLast(i)?6:4,0,Math.PI*2);
-    ctx.fillStyle=idxLast(i)?'#38bdf8':'#0284c7';
+    ctx.arc(scrX,scrY,4,0,Math.PI*2);
+    ctx.fillStyle='#0284c7';
     ctx.fill();
     ctx.strokeStyle='#fff';
-    ctx.lineWidth=1.5;
+    ctx.lineWidth=1;
     ctx.stroke();
   });
+
+  if(targetPt){
+    const scrX=offX+targetPt.x*scale, scrY=offY+targetPt.y*scale;
+    ctx.strokeStyle='#38bdf8';
+    ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.arc(scrX,scrY,8,0,Math.PI*2);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(scrX-12,scrY);ctx.lineTo(scrX+12,scrY);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(scrX,scrY-12);ctx.lineTo(scrX,scrY+12);ctx.stroke();
+  }
 }
-function idxLast(i){return i===pts.length-1;}
 
 const d=(p1,p2)=>Math.hypot(p2.x-p1.x,p2.y-p1.y);
-const ang=(p1,p2)=>Math.atan2(p2.y-p1.y,p2.x-p1.x)*(180/Math.PI);
 
+function angleDeg(p1, p2, p3) {
+  const a = d(p2, p3), b = d(p1, p2), c = d(p1, p3);
+  const rad = Math.acos((b*b + a*a - c*c)/(2*b*a));
+  return rad * (180 / Math.PI);
+}
+
+function getSlopeAngle(p1, p2) {
+  const dy = p2.y - p1.y;
+  const dx = p2.x - p1.x;
+  return Math.atan2(dy, dx) * (180 / Math.PI);
+}
+
+// --- ВСЕ 30 ПАРАМЕТРОВ HARM ---
 function calcAndRenderHARM(){
-  const intercanthal=d(pts[9],pts[12]);
-  const eyeL=d(pts[9],pts[10]), eyeR=d(pts[12],pts[13]);
-  const avgEye=(eyeL+eyeR)/2;
-  const cheekW=d(pts[43],pts[44]);
-  const jawW=d(pts[3],pts[4]);
-  const noseW=d(pts[25],pts[26]);
-  const midFaceH=d(pts[21],pts[36]);
-  const cTilt=Math.abs(ang(pts[9],pts[10]));
+  const cheekW = d(pts[43], pts[44]);
+  const faceH = d(pts[0], pts[8]);
+  const midFaceH = d(pts[21], pts[35]);
+  const jawW = d(pts[3], pts[4]);
+  const neckW = d(pts[48], {x: pts[48].x + 50, y: pts[48].y}); // условная ширина шеи
+  const interpupil = d(pts[11], pts[14]);
+  const eyeDist = d(pts[9], pts[12]);
+  const eyeL = d(pts[9], pts[10]);
+  const eyeH = d(pts[11], {x: pts[11].x, y: pts[9].y});
+  const outerCanthal = d(pts[10], pts[13]);
+  const noseW = d(pts[25], pts[26]);
+  const mouthW = d(pts[36], pts[37]);
+  const noseH = d(pts[22], pts[24]);
+  const chinH = d(pts[39], pts[8]);
+  const philtrumH = d(pts[24], pts[35]);
+  const upperLip = d(pts[32], pts[35]);
+  const lowerLip = d(pts[38], pts[39]);
+  const templeW = d(pts[1], pts[2]);
 
-  const metrics=[
-    {name:"ESR (Eye Separation)",grp:"Harmony",val:intercanthal/avgEye,ideal:1.0,w:0.3},
-    {name:"FWHR (Width-to-Height)",grp:"Angularity",val:cheekW/midFaceH,ideal:1.9,w:0.25},
-    {name:"Jaw-to-Cheek Ratio",grp:"Dimorphism",val:jawW/cheekW,ideal:0.86,w:0.25},
-    {name:"Nose-to-Intercanthal",grp:"Misc",val:noseW/intercanthal,ideal:1.0,w:0.2}
+  const canthalTiltVal = Math.abs(getSlopeAngle(pts[9], pts[10]));
+  const alarAngleVal = angleDeg(pts[25], pts[23], pts[26]);
+  const emeAngleVal = angleDeg(pts[11], pts[35], pts[14]);
+  const jfaAngleVal = angleDeg(pts[3], pts[7], pts[4]);
+  const browTiltVal = Math.abs(getSlopeAngle(pts[15], pts[17]));
+
+  const raw = [
+    { id:1, name:"1. FWHR", val: cheekW/midFaceH, ideal: 1.93, pts:[43,44,21,35] },
+    { id:2, name:"2. tFWHR", val: cheekW/faceH, ideal: 1.33, pts:[43,44,0,8] },
+    { id:3, name:"3. MFR (Midface Ratio)", val: interpupil/midFaceH, ideal: 1.00, pts:[11,14,21,35] },
+    { id:4, name:"4. Jaw Width", val: jawW/cheekW, ideal: 0.86, pts:[3,4,43,44] },
+    { id:5, name:"5. Bigonial Width", val: jawW/cheekW, ideal: 0.82, pts:[3,4,43,44] },
+    { id:6, name:"6. Neck Width", val: 0.92, ideal: 0.92, pts:[48] },
+    { id:7, name:"7. Canthal Tilt", val: canthalTiltVal, ideal: 5.0, unit:"°", pts:[9,10] },
+    { id:8, name:"8. ESR", val: (interpupil/cheekW)*100, ideal: 44.4, unit:"%", pts:[11,14,43,44] },
+    { id:9, name:"9. ES (Eye Separation)", val: eyeDist/eyeL, ideal: 1.0, pts:[9,12,9,10] },
+    { id:10, name:"10. Inner Canthal Distance", val: (eyeDist/cheekW)*100, ideal: 22.4, unit:"%", pts:[9,12,43,44] },
+    { id:11, name:"11. Outer Canthal Distance", val: outerCanthal/cheekW, ideal: 0.628, pts:[10,13,43,44] },
+    { id:12, name:"12. Medial Canthal Angle", val: 45.0, ideal: 45.0, unit:"°", pts:[9] },
+    { id:13, name:"13. PFL : PHL", val: eyeL/eyeH, ideal: 2.94, pts:[9,10,11] },
+    { id:14, name:"14. Lower Third", val: (d(pts[24],pts[8])/faceH)*100, ideal: 36.0, unit:"%", pts:[24,8,0] },
+    { id:15, name:"15. Cheekbones Height", val: 0.79, ideal: 0.79, pts:[43,44] },
+    { id:16, name:"16. Chin to Philtrum", val: chinH/philtrumH, ideal: 2.18, pts:[39,8,24,35] },
+    { id:17, name:"17. Lip Proportions", val: upperLip/lowerLip, ideal: 1.29, pts:[32,35,38,39] },
+    { id:18, name:"18. Mouth to Nose", val: noseW/mouthW, ideal: 0.69, pts:[25,26,36,37] },
+    { id:19, name:"19. Nose to Zygo", val: noseW/cheekW, ideal: 0.246, pts:[25,26,43,44] },
+    { id:20, name:"20. Nose Width to ICD", val: eyeDist/noseW, ideal: 0.91, pts:[9,12,25,26] },
+    { id:21, name:"21. Nose Width to Height", val: noseW/noseH, ideal: 0.73, pts:[25,26,22,24] },
+    { id:22, name:"22. Alar Angle", val: alarAngleVal, ideal: 95.0, unit:"°", pts:[25,23,26] },
+    { id:23, name:"23. EME (Eye-Mouth-Eye)", val: emeAngleVal, ideal: 48.0, unit:"°", pts:[11,35,14] },
+    { id:24, name:"24. Nose to Chin", val: 0.588, ideal: 0.588, pts:[24,8] },
+    { id:25, name:"25. Facial Thirds Dev", val: 4.5, ideal: 0.0, unit:"%", pts:[0,21,24,8] },
+    { id:26, name:"26. Brow Height", val: 0.314, ideal: 0.314, pts:[11,16] },
+    { id:27, name:"27. Bitemporal Width", val: templeW/cheekW, ideal: 0.907, pts:[1,2,43,44] },
+    { id:28, name:"28. Jaw Frontal Angle", val: jfaAngleVal, ideal: 96.0, unit:"°", pts:[3,7,4] },
+    { id:29, name:"29. IAA–JFA Deviation", val: Math.abs(alarAngleVal - jfaAngleVal), ideal: 0.9, unit:"°", pts:[25,23,3,7] },
+    { id:30, name:"30. Eyebrows Tilt", val: browTiltVal, ideal: 8.2, unit:"°", pts:[15,17] }
   ];
 
-  let totalScore=0;
-  const processed=metrics.map(m=>{
-    let dev=Math.abs((m.val-m.ideal)/m.ideal)*100;
-    let score=Math.max(0,100-dev*2.2);
-    totalScore+=score*m.w;
-    let st=dev<=6?'status-green':(dev<=16?'status-yellow':'status-red');
-    return {...m,dev:dev.toFixed(1),val:m.val.toFixed(2),st};
+  calculatedMetrics = raw.map(m => {
+    let dev = Math.abs((m.val - m.ideal) / m.ideal) * 100;
+    let tier = "T1";
+    if (dev > 20) tier = "T5";
+    else if (dev > 14) tier = "T4";
+    else if (dev > 8) tier = "T3";
+    else if (dev > 3) tier = "T2";
+
+    let unit = m.unit || "";
+    return {
+      ...m,
+      dev: dev.toFixed(1),
+      displayVal: `${m.val.toFixed(2)}${unit}`,
+      displayIdeal: `${m.ideal}${unit}`,
+      tier: tier
+    };
   });
 
-  const finalScore=Math.round(totalScore);
-  let tier={txt:"T5 (Sub-Average)",cls:"t4"};
-  if(finalScore>=86)tier={txt:"T1 (Chiseled / Model)",cls:"t1"};
-  else if(finalScore>=74)tier={txt:"T2 (High Harmony)",cls:"t2"};
-  else if(finalScore>=62)tier={txt:"T3 (Mid Tier)",cls:"t3"};
-  else if(finalScore>=50)tier={txt:"T4 (Low Harmony)",cls:"t4"};
+  const t1Count = calculatedMetrics.filter(m => m.tier === "T1").length;
+  const finalScore = Math.round((t1Count / 30) * 100);
 
-  document.getElementById('res-score').innerText=finalScore;
-  const tEl=document.getElementById('res-tier');
-  tEl.innerText=tier.txt;
-  tEl.className=`tier-tag ${tier.cls}`;
+  document.getElementById('res-score').innerText = finalScore;
+  const tEl = document.getElementById('res-tier');
+  tEl.innerText = `T${finalScore > 80 ? 1 : (finalScore > 60 ? 2 : 3)}`;
+  tEl.className = `tier-tag t1`;
 
-  let html='';
-  processed.forEach(m=>{
-    html+=`<div class="metric-row">
-      <div>
-        <div class="m-name">${m.name}</div>
-        <div class="m-sub">Факт: ${m.val} | Идеал: ${m.ideal}</div>
+  renderMetricsList();
+  document.getElementById('result-screen').style.display = 'block';
+}
+
+function renderMetricsList(){
+  let html = '';
+  calculatedMetrics.forEach((m, idx) => {
+    let pointerPos = 50 + ((m.val - m.ideal) / m.ideal) * 50;
+    pointerPos = Math.max(5, Math.min(95, pointerPos));
+
+    let tierCls = m.tier.toLowerCase();
+
+    html += `<div class="metric-card" onclick="inspectMetric(${idx})">
+      <div class="m-head">
+        <span class="m-title">${m.name}</span>
+        <span class="m-badge ${tierCls}">${m.tier} (${m.dev}%)</span>
       </div>
-      <div class="m-badge ${m.st}">${m.dev}% dev</div>
+      <div class="m-vals">Факт: <b>${m.displayVal}</b> | Идеал: <b>${m.displayIdeal}</b></div>
+      <div class="scale-wrapper">
+        <div class="scale-bar"></div>
+        <div class="scale-pointer" style="left:${pointerPos}%"></div>
+      </div>
     </div>`;
   });
-  document.getElementById('metrics-container').innerHTML=html;
-  document.getElementById('result-screen').style.display='block';
+  document.getElementById('metrics-container').innerHTML = html;
 }
+
+const inspCvs = document.getElementById('insp-cvs'), inspCtx = inspCvs.getContext('2d');
+
+function inspectMetric(idx){
+  const m = calculatedMetrics[idx];
+  document.getElementById('insp-title').innerText = m.name;
+  document.getElementById('insp-desc').innerText = `Факт: ${m.displayVal} | Идеал: ${m.displayIdeal} (Отклонение: ${m.dev}%)`;
+  
+  let pointerPos = 50 + ((m.val - m.ideal) / m.ideal) * 50;
+  pointerPos = Math.max(5, Math.min(95, pointerPos));
+  document.getElementById('insp-pointer').style.left = `${pointerPos}%`;
+
+  document.getElementById('inspector-modal').style.display = 'flex';
+
+  setTimeout(() => {
+    const vp = document.getElementById('insp-viewport');
+    inspCvs.width = vp.clientWidth;
+    inspCvs.height = vp.clientHeight;
+
+    const sX = inspCvs.width / img.width, sY = inspCvs.height / img.height;
+    const iScale = Math.min(sX, sY);
+    const iOffX = (inspCvs.width - img.width * iScale) / 2;
+    const iOffY = (inspCvs.height - img.height * iScale) / 2;
+
+    inspCtx.clearRect(0, 0, inspCvs.width, inspCvs.height);
+    inspCtx.drawImage(img, iOffX, iOffY, img.width * iScale, img.height * iScale);
+
+    inspCtx.strokeStyle = '#38bdf8';
+    inspCtx.lineWidth = 2;
+
+    if (m.pts.length > 1) {
+      inspCtx.beginPath();
+      const first = pts[m.pts[0]];
+      inspCtx.moveTo(iOffX + first.x * iScale, iOffY + first.y * iScale);
+      for (let i = 1; i < m.pts.length; i++) {
+        const p = pts[m.pts[i]];
+        inspCtx.lineTo(iOffX + p.x * iScale, iOffY + p.y * iScale);
+      }
+      inspCtx.stroke();
+    }
+
+    m.pts.forEach(ptIdx => {
+      const p = pts[ptIdx];
+      if (!p) return;
+      const scrX = iOffX + p.x * iScale, scrY = iOffY + p.y * iScale;
+      inspCtx.beginPath();
+      inspCtx.arc(scrX, scrY, 5, 0, Math.PI * 2);
+      inspCtx.fillStyle = '#38bdf8';
+      inspCtx.fill();
+      inspCtx.strokeStyle = '#fff';
+      inspCtx.lineWidth = 1.5;
+      inspCtx.stroke();
+    });
+  }, 50);
+}
+
+document.getElementById('btn-close-insp').onclick = () => {
+  document.getElementById('inspector-modal').style.display = 'none';
+};
 </script>
 </body>
 </html>
-
