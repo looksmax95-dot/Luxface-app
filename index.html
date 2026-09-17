@@ -1,501 +1,3223 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
-<title>HARM 30 Metrics Engine</title>
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-<style>
-:root {
-  --bg-color: #0d0f12;
-  --panel-bg: rgba(22, 27, 34, 0.75);
-  --panel-border: rgba(255, 255, 255, 0.1);
-  --accent-blue: #38bdf8;
-  --accent-glow: rgba(56, 189, 248, 0.35);
-  --text-main: #f4f4f5;
-  --text-muted: #a1a1aa;
-}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0a0a0a">
+    <title>HARM 49 PRO - Advanced Facial Analysis</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #141414;
+            --bg-tertiary: #1a1a1a;
+            --panel-bg: rgba(20, 20, 25, 0.85);
+            --panel-bg-hover: rgba(30, 30, 35, 0.9);
+            --panel-border: rgba(255, 255, 255, 0.12);
+            --panel-border-hover: rgba(255, 255, 255, 0.2);
+            --accent-blue: #3b82f6;
+            --accent-blue-dark: #2563eb;
+            --accent-purple: #8b5cf6;
+            --accent-glow: rgba(59, 130, 246, 0.4);
+            --success: #10b981;
+            --success-light: #34d399;
+            --warning: #f59e0b;
+            --warning-light: #fbbf24;
+            --danger: #ef4444;
+            --danger-light: #f87171;
+            --text-primary: #f8f9fa;
+            --text-secondary: #e5e7eb;
+            --text-muted: #9ca3af;
+            --text-dim: #6b7280;
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+            --shadow-xl: 0 12px 48px rgba(0, 0, 0, 0.6);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 20px;
+            --radius-2xl: 24px;
+            --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-base: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-slow: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
 
-* { box-sizing: border-box; margin: 0; padding: 0; user-select: none; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-body { background: var(--bg-color); color: var(--text-main); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+            user-select: none; 
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+        }
 
-#app { display: flex; flex-direction: column; height: 100%; padding: 12px; gap: 10px; position: relative; }
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
 
-/* Dynamic Animated Header */
-.header {
-  display: flex; justify-content: space-between; align-items: center;
-  background: var(--panel-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-  padding: 12px 16px; border-radius: 14px; border: 1px solid var(--panel-border);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-}
-.title { font-size: 15px; font-weight: 800; color: #fff; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px; }
-.title-dot { width: 8px; height: 8px; background: var(--accent-blue); border-radius: 50%; box-shadow: 0 0 10px var(--accent-blue); animation: pulse 2s infinite; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
+            background: var(--bg-primary); 
+            color: var(--text-primary); 
+            height: 100vh; 
+            height: 100dvh;
+            overflow: hidden; 
+            display: flex; 
+            flex-direction: column;
+            position: relative;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+        }
 
-@keyframes pulse { 0% { transform: scale(0.95); opacity: 0.8; } 50% { transform: scale(1.2); opacity: 1; box-shadow: 0 0 15px var(--accent-blue); } 100% { transform: scale(0.95); opacity: 0.8; } }
+        /* Animated Background Gradient */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(ellipse 80% 50% at 50% -20%, rgba(59, 130, 246, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse 60% 40% at 80% 100%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+                radial-gradient(ellipse 60% 40% at 20% 100%, rgba(16, 185, 129, 0.08) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+            animation: bgPulse 8s ease-in-out infinite alternate;
+        }
 
-.badge-count { font-size: 12px; background: rgba(56, 189, 248, 0.15); color: var(--accent-blue); border: 1px solid rgba(56, 189, 248, 0.3); padding: 4px 10px; border-radius: 20px; font-weight: 700; }
+        @keyframes bgPulse {
+            0% { opacity: 0.8; }
+            100% { opacity: 1; }
+        }
 
-.step-banner {
-  background: var(--panel-bg); backdrop-filter: blur(8px);
-  padding: 10px 14px; border-radius: 10px; font-size: 13px; color: var(--text-muted);
-  border-left: 3px solid var(--accent-blue); border: 1px solid var(--panel-border); border-left-width: 3px;
-  transition: all 0.3s ease;
-}
+        /* Noise Texture Overlay */
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            opacity: 0.015;
+            pointer-events: none;
+            z-index: 0;
+            mix-blend-mode: overlay;
+        }
 
-#viewport {
-  flex: 1; position: relative; background: #000; border-radius: 16px; overflow: hidden;
-  border: 1px solid var(--panel-border); display: flex; align-items: center; justify-content: center;
-  box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
-}
-canvas { touch-action: none; display: block; }
+        #app { 
+            display: flex; 
+            flex-direction: column; 
+            height: 100%; 
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+            padding: 12px; 
+            gap: 10px; 
+            position: relative;
+            z-index: 1;
+        }
 
-.zoom-tools { position: absolute; top: 12px; right: 12px; display: flex; flex-direction: column; gap: 8px; z-index: 10; }
-.btn-icon {
-  width: 38px; height: 38px; border-radius: 10px; background: var(--panel-bg);
-  border: 1px solid var(--panel-border); color: #fff; font-size: 16px; font-weight: 700;
-  display: flex; align-items: center; justify-content: center; cursor: pointer; backdrop-filter: blur(8px);
-  transition: transform 0.15s ease, background 0.2s;
-}
-.btn-icon:active { transform: scale(0.92); background: rgba(56, 189, 248, 0.2); }
+        /* ==================== HEADER ==================== */
+        .header {
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            background: var(--panel-bg); 
+            backdrop-filter: blur(20px) saturate(180%); 
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            padding: 14px 18px; 
+            border-radius: var(--radius-lg); 
+            border: 1px solid var(--panel-border);
+            box-shadow: var(--shadow-md);
+            z-index: 10;
+            position: relative;
+            overflow: hidden;
+        }
 
-.controls { display: flex; gap: 8px; }
-button {
-  flex: 1; padding: 14px; border: none; border-radius: 12px; font-weight: 700; font-size: 13px;
-  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #fff; cursor: pointer;
-  box-shadow: 0 4px 15px rgba(2, 132, 199, 0.3); transition: all 0.2s ease;
-}
-button:active { transform: scale(0.98); }
-button:disabled { background: #1e293b; color: #475569; box-shadow: none; cursor: not-allowed; }
-.btn-undo, .btn-reset { flex: 0 0 48px; background: var(--panel-bg); color: var(--text-main); border: 1px solid var(--panel-border); }
-.btn-confirm { background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); box-shadow: 0 4px 15px rgba(22, 163, 74, 0.3); }
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+        }
 
-/* Animated Modal & Results */
-#result-screen {
-  display: none; position: fixed; inset: 0; background: var(--bg-color); z-index: 100;
-  overflow-y: auto; padding: 16px; animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .title { 
+            font-size: 16px; 
+            font-weight: 800; 
+            color: var(--text-primary); 
+            letter-spacing: 0.3px; 
+            display: flex; 
+            align-items: center; 
+            gap: 10px;
+            position: relative;
+        }
 
-.score-card {
-  background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: 20px;
-  padding: 24px; text-align: center; margin-bottom: 16px; backdrop-filter: blur(12px);
-}
-.score-val { font-size: 64px; font-weight: 900; background: linear-gradient(180deg, #fff 0%, #38bdf8 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .title-icon {
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
 
-.metric-card {
-  background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: 14px;
-  padding: 14px; margin-bottom: 10px; cursor: pointer; transition: all 0.2s ease; backdrop-filter: blur(8px);
-}
-.metric-card:active { transform: scale(0.98); border-color: var(--accent-blue); }
-.m-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-.m-title { font-size: 13px; font-weight: 700; color: var(--text-main); }
-.m-vals { font-size: 11px; color: var(--text-muted); }
+        .title-icon::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.2) 50%, transparent 70%);
+            animation: shimmer 3s infinite;
+        }
 
-.tier-tag { display: inline-block; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 800; text-transform: uppercase; }
-.t1 { background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); }
-.t2 { background: rgba(56, 189, 248, 0.15); color: #60a5fa; border: 1px solid rgba(56, 189, 248, 0.3); }
-.t3 { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
-.t4 { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
-.t5 { background: rgba(113, 113, 122, 0.15); color: #a1a1aa; border: 1px solid rgba(113, 113, 122, 0.3); }
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) rotate(45deg); }
+        }
 
-.scale-wrapper { position: relative; margin-top: 10px; height: 12px; }
-.scale-bar { height: 4px; border-radius: 2px; background: linear-gradient(to right, #ef4444, #f59e0b, #10b981, #f59e0b, #ef4444); position: relative; top: 4px; }
-.scale-pointer {
-  position: absolute; top: -1px; width: 8px; height: 8px; background: #fff; border-radius: 50%;
-  box-shadow: 0 0 8px var(--accent-blue); transform: translateX(-50%); transition: left 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
+        .title-dot { 
+            width: 10px; 
+            height: 10px; 
+            background: var(--success); 
+            border-radius: 50%; 
+            box-shadow: 0 0 12px var(--success), 0 0 24px var(--success); 
+            animation: pulse 2s ease-in-out infinite; 
+            position: relative;
+        }
 
-#inspector-modal {
-  display: none; position: fixed; inset: 0; background: rgba(13, 15, 18, 0.95); z-index: 200;
-  flex-direction: column; padding: 16px; backdrop-filter: blur(16px);
-}
-.insp-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-#insp-viewport { flex: 1; position: relative; background: #000; border-radius: 16px; overflow: hidden; border: 1px solid var(--panel-border); }
-.insp-info { background: var(--panel-bg); border-radius: 14px; padding: 14px; margin-top: 12px; border: 1px solid var(--panel-border); }
-</style>
+        .title-dot::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 100%;
+            height: 100%;
+            background: var(--success);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+        }
+
+        @keyframes pulse { 
+            0%, 100% { transform: scale(1); opacity: 1; } 
+            50% { transform: scale(1.1); opacity: 0.9; } 
+        }
+
+        @keyframes ping {
+            75%, 100% {
+                transform: translate(-50%, -50%) scale(2);
+                opacity: 0;
+            }
+        }
+
+        .badge-count { 
+            font-size: 13px; 
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(139, 92, 246, 0.15)); 
+            color: var(--accent-blue); 
+            border: 1px solid rgba(59, 130, 246, 0.3); 
+            padding: 6px 14px; 
+            border-radius: 20px; 
+            font-weight: 700;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+            position: relative;
+            overflow: hidden;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .badge-count::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            transition: left 0.5s;
+        }
+
+        .badge-count:hover::before {
+            left: 100%;
+        }
+
+        /* ==================== STEP BANNER ==================== */
+        .step-banner {
+            background: var(--panel-bg); 
+            backdrop-filter: blur(16px) saturate(180%);
+            -webkit-backdrop-filter: blur(16px) saturate(180%);
+            padding: 14px 18px; 
+            border-radius: var(--radius-md); 
+            font-size: 14px; 
+            font-weight: 600;
+            color: var(--text-primary);
+            border: 1px solid var(--panel-border); 
+            border-left: 4px solid var(--accent-blue);
+            transition: all var(--transition-base);
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .step-banner::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(180deg, var(--accent-blue), var(--accent-purple));
+            border-radius: 0 2px 2px 0;
+        }
+
+        .step-banner.loading {
+            border-left-color: var(--warning);
+        }
+
+        .step-banner.loading::before {
+            background: linear-gradient(180deg, var(--warning), var(--danger));
+        }
+
+        .step-banner.success {
+            border-left-color: var(--success);
+        }
+
+        .step-banner.success::before {
+            background: linear-gradient(180deg, var(--success), var(--success-light));
+        }
+
+        .step-icon {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        /* ==================== VIEWPORT ==================== */
+        #viewport {
+            flex: 1; 
+            position: relative; 
+            background: #000; 
+            border-radius: var(--radius-xl); 
+            overflow: hidden;
+            border: 2px solid var(--panel-border); 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            box-shadow: 
+                inset 0 0 60px rgba(0, 0, 0, 0.9),
+                0 0 0 1px rgba(255, 255, 255, 0.05);
+            min-height: 0;
+        }
+
+        #viewport::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: 
+                linear-gradient(180deg, rgba(0,0,0,0.3) 0%, transparent 20%, transparent 80%, rgba(0,0,0,0.3) 100%);
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        canvas { 
+            touch-action: none; 
+            display: block;
+            max-width: 100%;
+            max-height: 100%;
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
+        }
+
+        /* ==================== CROSSHAIR TARGET ==================== */
+        .crosshair-target {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80px;
+            height: 80px;
+            pointer-events: none;
+            z-index: 50;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .crosshair-target.active {
+            display: block;
+            opacity: 1;
+            animation: fadeInScale 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes fadeInScale {
+            0% { 
+                opacity: 0; 
+                transform: translate(-50%, -50%) scale(0.5);
+            }
+            100% { 
+                opacity: 1; 
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+
+        .crosshair-outer-ring {
+            position: absolute;
+            width: 70px;
+            height: 70px;
+            border: 2px solid rgba(59, 130, 246, 0.3);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .crosshair-ring {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            border: 2px dashed rgba(59, 130, 246, 0.7);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation: rotate 10s linear infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: translate(-50%, -50%) rotate(0deg); }
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        .crosshair-inner-ring {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border: 1px solid rgba(59, 130, 246, 0.5);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .crosshair-dot {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: var(--danger);
+            border: 2px solid #fff;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 12px var(--danger), 0 0 24px var(--danger), 0 0 36px var(--danger);
+            animation: pulseDot 1.5s ease-in-out infinite alternate;
+            z-index: 3;
+        }
+
+        @keyframes pulseDot {
+            0% { 
+                transform: translate(-50%, -50%) scale(0.9); 
+                box-shadow: 0 0 8px var(--danger), 0 0 16px var(--danger); 
+            }
+            100% { 
+                transform: translate(-50%, -50%) scale(1.2); 
+                box-shadow: 0 0 16px var(--danger), 0 0 32px var(--danger), 0 0 48px var(--danger); 
+            }
+        }
+
+        .crosshair-line {
+            position: absolute;
+            background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.9), transparent);
+            box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+        }
+
+        .crosshair-line.v { 
+            top: 0; 
+            left: 50%; 
+            width: 2px; 
+            height: 22px; 
+            transform: translateX(-50%);
+            background: linear-gradient(180deg, transparent, rgba(59, 130, 246, 0.9), transparent);
+        }
+        .crosshair-line.v.bottom { 
+            top: auto; 
+            bottom: 0; 
+        }
+        .crosshair-line.h { 
+            left: 0; 
+            top: 50%; 
+            height: 2px; 
+            width: 22px; 
+            transform: translateY(-50%);
+            background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.9), transparent);
+        }
+        .crosshair-line.h.right { 
+            left: auto; 
+            right: 0; 
+        }
+
+        .crosshair-corner {
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            border: 2px solid var(--accent-blue);
+            opacity: 0.7;
+        }
+
+        .crosshair-corner.tl { top: 12px; left: 12px; border-width: 2px 0 0 2px; border-radius: 2px 0 0 0; }
+        .crosshair-corner.tr { top: 12px; right: 12px; border-width: 2px 2px 0 0; border-radius: 0 2px 0 0; }
+        .crosshair-corner.bl { bottom: 12px; left: 12px; border-width: 0 0 2px 2px; border-radius: 0 0 0 2px; }
+        .crosshair-corner.br { bottom: 12px; right: 12px; border-width: 0 2px 2px 0; border-radius: 0 0 2px 0; }
+
+        /* ==================== ZOOM CONTROLS ==================== */
+        .zoom-tools { 
+            position: absolute; 
+            top: 12px; 
+            right: 12px; 
+            display: none; 
+            flex-direction: column; 
+            gap: 8px; 
+            z-index: 40; 
+        }
+
+        .zoom-tools.active {
+            display: flex;
+            animation: slideInRight 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes slideInRight {
+            0% { 
+                opacity: 0; 
+                transform: translateX(30px); 
+            }
+            100% { 
+                opacity: 1; 
+                transform: translateX(0); 
+            }
+        }
+
+        .btn-icon {
+            width: 44px; 
+            height: 44px; 
+            border-radius: var(--radius-md); 
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border); 
+            color: var(--text-primary); 
+            font-size: 18px; 
+            font-weight: 700;
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            cursor: pointer; 
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            transition: all var(--transition-fast);
+            box-shadow: var(--shadow-md);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-icon::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), transparent);
+            opacity: 0;
+            transition: opacity var(--transition-fast);
+        }
+
+        .btn-icon:hover::before,
+        .btn-icon:active::before {
+            opacity: 1;
+        }
+
+        .btn-icon:active { 
+            transform: scale(0.85); 
+            background: rgba(59, 130, 246, 0.2);
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        .btn-icon:active::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
+            animation: ripple 0.6s ease-out;
+        }
+
+        @keyframes ripple {
+            0% { transform: scale(0); opacity: 1; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+
+        /* ==================== MINI FACE GUIDE WIDGET ==================== */
+        .mini-face-widget {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            width: 180px;
+            background: var(--panel-bg);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid var(--panel-border);
+            border-radius: var(--radius-lg);
+            padding: 14px;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: var(--shadow-lg);
+            z-index: 40;
+            overflow: hidden;
+        }
+
+        .mini-face-widget::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+        }
+
+        .mini-face-widget.active {
+            display: flex;
+            animation: slideInLeft 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes slideInLeft {
+            0% { 
+                opacity: 0; 
+                transform: translateX(-30px); 
+            }
+            100% { 
+                opacity: 1; 
+                transform: translateX(0); 
+            }
+        }
+
+        .widget-title {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .widget-title::before {
+            content: '';
+            width: 4px;
+            height: 4px;
+            background: var(--accent-blue);
+            border-radius: 50%;
+            box-shadow: 0 0 6px var(--accent-blue);
+        }
+
+        .mini-face-svg {
+            width: 100%;
+            height: 130px;
+            margin-bottom: 10px;
+            filter: drop-shadow(0 2px 8px rgba(0,0,0,0.3));
+        }
+
+        .widget-info {
+            width: 100%;
+            text-align: center;
+        }
+
+        .current-point-name {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--accent-blue);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 4px;
+            padding: 0 4px;
+        }
+
+        .current-point-counter {
+            font-size: 10px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        /* Progress bar in widget */
+        .widget-progress {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+
+        .widget-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
+            border-radius: 2px;
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 0 8px var(--accent-glow);
+        }
+
+        /* ==================== SOUND INDICATOR ==================== */
+        .sound-indicator {
+            position: absolute;
+            top: 70px;
+            left: 12px;
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 11px;
+            color: var(--text-muted);
+            display: none;
+            align-items: center;
+            gap: 6px;
+            z-index: 35;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            box-shadow: var(--shadow-sm);
+            font-weight: 500;
+        }
+
+        .sound-indicator.active {
+            display: flex;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .sound-wave {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            height: 12px;
+        }
+
+        .sound-wave span {
+            width: 2px;
+            background: var(--accent-blue);
+            border-radius: 1px;
+            animation: soundWave 1s ease-in-out infinite;
+        }
+
+        .sound-wave span:nth-child(1) { height: 4px; animation-delay: 0s; }
+        .sound-wave span:nth-child(2) { height: 8px; animation-delay: 0.1s; }
+        .sound-wave span:nth-child(3) { height: 6px; animation-delay: 0.2s; }
+        .sound-wave span:nth-child(4) { height: 10px; animation-delay: 0.3s; }
+
+        @keyframes soundWave {
+            0%, 100% { transform: scaleY(0.5); }
+            50% { transform: scaleY(1); }
+        }
+
+        /* ==================== CONTROLS ==================== */
+        .controls { 
+            display: flex; 
+            gap: 8px;
+            z-index: 10;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        button {
+            flex: 1; 
+            padding: 16px 20px; 
+            border: none; 
+            border-radius: var(--radius-lg); 
+            font-weight: 700; 
+            font-size: 14px;
+            color: var(--text-primary); 
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-family: inherit;
+            letter-spacing: 0.3px;
+        }
+
+        #btn-main {
+            background: linear-gradient(135deg, var(--accent-blue) 0%, var(--accent-blue-dark) 100%); 
+            box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4), inset 0 1px 0 rgba(255,255,255,0.1);
+        }
+
+        #btn-main::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        #btn-main:hover::before {
+            left: 100%;
+        }
+
+        #btn-main:active { 
+            transform: scale(0.98); 
+            box-shadow: 0 2px 10px rgba(59, 130, 246, 0.3);
+        }
+
+        button:disabled { 
+            background: var(--bg-tertiary); 
+            color: var(--text-dim); 
+            box-shadow: none; 
+            cursor: not-allowed;
+            transform: none;
+            opacity: 0.7;
+        }
+
+        .btn-undo, .btn-reset { 
+            flex: 0 0 52px; 
+            background: var(--panel-bg); 
+            color: var(--text-primary); 
+            border: 1px solid var(--panel-border);
+            box-shadow: var(--shadow-sm);
+            font-size: 16px;
+        }
+
+        .btn-undo:not(:disabled):active, 
+        .btn-reset:not(:disabled):active {
+            background: rgba(239, 68, 68, 0.15);
+            border-color: var(--danger);
+            color: var(--danger);
+            transform: scale(0.9);
+        }
+
+        .btn-confirm { 
+            background: linear-gradient(135deg, var(--success) 0%, #059669 100%); 
+            box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4), inset 0 1px 0 rgba(255,255,255,0.1);
+            animation: pulseConfirm 2s ease-in-out infinite;
+        }
+
+        @keyframes pulseConfirm {
+            0%, 100% { box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4); }
+            50% { box-shadow: 0 4px 30px rgba(16, 185, 129, 0.6); }
+        }
+
+        .btn-confirm:active {
+            transform: scale(0.98);
+        }
+
+        /* ==================== RESULT SCREEN ==================== */
+        #result-screen {
+            display: none; 
+            position: fixed; 
+            inset: 0; 
+            background: var(--bg-primary); 
+            z-index: 1000;
+            overflow-y: auto; 
+            -webkit-overflow-scrolling: touch;
+            animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideUp { 
+            from { transform: translateY(100%); } 
+            to { transform: translateY(0); } 
+        }
+
+        .result-content {
+            padding: 16px;
+            padding-bottom: calc(16px + env(safe-area-inset-bottom));
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .result-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--panel-border);
+        }
+
+        .result-title {
+            font-size: 18px;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .result-close {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .result-close:active {
+            transform: scale(0.9);
+            background: rgba(239, 68, 68, 0.2);
+            border-color: var(--danger);
+        }
+
+        /* Score Card */
+        .score-card {
+            background: linear-gradient(135deg, var(--panel-bg) 0%, rgba(59, 130, 246, 0.1) 100%);
+            border: 2px solid var(--panel-border); 
+            border-radius: var(--radius-2xl);
+            padding: 36px 28px; 
+            text-align: center; 
+            margin-bottom: 24px; 
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: var(--shadow-xl);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .score-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(from 0deg, transparent, rgba(59, 130, 246, 0.1), transparent 30%);
+            animation: rotateGradient 8s linear infinite;
+        }
+
+        @keyframes rotateGradient {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .score-card-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .score-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 16px;
+            font-weight: 700;
+        }
+
+        .score-val { 
+            font-size: 80px; 
+            font-weight: 900; 
+            background: linear-gradient(180deg, #fff 0%, var(--accent-blue) 100%); 
+            -webkit-background-clip: text; 
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1;
+            margin-bottom: 20px;
+            text-shadow: 0 0 60px rgba(59, 130, 246, 0.3);
+            font-variant-numeric: tabular-nums;
+            animation: scoreAppear 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s both;
+        }
+
+        @keyframes scoreAppear {
+            0% {
+                opacity: 0;
+                transform: scale(0.5) translateY(20px);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .tier-tag { 
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 24px; 
+            border-radius: var(--radius-md); 
+            font-size: 14px; 
+            font-weight: 800; 
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: var(--shadow-md);
+            animation: tierAppear 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.5s both;
+        }
+
+        @keyframes tierAppear {
+            0% {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .t1 { 
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(52, 211, 153, 0.2)); 
+            color: var(--success-light); 
+            border: 2px solid rgba(16, 185, 129, 0.4); 
+            box-shadow: 0 4px 20px rgba(16, 185, 129, 0.2);
+        }
+        .t2 { 
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(96, 165, 250, 0.2)); 
+            color: var(--accent-blue); 
+            border: 2px solid rgba(59, 130, 246, 0.4);
+            box-shadow: 0 4px 20px rgba(59, 130, 246, 0.2);
+        }
+        .t3 { 
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(251, 191, 36, 0.2)); 
+            color: var(--warning-light); 
+            border: 2px solid rgba(245, 158, 11, 0.4);
+            box-shadow: 0 4px 20px rgba(245, 158, 11, 0.2);
+        }
+        .t4 { 
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(248, 113, 113, 0.2)); 
+            color: var(--danger-light); 
+            border: 2px solid rgba(239, 68, 68, 0.4);
+            box-shadow: 0 4px 20px rgba(239, 68, 68, 0.2);
+        }
+        .t5 { 
+            background: linear-gradient(135deg, rgba(107, 114, 128, 0.2), rgba(156, 163, 175, 0.2)); 
+            color: var(--text-muted); 
+            border: 2px solid rgba(107, 114, 128, 0.4);
+        }
+
+        /* Category Cards */
+        .categories-section {
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-title::before {
+            content: '';
+            width: 3px;
+            height: 14px;
+            background: var(--accent-blue);
+            border-radius: 2px;
+        }
+
+        .categories-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .category-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            text-align: center;
+            transition: all var(--transition-base);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .category-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
+            opacity: 0;
+            transition: opacity var(--transition-base);
+        }
+
+        .category-card:hover::before {
+            opacity: 1;
+        }
+
+        .category-icon {
+            font-size: 20px;
+            margin-bottom: 8px;
+        }
+
+        .category-name {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        .category-score {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .category-weight {
+            font-size: 10px;
+            color: var(--text-dim);
+        }
+
+        /* History Button */
+        .history-btn {
+            width: 100%;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, var(--accent-purple) 0%, #6366f1 100%);
+            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.3);
+            border: none;
+        }
+
+        .history-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* Metric Cards */
+        .metrics-section {
+            margin-bottom: 20px;
+        }
+
+        .metric-card {
+            background: var(--panel-bg); 
+            border: 1px solid var(--panel-border); 
+            border-radius: var(--radius-md);
+            padding: 16px; 
+            margin-bottom: 10px; 
+            cursor: pointer; 
+            transition: all var(--transition-base); 
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: var(--shadow-sm);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            border-radius: 2px 0 0 2px;
+        }
+
+        .metric-card.tier-T1::before { background: var(--success); }
+        .metric-card.tier-T2::before { background: var(--accent-blue); }
+        .metric-card.tier-T3::before { background: var(--warning); }
+        .metric-card.tier-T4::before { background: var(--danger); }
+        .metric-card.tier-T5::before { background: var(--text-dim); }
+
+        .metric-card:active { 
+            transform: scale(0.98); 
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        .m-head { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 8px; 
+        }
+
+        .m-title { 
+            font-size: 13px; 
+            font-weight: 700; 
+            color: var(--text-primary);
+        }
+
+        .m-tier-badge {
+            font-size: 10px;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .m-tier-badge.t1 { background: rgba(16, 185, 129, 0.2); color: var(--success-light); }
+        .m-tier-badge.t2 { background: rgba(59, 130, 246, 0.2); color: var(--accent-blue); }
+        .m-tier-badge.t3 { background: rgba(245, 158, 11, 0.2); color: var(--warning-light); }
+        .m-tier-badge.t4 { background: rgba(239, 68, 68, 0.2); color: var(--danger-light); }
+        .m-tier-badge.t5 { background: rgba(107, 114, 128, 0.2); color: var(--text-muted); }
+
+        .m-vals { 
+            font-size: 11px; 
+            color: var(--text-muted);
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .m-vals b {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .m-deviation {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .m-deviation.good { color: var(--success-light); }
+        .m-deviation.warn { color: var(--warning-light); }
+        .m-deviation.bad { color: var(--danger-light); }
+
+        /* Scale Bar */
+        .scale-wrapper { 
+            position: relative; 
+            margin-top: 14px; 
+            height: 20px;
+            padding: 0 4px;
+        }
+
+        .scale-bar { 
+            height: 6px; 
+            border-radius: 3px; 
+            background: linear-gradient(to right, var(--danger), var(--warning), var(--success), var(--warning), var(--danger)); 
+            position: relative; 
+            top: 7px;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        .scale-pointer {
+            position: absolute; 
+            top: 3px; 
+            width: 14px; 
+            height: 14px; 
+            background: #fff; 
+            border-radius: 50%;
+            box-shadow: 0 0 12px var(--accent-blue), 0 2px 8px rgba(0, 0, 0, 0.5); 
+            transform: translateX(-50%); 
+            transition: left 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            border: 3px solid var(--accent-blue);
+            z-index: 2;
+        }
+
+        .scale-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 6px;
+            font-size: 9px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* ==================== INSPECTOR MODAL ==================== */
+        #inspector-modal {
+            display: none; 
+            position: fixed; 
+            inset: 0; 
+            background: var(--bg-primary); 
+            z-index: 2000;
+            flex-direction: column;
+            animation: fadeInModal 0.3s ease-out;
+        }
+
+        @keyframes fadeInModal {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .insp-header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 16px;
+            border-bottom: 1px solid var(--panel-border);
+            background: var(--panel-bg);
+            backdrop-filter: blur(16px);
+        }
+
+        .insp-title {
+            font-size: 16px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #insp-viewport { 
+            flex: 1; 
+            position: relative; 
+            background: #000; 
+            overflow: hidden;
+        }
+
+        .insp-info { 
+            background: var(--panel-bg); 
+            padding: 18px; 
+            border-top: 1px solid var(--panel-border);
+        }
+
+        .insp-desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 14px;
+            line-height: 1.6;
+        }
+
+        .insp-metrics {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .insp-metric-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px 12px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--panel-border);
+        }
+
+        .insp-metric-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .insp-metric-value {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-primary);
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* ==================== HISTORY MODAL ==================== */
+        #history-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: var(--bg-primary);
+            z-index: 1500;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .history-content {
+            padding: 16px;
+            padding-bottom: calc(16px + env(safe-area-inset-bottom));
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--panel-border);
+        }
+
+        .history-item {
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all var(--transition-base);
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .history-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--accent-blue);
+            opacity: 0;
+            transition: opacity var(--transition-base);
+        }
+
+        .history-item:hover::before,
+        .history-item:active::before {
+            opacity: 1;
+        }
+
+        .history-item:active {
+            transform: scale(0.98);
+            border-color: var(--accent-blue);
+            background: var(--panel-bg-hover);
+        }
+
+        .history-score-circle {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 800;
+            color: #fff;
+            flex-shrink: 0;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .history-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .history-date {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .history-tier {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .history-arrow {
+            color: var(--text-dim);
+            font-size: 18px;
+        }
+
+        .history-empty {
+            text-align: center;
+            padding: 80px 20px;
+            color: var(--text-muted);
+        }
+
+        .history-empty-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .history-empty-text {
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        /* ==================== LOADING STATES ==================== */
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ==================== TOAST NOTIFICATIONS ==================== */
+        .toast-container {
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 3000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            pointer-events: none;
+        }
+
+        .toast {
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            padding: 12px 20px;
+            border-radius: var(--radius-md);
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-primary);
+            box-shadow: var(--shadow-lg);
+            backdrop-filter: blur(16px);
+            animation: toastIn 0.3s ease-out;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            white-space: nowrap;
+        }
+
+        .toast.success {
+            border-color: var(--success);
+            background: linear-gradient(135deg, var(--panel-bg), rgba(16, 185, 129, 0.1));
+        }
+
+        .toast.error {
+            border-color: var(--danger);
+            background: linear-gradient(135deg, var(--panel-bg), rgba(239, 68, 68, 0.1));
+        }
+
+        .toast.warning {
+            border-color: var(--warning);
+            background: linear-gradient(135deg, var(--panel-bg), rgba(245, 158, 11, 0.1));
+        }
+
+        @keyframes toastIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes toastOut {
+            from {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+        }
+
+        /* ==================== RESPONSIVE ==================== */
+        @media (max-width: 380px) {
+            #app {
+                padding: 10px;
+                gap: 8px;
+            }
+
+            .header {
+                padding: 12px 14px;
+            }
+
+            .title {
+                font-size: 14px;
+            }
+
+            .mini-face-widget {
+                width: 150px;
+                padding: 10px;
+            }
+
+            .mini-face-svg {
+                height: 100px;
+            }
+
+            .score-val {
+                font-size: 64px;
+            }
+
+            .categories-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (min-width: 768px) {
+            .result-content,
+            .history-content {
+                padding: 24px;
+            }
+
+            .categories-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        /* ==================== DARK SCROLLBAR ==================== */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--panel-border);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-dim);
+        }
+
+        /* ==================== SELECTION PREVENTION ==================== */
+        img, canvas, svg {
+            -webkit-user-drag: none;
+            -khtml-user-drag: none;
+            -moz-user-drag: none;
+            -o-user-drag: none;
+            user-drag: none;
+        }
+    </style>
 </head>
 <body>
-<div id="app">
-  <div class="header">
-    <span class="title"><div class="title-dot"></div> HARM 30 ENGINE</span>
-    <span class="badge-count" id="pt-count">0 / 49</span>
-  </div>
-  <div class="step-banner" id="step-txt">Загрузите фото лица</div>
-  <div id="viewport">
-    <div class="zoom-tools" id="zoom-ctrls" style="display:none">
-      <div class="btn-icon" id="z-in">＋</div>
-      <div class="btn-icon" id="z-out">－</div>
-      <div class="btn-icon" id="z-reset">🔄</div>
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <div id="app">
+        <!-- Header -->
+        <div class="header">
+            <span class="title">
+                <div class="title-icon">📐</div>
+                <span>HARM 49 PRO</span>
+                <div class="title-dot"></div>
+            </span>
+            <span class="badge-count" id="pt-count">0 / 49</span>
+        </div>
+        
+        <!-- Step Banner -->
+        <div class="step-banner" id="step-txt">
+            <span class="step-icon">📸</span>
+            <span>Загрузите фото лица (анфас)</span>
+        </div>
+        
+        <!-- Viewport -->
+        <div id="viewport">
+            <!-- Sound Indicator -->
+            <div class="sound-indicator" id="sound-indicator">
+                <div class="sound-wave">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+                <span>Звук</span>
+            </div>
+
+            <!-- Mini Face Guide Widget -->
+            <div class="mini-face-widget" id="mini-face-widget">
+                <div class="widget-title">Подсказка</div>
+                <svg class="mini-face-svg" id="mini-face-svg" viewBox="0 0 100 130">
+                    <!-- Face Outline -->
+                    <ellipse cx="50" cy="60" rx="36" ry="48" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="1.5"/>
+                    <path d="M 18 55 Q 22 98 50 106 Q 78 98 82 55" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="1.5"/>
+                    
+                    <!-- Eyes -->
+                    <ellipse cx="34" cy="50" rx="7" ry="4" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="1"/>
+                    <ellipse cx="66" cy="50" rx="7" ry="4" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="1"/>
+                    <circle cx="34" cy="50" r="1.5" fill="rgba(255,255,255,0.4)"/>
+                    <circle cx="66" cy="50" r="1.5" fill="rgba(255,255,255,0.4)"/>
+                    
+                    <!-- Eyebrows -->
+                    <path d="M 25 43 Q 34 39 42 43" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="1.5" stroke-linecap="round"/>
+                    <path d="M 58 43 Q 66 39 75 43" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="1.5" stroke-linecap="round"/>
+                    
+                    <!-- Nose -->
+                    <path d="M 50 48 L 50 72" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+                    <path d="M 43 74 Q 50 78 57 74" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+                    
+                    <!-- Mouth -->
+                    <path d="M 34 88 Q 50 82 66 88 Q 50 96 34 88 Z" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="1"/>
+                    <path d="M 38 88 Q 50 85 62 88" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="0.5"/>
+                    
+                    <!-- Dynamic Points Group -->
+                    <g id="mini-face-points"></g>
+                </svg>
+                <div class="widget-info">
+                    <div class="current-point-name" id="mini-point-name">Подбородок</div>
+                    <div class="current-point-counter" id="mini-point-counter">Точка 1 из 49</div>
+                    <div class="widget-progress">
+                        <div class="widget-progress-bar" id="widget-progress-bar" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Zoom Controls -->
+            <div class="zoom-tools" id="zoom-ctrls">
+                <div class="btn-icon" id="z-in" title="Приблизить">＋</div>
+                <div class="btn-icon" id="z-out" title="Отдалить">－</div>
+                <div class="btn-icon" id="z-reset" title="Сбросить">⟲</div>
+            </div>
+
+            <!-- Crosshair Target -->
+            <div class="crosshair-target" id="crosshair-target">
+                <div class="crosshair-outer-ring"></div>
+                <div class="crosshair-ring"></div>
+                <div class="crosshair-inner-ring"></div>
+                <div class="crosshair-dot"></div>
+                <div class="crosshair-line v"></div>
+                <div class="crosshair-line v bottom"></div>
+                <div class="crosshair-line h"></div>
+                <div class="crosshair-line h right"></div>
+                <div class="crosshair-corner tl"></div>
+                <div class="crosshair-corner tr"></div>
+                <div class="crosshair-corner bl"></div>
+                <div class="crosshair-corner br"></div>
+            </div>
+
+            <!-- Main Canvas -->
+            <canvas id="cvs"></canvas>
+        </div>
+        
+        <!-- Hidden File Input -->
+        <input type="file" id="file-inp" accept="image/*" capture="environment" style="display:none">
+        
+        <!-- Controls -->
+        <div class="controls">
+            <button class="btn-reset" id="btn-reset" disabled title="Сбросить">✕</button>
+            <button class="btn-undo" id="btn-undo" disabled title="Отменить">↩</button>
+            <button id="btn-main">📸 Загрузить фото</button>
+            <button class="btn-confirm" id="btn-confirm" style="display:none">📍 Поставить точку</button>
+        </div>
     </div>
-    <canvas id="cvs"></canvas>
-  </div>
-  <input type="file" id="file-inp" accept="image/*" style="display:none">
-  <div class="controls">
-    <button class="btn-reset" id="btn-reset" disabled>✕</button>
-    <button class="btn-undo" id="btn-undo" disabled>↩</button>
-    <button id="btn-main">📸 Загрузить фото</button>
-    <button class="btn-confirm" id="btn-confirm" style="display:none">📍 Поставить точку</button>
-  </div>
-</div>
 
-<div id="result-screen">
-  <div class="score-card">
-    <div style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px">Итоговый индекс HARM</div>
-    <div class="score-val" id="res-score">0</div>
-    <div class="tier-tag" id="res-tier">T5</div>
-  </div>
-  <div id="metrics-container"></div>
-  <button id="btn-restart" style="width:100%;margin-top:12px;">Новый расчет</button>
-</div>
+    <!-- Result Screen -->
+    <div id="result-screen">
+        <div class="result-content">
+            <div class="result-header">
+                <div class="result-title">
+                    <span>📊</span>
+                    <span>Результаты анализа</span>
+                </div>
+                <div class="result-close" id="btn-close-result">✕</div>
+            </div>
 
-<div id="inspector-modal">
-  <div class="insp-header">
-    <span class="title" id="insp-title">Метрика</span>
-    <button id="btn-close-insp" style="width:auto;padding:8px 16px;background:var(--panel-bg)">Закрыть</button>
-  </div>
-  <div id="insp-viewport"><canvas id="insp-cvs"></canvas></div>
-  <div class="insp-info">
-    <div id="insp-desc" style="font-size:12px;color:var(--text-muted);margin-bottom:8px"></div>
-    <div class="scale-wrapper">
-      <div class="scale-bar"></div>
-      <div class="scale-pointer" id="insp-pointer"></div>
+            <!-- Score Card -->
+            <div class="score-card">
+                <div class="score-card-content">
+                    <div class="score-label">Итоговый индекс HARM</div>
+                    <div class="score-val" id="res-score">0</div>
+                    <div class="tier-tag" id="res-tier">
+                        <span>T5</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Categories -->
+            <div class="categories-section">
+                <div class="section-title">Категории</div>
+                <div class="categories-grid" id="categories-grid">
+                    <!-- Filled by JS -->
+                </div>
+            </div>
+
+            <!-- History Button -->
+            <button class="history-btn" id="btn-history">
+                <span>📊</span>
+                <span>История замеров</span>
+            </button>
+            
+            <!-- Metrics List -->
+            <div class="metrics-section">
+                <div class="section-title">Детализация метрик (30)</div>
+                <div id="metrics-container"></div>
+            </div>
+            
+            <!-- Restart Button -->
+            <button id="btn-restart" style="width:100%; margin-top:12px; background: var(--panel-bg); border: 1px solid var(--panel-border);">
+                <span>🔄</span>
+                <span>Новый расчет</span>
+            </button>
+        </div>
     </div>
-  </div>
-</div>
 
-<script>
-const LM49=[
-  "Верхняя точка лба","Левый висок","Правый висок","Левый угол челюсти","Правый угол челюсти",
-  "Левая скула","Правая скула","Центр подбородка","Низ подбородка",
-  "Внутр. угол левого глаза","Внеш. угол левого глаза","Центр левого зрачка",
-  "Внутр. угол правого глаза","Внеш. угол правого глаза","Центр правого зрачка",
-  "Левая бровь (старт)","Левая бровь (пик)","Левая бровь (хвост)",
-  "Правая бровь (старт)","Правая бровь (пик)","Правая бровь (хвост)",
-  "Межбровье","Верх переносицы",
-  "Кончик носа","Субназале (низ носа)","Левое крыло носа","Правое крыло носа",
-  "Левая ноздря","Правая ноздря","Спинка носа (верх)","Спинка носа (середина)",
-  "Колумелла","Губной желобок",
-  "Верхняя губа (Купидон лево)","Верхняя губа (Купидон право)","Центр верх. губы (низ)",
-  "Левый угол рта","Правый угол рта","Нижняя губа (верх)","Нижняя губа (низ)",
-  "Фильтрум (центр)","Левая подгубная складка","Правая подгубная складка",
-  "Широкая точка левой скулы","Широкая точка правой скулы",
-  "Граница верхней трети","Граница средней трети","Граница нижней трети","Адамово яблоко / Шея"
-];
+    <!-- Inspector Modal -->
+    <div id="inspector-modal">
+        <div class="insp-header">
+            <div class="insp-title">
+                <span>📐</span>
+                <span id="insp-title">Метрика</span>
+            </div>
+            <div class="result-close" id="btn-close-insp">✕</div>
+        </div>
+        <div id="insp-viewport">
+            <canvas id="insp-cvs"></canvas>
+        </div>
+        <div class="insp-info">
+            <div class="insp-desc" id="insp-desc"></div>
+            <div class="insp-metrics" id="insp-metrics"></div>
+            <div class="scale-wrapper">
+                <div class="scale-bar"></div>
+                <div class="scale-pointer" id="insp-pointer"></div>
+                <div class="scale-labels">
+                    <span>Отклонение</span>
+                    <span>Идеал</span>
+                    <span>Отклонение</span>
+                </div>
+            </div>
+        </div>
+    </div>
 
-const tg=window.Telegram?.WebApp;
-if(tg){tg.expand();tg.ready();}
+    <!-- History Modal -->
+    <div id="history-modal">
+        <div class="history-content">
+            <div class="history-header">
+                <div class="result-title">
+                    <span>📊</span>
+                    <span>История замеров</span>
+                </div>
+                <div class="result-close" id="btn-close-history">✕</div>
+            </div>
+            <div id="history-container"></div>
+        </div>
+    </div>
 
-const cvs=document.getElementById('cvs'),ctx=cvs.getContext('2d');
-const fileInp=document.getElementById('file-inp'),btnMain=document.getElementById('btn-main'),btnConfirm=document.getElementById('btn-confirm');
-const btnUndo=document.getElementById('btn-undo'),btnReset=document.getElementById('btn-reset');
-const stepTxt=document.getElementById('step-txt'),ptCount=document.getElementById('pt-count');
-const zoomCtrls=document.getElementById('zoom-ctrls');
+    <!-- External Scripts -->
+    <script src="harm_math.js"></script>
+    
+    <script>
+        // ================================================================
+        // =================== TELEGRAM WEB APP ============================
+        // ================================================================
+        const tg = window.Telegram?.WebApp;
+        if (tg) {
+            tg.expand();
+            tg.ready();
+            tg.setHeaderColor('#0a0a0a');
+            tg.setBackgroundColor('#0a0a0a');
+        }
 
-let img=null,pts=[],scale=1,userZoom=1,offX=0,offY=0,targetPt=null;
-let calculatedMetrics=[];
+        // ================================================================
+        // ======================= SOUND ENGINE ============================
+        // ================================================================
+        class SoundEngine {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+                this.volume = 0.5;
+            }
 
-btnMain.onclick=()=>{
-  if(!img)fileInp.click();
-  else if(pts.length===49)calcAndRenderHARM();
-};
+            init() {
+                if (!this.ctx && this.enabled) {
+                    try {
+                        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                        this.ctx = new AudioCtx();
+                    } catch (e) {
+                        console.warn('AudioContext not available:', e);
+                        this.enabled = false;
+                    }
+                }
+            }
 
-fileInp.onchange=(e)=>{
-  const f=e.target.files[0];
-  if(!f)return;
-  const r=new FileReader();
-  r.onload=(ev)=>{
-    img=new Image();
-    img.onload=()=>{
-      pts=[];
-      userZoom=1;
-      fitImage();
-      draw();
-      updateUI();
-    };
-    img.src=ev.target.result;
-  };
-  r.readAsDataURL(f);
-};
+            resume() {
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
 
-function fitImage(){
-  const vp=document.getElementById('viewport');
-  cvs.width=vp.clientWidth;
-  cvs.height=vp.clientHeight;
-  const sX=cvs.width/img.width, sY=cvs.height/img.height;
-  scale=Math.min(sX,sY)*userZoom;
-  offX=(cvs.width-img.width*scale)/2;
-  offY=(cvs.height-img.height*scale)/2;
-}
+            playClick() {
+                if (!this.enabled) return;
+                this.init();
+                this.resume();
+                if (!this.ctx) return;
 
-document.getElementById('z-in').onclick=()=>{if(img){userZoom*=1.2;fitImage();draw();}};
-document.getElementById('z-out').onclick=()=>{if(img){userZoom/=1.2;fitImage();draw();}};
-document.getElementById('z-reset').onclick=()=>{if(img){userZoom=1;fitImage();draw();}};
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
 
-cvs.addEventListener('pointerdown',(e)=>{
-  if(!img||pts.length>=49)return;
-  const rect=cvs.getBoundingClientRect();
-  const clX=e.clientX-rect.left, clY=e.clientY-rect.top;
-  const imgX=(clX-offX)/scale, imgY=(clY-offY)/scale;
-  if(imgX>=0&&imgX<=img.width&&imgY>=0&&imgY<=img.height){
-    targetPt={x:imgX,y:imgY};
-    btnConfirm.style.display='block';
-    if(tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
-    draw();
-  }
-});
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(1200, now);
+                osc.frequency.exponentialRampToValueAtTime(600, now + 0.06);
 
-btnConfirm.onclick=()=>{
-  if(targetPt){
-    pts.push(targetPt);
-    targetPt=null;
-    btnConfirm.style.display='none';
-    if(tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-    updateUI();
-    draw();
-  }
-};
+                gain.gain.setValueAtTime(this.volume * 0.4, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
 
-btnUndo.onclick=()=>{if(pts.length>0){pts.pop();targetPt=null;btnConfirm.style.display='none';updateUI();draw();}};
-btnReset.onclick=()=>{pts=[];targetPt=null;btnConfirm.style.display='none';updateUI();draw();};
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
 
-document.getElementById('btn-restart').onclick=()=>{
-  document.getElementById('result-screen').style.display='none';
-  pts=[];img=null;targetPt=null;
-  ctx.clearRect(0,0,cvs.width,cvs.height);
-  updateUI();
-};
+                osc.start(now);
+                osc.stop(now + 0.06);
 
-function updateUI(){
-  ptCount.innerText=`${pts.length} / 49`;
-  btnUndo.disabled=pts.length===0;
-  btnReset.disabled=pts.length===0;
-  if(!img){
-    stepTxt.innerText="Загрузите фото лица (анфас)";
-    btnMain.innerText="📸 Загрузить фото";
-    btnMain.style.display='block';
-    btnConfirm.style.display='none';
-    zoomCtrls.style.display='none';
-  }else if(pts.length<49){
-    stepTxt.innerText=`Точка ${pts.length+1}: ${LM49[pts.length]}`;
-    btnMain.innerText="Расставьте точки";
-    btnMain.disabled=true;
-    zoomCtrls.style.display='flex';
-  }else{
-    stepTxt.innerText="Все 49 точек установлены!";
-    btnMain.innerText="📊 Посчитать 30 параметров HARM";
-    btnMain.disabled=false;
-    btnMain.style.display='block';
-    btnConfirm.style.display='none';
-  }
-}
+                if (tg?.HapticFeedback) {
+                    tg.HapticFeedback.impactOccurred('light');
+                }
+            }
 
-function draw(){
-  ctx.clearRect(0,0,cvs.width,cvs.height);
-  if(!img)return;
-  ctx.drawImage(img,offX,offY,img.width*scale,img.height*scale);
+            playConfirm() {
+                if (!this.enabled) return;
+                this.init();
+                this.resume();
+                if (!this.ctx) return;
 
-  pts.forEach((p,i)=>{
-    const scrX=offX+p.x*scale, scrY=offY+p.y*scale;
-    ctx.beginPath();
-    ctx.arc(scrX,scrY,4,0,Math.PI*2);
-    ctx.fillStyle='#38bdf8';
-    ctx.fill();
-    ctx.strokeStyle='#fff';
-    ctx.lineWidth=1.5;
-    ctx.stroke();
-  });
+                const now = this.ctx.currentTime;
+                
+                // Two-tone confirmation sound
+                [800, 1200].forEach((freq, i) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
 
-  if(targetPt){
-    const scrX=offX+targetPt.x*scale, scrY=offY+targetPt.y*scale;
-    ctx.strokeStyle='#38bdf8';
-    ctx.lineWidth=2;
-    ctx.beginPath();ctx.arc(scrX,scrY,10,0,Math.PI*2);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(scrX-14,scrY);ctx.lineTo(scrX+14,scrY);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(scrX,scrY-14);ctx.lineTo(scrX,scrY+14);ctx.stroke();
-  }
-}
+                    osc.type = 'sine';
+                    osc.frequency.value = freq;
 
-const d=(p1,p2)=>Math.hypot(p2.x-p1.x,p2.y-p1.y);
+                    gain.gain.setValueAtTime(0, now + i * 0.08);
+                    gain.gain.linearRampToValueAtTime(this.volume * 0.3, now + i * 0.08 + 0.01);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.1);
 
-function angleDeg(p1, p2, p3) {
-  const a = d(p2, p3), b = d(p1, p2), c = d(p1, p3);
-  const rad = Math.acos((b*b + a*a - c*c)/(2*b*a));
-  return rad * (180 / Math.PI);
-}
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
 
-function getSlopeAngle(p1, p2) {
-  return Math.atan2(p2.y - p1.y, p2.x - p1.x) * (180 / Math.PI);
-}
+                    osc.start(now + i * 0.08);
+                    osc.stop(now + i * 0.08 + 0.1);
+                });
+            }
 
-function calcAndRenderHARM(){
-  const cheekW = d(pts[43], pts[44]);
-  const faceH = d(pts[0], pts[8]);
-  const midFaceH = d(pts[21], pts[35]);
-  const jawW = d(pts[3], pts[4]);
-  const interpupil = d(pts[11], pts[14]);
-  const eyeDist = d(pts[9], pts[12]);
-  const eyeL = d(pts[9], pts[10]);
-  const eyeH = d(pts[11], {x: pts[11].x, y: pts[9].y});
-  const outerCanthal = d(pts[10], pts[13]);
-  const noseW = d(pts[25], pts[26]);
-  const mouthW = d(pts[36], pts[37]);
-  const noseH = d(pts[22], pts[24]);
-  const chinH = d(pts[39], pts[8]);
-  const philtrumH = d(pts[24], pts[35]);
-  const upperLip = d(pts[32], pts[35]);
-  const lowerLip = d(pts[38], pts[39]);
-  const templeW = d(pts[1], pts[2]);
+            playUndo() {
+                if (!this.enabled) return;
+                this.init();
+                this.resume();
+                if (!this.ctx) return;
 
-  const canthalTiltVal = Math.abs(getSlopeAngle(pts[9], pts[10]));
-  const alarAngleVal = angleDeg(pts[25], pts[23], pts[26]);
-  const emeAngleVal = angleDeg(pts[11], pts[35], pts[14]);
-  const jfaAngleVal = angleDeg(pts[3], pts[7], pts[4]);
-  const browTiltVal = Math.abs(getSlopeAngle(pts[15], pts[17]));
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
 
-  const raw = [
-    { id:1, name:"1. FWHR", val: cheekW/midFaceH, ideal: 1.93, pts:[43,44,21,35] },
-    { id:2, name:"2. tFWHR", val: cheekW/faceH, ideal: 1.33, pts:[43,44,0,8] },
-    { id:3, name:"3. MFR (Midface Ratio)", val: interpupil/midFaceH, ideal: 1.00, pts:[11,14,21,35] },
-    { id:4, name:"4. Jaw Width", val: jawW/cheekW, ideal: 0.86, pts:[3,4,43,44] },
-    { id:5, name:"5. Bigonial Width", val: jawW/cheekW, ideal: 0.82, pts:[3,4,43,44] },
-    { id:6, name:"6. Neck Width", val: 0.92, ideal: 0.92, pts:[48] },
-    { id:7, name:"7. Canthal Tilt", val: canthalTiltVal, ideal: 5.0, unit:"°", pts:[9,10] },
-    { id:8, name:"8. ESR", val: (interpupil/cheekW)*100, ideal: 44.4, unit:"%", pts:[11,14,43,44] },
-    { id:9, name:"9. ES (Eye Separation)", val: eyeDist/eyeL, ideal: 1.0, pts:[9,12,9,10] },
-    { id:10, name:"10. Inner Canthal Distance", val: (eyeDist/cheekW)*100, ideal: 22.4, unit:"%", pts:[9,12,43,44] },
-    { id:11, name:"11. Outer Canthal Distance", val: outerCanthal/cheekW, ideal: 0.628, pts:[10,13,43,44] },
-    { id:12, name:"12. Medial Canthal Angle", val: 45.0, ideal: 45.0, unit:"°", pts:[9] },
-    { id:13, name:"13. PFL : PHL", val: eyeL/eyeH, ideal: 2.94, pts:[9,10,11] },
-    { id:14, name:"14. Lower Third", val: (d(pts[24],pts[8])/faceH)*100, ideal: 36.0, unit:"%", pts:[24,8,0] },
-    { id:15, name:"15. Cheekbones Height", val: 0.79, ideal: 0.79, pts:[43,44] },
-    { id:16, name:"16. Chin to Philtrum", val: chinH/philtrumH, ideal: 2.18, pts:[39,8,24,35] },
-    { id:17, name:"17. Lip Proportions", val: upperLip/lowerLip, ideal: 1.29, pts:[32,35,38,39] },
-    { id:18, name:"18. Mouth to Nose", val: noseW/mouthW, ideal: 0.69, pts:[25,26,36,37] },
-    { id:19, name:"19. Nose to Zygo", val: noseW/cheekW, ideal: 0.246, pts:[25,26,43,44] },
-    { id:20, name:"20. Nose Width to ICD", val: eyeDist/noseW, ideal: 0.91, pts:[9,12,25,26] },
-    { id:21, name:"21. Nose Width to Height", val: noseW/noseH, ideal: 0.73, pts:[25,26,22,24] },
-    { id:22, name:"22. Alar Angle", val: alarAngleVal, ideal: 95.0, unit:"°", pts:[25,23,26] },
-    { id:23, name:"23. EME (Eye-Mouth-Eye)", val: emeAngleVal, ideal: 48.0, unit:"°", pts:[11,35,14] },
-    { id:24, name:"24. Nose to Chin", val: 0.588, ideal: 0.588, pts:[24,8] },
-    { id:25, name:"25. Facial Thirds Dev", val: 4.5, ideal: 0.0, unit:"%", pts:[0,21,24,8] },
-    { id:26, name:"26. Brow Height", val: 0.314, ideal: 0.314, pts:[11,16] },
-    { id:27, name:"27. Bitemporal Width", val: templeW/cheekW, ideal: 0.907, pts:[1,2,43,44] },
-    { id:28, name:"28. Jaw Frontal Angle", val: jfaAngleVal, ideal: 96.0, unit:"°", pts:[3,7,4] },
-    { id:29, name:"29. IAA–JFA Deviation", val: Math.abs(alarAngleVal - jfaAngleVal), ideal: 0.9, unit:"°", pts:[25,23,3,7] },
-    { id:30, name:"30. Eyebrows Tilt", val: browTiltVal, ideal: 8.2, unit:"°", pts:[15,17] }
-  ];
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(500, now);
+                osc.frequency.exponentialRampToValueAtTime(250, now + 0.12);
 
-  calculatedMetrics = raw.map(m => {
-    let dev = Math.abs((m.val - m.ideal) / m.ideal) * 100;
-    let tier = "T1";
-    if (dev > 20) tier = "T5";
-    else if (dev > 14) tier = "T4";
-    else if (dev > 8) tier = "T3";
-    else if (dev > 3) tier = "T2";
+                gain.gain.setValueAtTime(this.volume * 0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
 
-    let unit = m.unit || "";
-    return {
-      ...m,
-      dev: dev.toFixed(1),
-      displayVal: `${m.val.toFixed(2)}${unit}`,
-      displayIdeal: `${m.ideal}${unit}`,
-      tier: tier
-    };
-  });
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
 
-  const t1Count = calculatedMetrics.filter(m => m.tier === "T1").length;
-  const finalScore = Math.round((t1Count / 30) * 100);
+                osc.start(now);
+                osc.stop(now + 0.12);
 
-  document.getElementById('res-score').innerText = finalScore;
-  const tEl = document.getElementById('res-tier');
-  tEl.innerText = `T${finalScore > 80 ? 1 : (finalScore > 60 ? 2 : 3)}`;
-  tEl.className = `tier-tag t1`;
+                if (tg?.HapticFeedback) {
+                    tg.HapticFeedback.impactOccurred('medium');
+                }
+            }
 
-  renderMetricsList();
-  document.getElementById('result-screen').style.display = 'block';
-}
+            playSuccess() {
+                if (!this.enabled) return;
+                this.init();
+                this.resume();
+                if (!this.ctx) return;
 
-function renderMetricsList(){
-  let html = '';
-  calculatedMetrics.forEach((m, idx) => {
-    let pointerPos = 50 + ((m.val - m.ideal) / m.ideal) * 50;
-    pointerPos = Math.max(5, Math.min(95, pointerPos));
+                const now = this.ctx.currentTime;
+                // Major chord arpeggio
+                const frequencies = [523.25, 659.25, 783.99, 1046.50, 1318.51];
 
-    let tierCls = m.tier.toLowerCase();
+                frequencies.forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
 
-    html += `<div class="metric-card" onclick="inspectMetric(${idx})">
-      <div class="m-head">
-        <span class="m-title">${m.name}</span>
-        <span class="tier-tag ${tierCls}">${m.tier} (${m.dev}%)</span>
-      </div>
-      <div class="m-vals">Факт: <b>${m.displayVal}</b> | Идеал: <b>${m.displayIdeal}</b></div>
-      <div class="scale-wrapper">
-        <div class="scale-bar"></div>
-        <div class="scale-pointer" style="left:${pointerPos}%"></div>
-      </div>
-    </div>`;
-  });
-  document.getElementById('metrics-container').innerHTML = html;
-}
+                    osc.type = 'sine';
+                    osc.frequency.value = freq;
 
-const inspCvs = document.getElementById('insp-cvs'), inspCtx = inspCvs.getContext('2d');
+                    const startTime = now + idx * 0.1;
+                    gain.gain.setValueAtTime(0, startTime);
+                    gain.gain.linearRampToValueAtTime(this.volume * 0.2, startTime + 0.02);
+                    gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.4);
 
-function inspectMetric(idx){
-  const m = calculatedMetrics[idx];
-  document.getElementById('insp-title').innerText = m.name;
-  document.getElementById('insp-desc').innerText = `Факт: ${m.displayVal} | Идеал: ${m.displayIdeal} (Отклонение: ${m.dev}%)`;
-  
-  let pointerPos = 50 + ((m.val - m.ideal) / m.ideal) * 50;
-  pointerPos = Math.max(5, Math.min(95, pointerPos));
-  document.getElementById('insp-pointer').style.left = `${pointerPos}%`;
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
 
-  document.getElementById('inspector-modal').style.display = 'flex';
+                    osc.start(startTime);
+                    osc.stop(startTime + 0.4);
+                });
 
-  setTimeout(() => {
-    const vp = document.getElementById('insp-viewport');
-    inspCvs.width = vp.clientWidth;
-    inspCvs.height = vp.clientHeight;
+                if (tg?.HapticFeedback) {
+                    tg.HapticFeedback.notificationOccurred('success');
+                }
+            }
 
-    const sX = inspCvs.width / img.width, sY = inspCvs.height / img.height;
-    const iScale = Math.min(sX, sY);
-    const iOffX = (inspCvs.width - img.width * iScale) / 2;
-    const iOffY = (inspCvs.height - img.height * iScale) / 2;
+            playError() {
+                if (!this.enabled) return;
+                this.init();
+                this.resume();
+                if (!this.ctx) return;
 
-    inspCtx.clearRect(0, 0, inspCvs.width, inspCvs.height);
-    inspCtx.drawImage(img, iOffX, iOffY, img.width * iScale, img.height * iScale);
+                const now = this.ctx.currentTime;
+                
+                [300, 200].forEach((freq, i) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
 
-    inspCtx.strokeStyle = '#38bdf8';
-    inspCtx.lineWidth = 2.5;
+                    osc.type = 'sawtooth';
+                    osc.frequency.value = freq;
 
-    if (m.pts.length > 1) {
-      inspCtx.beginPath();
-      const first = pts[m.pts[0]];
-      inspCtx.moveTo(iOffX + first.x * iScale, iOffY + first.y * iScale);
-      for (let i = 1; i < m.pts.length; i++) {
-        const p = pts[m.pts[i]];
-        if(p) inspCtx.lineTo(iOffX + p.x * iScale, iOffY + p.y * iScale);
-      }
-      inspCtx.stroke();
-    }
+                    const startTime = now + i * 0.1;
+                    gain.gain.setValueAtTime(this.volume * 0.2, startTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.15);
 
-    m.pts.forEach(ptIdx => {
-      const p = pts[ptIdx];
-      if (!p) return;
-      const scrX = iOffX + p.x * iScale, scrY = iOffY + p.y * iScale;
-      inspCtx.beginPath();
-      inspCtx.arc(scrX, scrY, 5, 0, Math.PI * 2);
-      inspCtx.fillStyle = '#38bdf8';
-      inspCtx.fill();
-      inspCtx.strokeStyle = '#fff';
-      inspCtx.lineWidth = 1.5;
-      inspCtx.stroke();
-    });
-  }, 50);
-}
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
 
-document.getElementById('btn-close-insp').onclick = () => {
-  document.getElementById('inspector-modal').style.display = 'none';
-};
-</script>
+                    osc.start(startTime);
+                    osc.stop(startTime + 0.15);
+                });
+
+                if (tg?.HapticFeedback) {
+                    tg.HapticFeedback.notificationOccurred('error');
+                }
+            }
+        }
+
+        const sound = new SoundEngine();
+
+        // ================================================================
+        // ====================== TOAST SYSTEM =============================
+        // ================================================================
+        class ToastManager {
+            constructor() {
+                this.container = document.getElementById('toast-container');
+            }
+
+            show(message, type = 'info', duration = 3000) {
+                const toast = document.createElement('div');
+                toast.className = `toast ${type}`;
+                
+                const icons = {
+                    success: '✓',
+                    error: '✕',
+                    warning: '⚠',
+                    info: 'ℹ'
+                };
+
+                toast.innerHTML = `
+                    <span>${icons[type] || icons.info}</span>
+                    <span>${message}</span>
+                `;
+
+                this.container.appendChild(toast);
+
+                setTimeout(() => {
+                    toast.style.animation = 'toastOut 0.3s ease-out forwards';
+                    setTimeout(() => toast.remove(), 300);
+                }, duration);
+            }
+        }
+
+        const toast = new ToastManager();
+
+        // ================================================================
+        // ====================== DOM ELEMENTS =============================
+        // ================================================================
+        const cvs = document.getElementById('cvs');
+        const ctx = cvs.getContext('2d', { alpha: false });
+        const fileInp = document.getElementById('file-inp');
+        const btnMain = document.getElementById('btn-main');
+        const btnConfirm = document.getElementById('btn-confirm');
+        const btnUndo = document.getElementById('btn-undo');
+        const btnReset = document.getElementById('btn-reset');
+        const stepTxt = document.getElementById('step-txt');
+        const ptCount = document.getElementById('pt-count');
+        const zoomCtrls = document.getElementById('zoom-ctrls');
+        const crosshairTarget = document.getElementById('crosshair-target');
+        const miniFaceWidget = document.getElementById('mini-face-widget');
+        const soundIndicator = document.getElementById('sound-indicator');
+
+        // ================================================================
+        // ========================= STATE =================================
+        // ================================================================
+        let img = null;
+        let pts = [];
+        let scale = 1;
+        let userZoom = 1;
+        let offX = 0;
+        let offY = 0;
+        let targetPt = null;
+        let calculatedMetrics = [];
+        let imageRotation = 0;
+
+        // Touch state for pinch-to-zoom and pan
+        let isDragging = false;
+        let lastTouchX = 0;
+        let lastTouchY = 0;
+        let initialPinchDistance = 0;
+        let initialScale = 1;
+        let initialOffX = 0;
+        let initialOffY = 0;
+        let pinchCenterX = 0;
+        let pinchCenterY = 0;
+
+        // Animation frame ID
+        let animationFrameId = null;
+
+        // Mini face points positions (approximate anatomical positions)
+        const MINI_FACE_POINTS = [
+            {x: 50, y: 14},   // 0: Верхняя точка лба
+            {x: 20, y: 45},   // 1: Левый висок
+            {x: 80, y: 45},   // 2: Правый висок
+            {x: 22, y: 82},   // 3: Левый угол челюсти
+            {x: 78, y: 82},   // 4: Правый угол челюсти
+            {x: 25, y: 62},   // 5: Левая скула
+            {x: 75, y: 62},   // 6: Правая скула
+            {x: 50, y: 100},  // 7: Центр подбородка
+            {x: 50, y: 108},  // 8: Низ подбородка
+            {x: 36, y: 50},   // 9: Внутр. угол левого глаза
+            {x: 24, y: 50},   // 10: Внеш. угол левого глаза
+            {x: 30, y: 50},   // 11: Центр левого зрачка
+            {x: 64, y: 50},   // 12: Внутр. угол правого глаза
+            {x: 76, y: 50},   // 13: Внеш. угол правого глаза
+            {x: 70, y: 50},   // 14: Центр правого зрачка
+            {x: 24, y: 42},   // 15: Левая бровь (старт)
+            {x: 30, y: 38},   // 16: Левая бровь (пик)
+            {x: 36, y: 42},   // 17: Левая бровь (хвост)
+            {x: 64, y: 42},   // 18: Правая бровь (старт)
+            {x: 70, y: 38},   // 19: Правая бровь (пик)
+            {x: 76, y: 42},   // 20: Правая бровь (хвост)
+            {x: 50, y: 44},   // 21: Межбровье
+            {x: 50, y: 50},   // 22: Верх переносицы
+            {x: 50, y: 70},   // 23: Кончик носа
+            {x: 50, y: 76},   // 24: Субназале
+            {x: 42, y: 72},   // 25: Левое крыло носа
+            {x: 58, y: 72},   // 26: Правое крыло носа
+            {x: 44, y: 74},   // 27: Левая ноздря
+            {x: 56, y: 74},   // 28: Правая ноздря
+            {x: 50, y: 55},   // 29: Спинка носа (верх)
+            {x: 50, y: 62},   // 30: Спинка носа (середина)
+            {x: 50, y: 77},   // 31: Колумелла
+            {x: 50, y: 80},   // 32: Губной желобок
+            {x: 44, y: 85},   // 33: Верхняя губа (Купидон лево)
+            {x: 56, y: 85},   // 34: Верхняя губа (Купидон право)
+            {x: 50, y: 87},   // 35: Центр верх. губы
+            {x: 36, y: 88},   // 36: Левый угол рта
+            {x: 64, y: 88},   // 37: Правый угол рта
+            {x: 50, y: 91},   // 38: Нижняя губа (верх)
+            {x: 50, y: 96},   // 39: Нижняя губа (низ)
+            {x: 50, y: 82},   // 40: Фильтрум (центр)
+            {x: 40, y: 94},   // 41: Левая подгубная складка
+            {x: 60, y: 94},   // 42: Правая подгубная складка
+            {x: 18, y: 60},   // 43: Широкая точка левой скулы
+            {x: 82, y: 60},   // 44: Широкая точка правой скулы
+            {x: 50, y: 30},   // 45: Граница верхней трети
+            {x: 50, y: 60},   // 46: Граница средней трети
+            {x: 50, y: 90},   // 47: Граница нижней трети
+            {x: 50, y: 118}   // 48: Адамово яблоко
+        ];
+
+        // ================================================================
+        // ===================== MAIN BUTTON HANDLER ======================
+        // ================================================================
+        btnMain.onclick = () => {
+            sound.resume();
+            
+            if (!img) {
+                fileInp.click();
+            } else if (pts.length === 49) {
+                btnMain.disabled = true;
+                btnMain.innerHTML = '<span class="loading-spinner"></span><span>Расчет...</span>';
+                
+                setTimeout(() => {
+                    calcAndRenderHARM();
+                    btnMain.disabled = false;
+                    btnMain.innerHTML = '📊 Посчитать HARM';
+                }, 100);
+            }
+        };
+
+        // ================================================================
+        // ===================== FILE INPUT HANDLER =======================
+        // ================================================================
+        fileInp.onchange = (e) => {
+            const f = e.target.files[0];
+            if (!f) return;
+
+            // Check file size (max 10MB)
+            if (f.size > 10 * 1024 * 1024) {
+                toast.show('Файл слишком большой (макс. 10MB)', 'error');
+                return;
+            }
+
+            stepTxt.className = 'step-banner loading';
+            stepTxt.innerHTML = '<span class="step-icon"><span class="loading-spinner"></span></span><span>Загрузка изображения...</span>';
+
+            const r = new FileReader();
+            r.onload = (ev) => {
+                img = new Image();
+                img.onload = () => {
+                    pts = [];
+                    userZoom = 1;
+                    offX = 0;
+                    offY = 0;
+                    fitImage();
+                    draw();
+                    updateUI();
+                    showCrosshair();
+                    showMiniFace();
+                    showSoundIndicator();
+                    sound.playConfirm();
+                    toast.show('Фото загружено. Расставьте 49 точек', 'success');
+                    
+                    stepTxt.className = 'step-banner';
+                };
+                img.onerror = () => {
+                    toast.show('Ошибка загрузки изображения', 'error');
+                    stepTxt.className = 'step-banner';
+                    stepTxt.innerHTML = '<span class="step-icon">📸</span><span>Загрузите фото лица (анфас)</span>';
+                };
+                img.src = ev.target.result;
+            };
+            r.onerror = () => {
+                toast.show('Ошибка чтения файла', 'error');
+                stepTxt.className = 'step-banner';
+            };
+            r.readAsDataURL(f);
+        };
+
+        // ================================================================
+        // ========================= FIT IMAGE =============================
+        // ================================================================
+        function fitImage() {
+            const vp = document.getElementById('viewport');
+            const dpr = window.devicePixelRatio || 1;
+            
+            cvs.width = vp.clientWidth * dpr;
+            cvs.height = vp.clientHeight * dpr;
+            cvs.style.width = vp.clientWidth + 'px';
+            cvs.style.height = vp.clientHeight + 'px';
+            ctx.scale(dpr, dpr);
+
+            const displayWidth = vp.clientWidth;
+            const displayHeight = vp.clientHeight;
+
+            const sX = displayWidth / img.width;
+            const sY = displayHeight / img.height;
+            scale = Math.min(sX, sY) * userZoom;
+            
+            if (offX === 0 && offY === 0) {
+                offX = (displayWidth - img.width * scale) / 2;
+                offY = (displayHeight - img.height * scale) / 2;
+            }
+        }
+
+        // ================================================================
+        // ====================== ZOOM CONTROLS ============================
+        // ================================================================
+        document.getElementById('z-in').onclick = () => {
+            if (img && userZoom < 4) {
+                userZoom = Math.min(4, userZoom * 1.3);
+                fitImage();
+                draw();
+                sound.playClick();
+            }
+        };
+
+        document.getElementById('z-out').onclick = () => {
+            if (img && userZoom > 0.5) {
+                userZoom = Math.max(0.5, userZoom / 1.3);
+                fitImage();
+                draw();
+                sound.playClick();
+            }
+        };
+
+        document.getElementById('z-reset').onclick = () => {
+            if (img) {
+                userZoom = 1;
+                offX = 0;
+                offY = 0;
+                fitImage();
+                draw();
+                sound.playClick();
+                toast.show('Масштаб сброшен', 'info', 1500);
+            }
+        };
+
+        // ================================================================
+        // ================== TOUCH EVENTS FOR PAN/ZOOM ====================
+        // ================================================================
+        cvs.addEventListener('touchstart', handleTouchStart, {passive: false});
+        cvs.addEventListener('touchmove', handleTouchMove, {passive: false});
+        cvs.addEventListener('touchend', handleTouchEnd);
+
+        function handleTouchStart(e) {
+            if (!img) return;
+            e.preventDefault();
+
+            if (e.touches.length === 1) {
+                isDragging = true;
+                lastTouchX = e.touches[0].clientX;
+                lastTouchY = e.touches[0].clientY;
+            } else if (e.touches.length === 2) {
+                isDragging = false;
+                initialPinchDistance = getDistance(e.touches[0], e.touches[1]);
+                initialScale = userZoom;
+                initialOffX = offX;
+                initialOffY = offY;
+                
+                const center = getCenter(e.touches[0], e.touches[1]);
+                pinchCenterX = center.x;
+                pinchCenterY = center.y;
+            }
+        }
+
+        function handleTouchMove(e) {
+            if (!img) return;
+            e.preventDefault();
+
+            if (e.touches.length === 1 && isDragging && pts.length < 49) {
+                const dx = e.touches[0].clientX - lastTouchX;
+                const dy = e.touches[0].clientY - lastTouchY;
+                offX += dx;
+                offY += dy;
+                lastTouchX = e.touches[0].clientX;
+                lastTouchY = e.touches[0].clientY;
+                requestDraw();
+            } else if (e.touches.length === 2) {
+                const currentDistance = getDistance(e.touches[0], e.touches[1]);
+                const factor = currentDistance / initialPinchDistance;
+                const newZoom = Math.max(0.5, Math.min(4, initialScale * factor));
+                
+                if (newZoom !== userZoom) {
+                    userZoom = newZoom;
+                    
+                    const center = getCenter(e.touches[0], e.touches[1]);
+                    const vp = document.getElementById('viewport');
+                    const displayWidth = vp.clientWidth;
+                    const displayHeight = vp.clientHeight;
+                    
+                    const sX = displayWidth / img.width;
+                    const sY = displayHeight / img.height;
+                    const newScale = Math.min(sX, sY) * userZoom;
+                    
+                    const imgX = (pinchCenterX - initialOffX) / (Math.min(sX, sY) * initialScale);
+                    const imgY = (pinchCenterY - initialOffY) / (Math.min(sX, sY) * initialScale);
+                    
+                    offX = pinchCenterX - imgX * newScale;
+                    offY = pinchCenterY - imgY * newScale;
+                    
+                    scale = newScale;
+                    requestDraw();
+                }
+            }
+        }
+
+        function handleTouchEnd(e) {
+            if (e.touches.length === 0) {
+                isDragging = false;
+            } else if (e.touches.length === 1) {
+                lastTouchX = e.touches[0].clientX;
+                lastTouchY = e.touches[0].clientY;
+                isDragging = true;
+            }
+        }
+
+        function getDistance(t1, t2) {
+            return Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+        }
+
+        function getCenter(t1, t2) {
+            return {
+                x: (t1.clientX + t2.clientX) / 2,
+                y: (t1.clientY + t2.clientY) / 2
+            };
+        }
+
+        // Mouse wheel zoom (for desktop testing)
+        cvs.addEventListener('wheel', (e) => {
+            if (!img) return;
+            e.preventDefault();
+            
+            const delta = e.deltaY > 0 ? 0.9 : 1.1;
+            const newZoom = Math.max(0.5, Math.min(4, userZoom * delta));
+            
+            if (newZoom !== userZoom) {
+                const rect = cvs.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+                
+                const imgX = (mouseX - offX) / scale;
+                const imgY = (mouseY - offY) / scale;
+                
+                userZoom = newZoom;
+                fitImage();
+                
+                offX = mouseX - imgX * scale;
+                offY = mouseY - imgY * scale;
+                
+                draw();
+            }
+        }, {passive: false});
+
+        // ================================================================
+        // ================ POINTER EVENTS FOR PLACING POINTS ==============
+        // ================================================================
+        cvs.addEventListener('pointerdown', (e) => {
+            if (!img || pts.length >= 49) return;
+
+            const rect = cvs.getBoundingClientRect();
+            const clX = e.clientX - rect.left;
+            const clY = e.clientY - rect.top;
+
+            const imgX = (clX - offX) / scale;
+            const imgY = (clY - offY) / scale;
+
+            if (imgX >= 0 && imgX <= img.width && imgY >= 0 && imgY <= img.height) {
+                targetPt = { x: imgX, y: imgY };
+                btnConfirm.style.display = 'flex';
+                draw();
+            }
+        });
+
+        // ================================================================
+        // ===================== CONFIRM BUTTON ============================
+        // ================================================================
+        btnConfirm.onclick = () => {
+            if (targetPt) {
+                pts.push(targetPt);
+                targetPt = null;
+                btnConfirm.style.display = 'none';
+                sound.playClick();
+                updateUI();
+                updateMiniFaceSVG();
+                draw();
+
+                if (pts.length === 49) {
+                    setTimeout(() => {
+                        sound.playSuccess();
+                        toast.show('Все точки расставлены! Нажмите "Посчитать HARM"', 'success', 4000);
+                    }, 300);
+                }
+            }
+        };
+
+        // ================================================================
+        // ======================= UNDO BUTTON =============================
+        // ================================================================
+        btnUndo.onclick = () => {
+            if (pts.length > 0) {
+                pts.pop();
+                targetPt = null;
+                btnConfirm.style.display = 'none';
+                sound.playUndo();
+                updateUI();
+                updateMiniFaceSVG();
+                draw();
+            }
+        };
+
+        // ================================================================
+        // ====================== RESET BUTTON =============================
+        // ================================================================
+        btnReset.onclick = () => {
+            if (pts.length === 0) return;
+            
+            if (confirm('Сбросить все расставленные точки?')) {
+                pts = [];
+                targetPt = null;
+                btnConfirm.style.display = 'none';
+                sound.playUndo();
+                updateUI();
+                updateMiniFaceSVG();
+                draw();
+                toast.show('Точки сброшены', 'info', 2000);
+            }
+        };
+
+        // ================================================================
+        // ===================== RESTART BUTTON ============================
+        // ================================================================
+        document.getElementById('btn-restart').onclick = () => {
+            document.getElementById('result-screen').style.display = 'none';
+            pts = [];
+            img = null;
+            targetPt = null;
+            userZoom = 1;
+            offX = 0;
+            offY = 0;
+            
+            const dpr = window.devicePixelRatio || 1;
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.clearRect(0, 0, cvs.width, cvs.height);
+            
+            hideCrosshair();
+            hideMiniFace();
+            hideSoundIndicator();
+            updateUI();
+            toast.show('Готово к новому замеру', 'info', 2000);
+        };
+
+        document.getElementById('btn-close-result').onclick = () => {
+            document.getElementById('result-screen').style.display = 'none';
+        };
+
+        // ================================================================
+        // ======================== UPDATE UI ==============================
+        // ================================================================
+        function updateUI() {
+            ptCount.innerText = `${pts.length} / 49`;
+            btnUndo.disabled = pts.length === 0;
+            btnReset.disabled = pts.length === 0;
+
+            // Update progress bar in widget
+            const progressBar = document.getElementById('widget-progress-bar');
+            if (progressBar) {
+                progressBar.style.width = `${(pts.length / 49) * 100}%`;
+            }
+
+            if (!img) {
+                stepTxt.className = 'step-banner';
+                stepTxt.innerHTML = '<span class="step-icon">📸</span><span>Загрузите фото лица (анфас)</span>';
+                btnMain.innerHTML = '📸 Загрузить фото';
+                btnMain.style.display = 'flex';
+                btnMain.disabled = false;
+                btnConfirm.style.display = 'none';
+                zoomCtrls.classList.remove('active');
+            } else if (pts.length < 49) {
+                const currentLandmark = LANDMARKS_49[pts.length];
+                stepTxt.className = 'step-banner';
+                stepTxt.innerHTML = `<span class="step-icon">📍</span><span>Точка ${pts.length + 1}: ${currentLandmark}</span>`;
+                btnMain.innerHTML = 'Расставьте точки';
+                btnMain.disabled = true;
+                btnMain.style.display = 'none';
+                zoomCtrls.classList.add('active');
+                
+                document.getElementById('mini-point-name').innerText = currentLandmark;
+                document.getElementById('mini-point-counter').innerText = `Точка ${pts.length + 1} из 49`;
+            } else {
+                stepTxt.className = 'step-banner success';
+                stepTxt.innerHTML = '<span class="step-icon">✓</span><span>Все 49 точек установлены!</span>';
+                btnMain.innerHTML = '📊 Посчитать HARM';
+                btnMain.disabled = false;
+                btnMain.style.display = 'flex';
+                btnConfirm.style.display = 'none';
+                
+                document.getElementById('mini-point-name').innerText = 'Готово!';
+                document.getElementById('mini-point-counter').innerText = 'Все точки расставлены';
+            }
+        }
+
+        // ================================================================
+        // ================== SHOW/HIDE UI ELEMENTS ========================
+        // ================================================================
+        function showCrosshair() {
+            crosshairTarget.classList.add('active');
+        }
+
+        function hideCrosshair() {
+            crosshairTarget.classList.remove('active');
+        }
+
+        function showMiniFace() {
+            miniFaceWidget.classList.add('active');
+            updateMiniFaceSVG();
+        }
+
+        function hideMiniFace() {
+            miniFaceWidget.classList.remove('active');
+        }
+
+        function showSoundIndicator() {
+            soundIndicator.classList.add('active');
+        }
+
+        function hideSoundIndicator() {
+            soundIndicator.classList.remove('active');
+        }
+
+        // ================================================================
+        // =================== UPDATE MINI FACE SVG ========================
+        // ================================================================
+        function updateMiniFaceSVG() {
+            const group = document.getElementById('mini-face-points');
+            group.innerHTML = '';
+
+            MINI_FACE_POINTS.forEach((pt, idx) => {
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('cx', pt.x);
+                circle.setAttribute('cy', pt.y);
+
+                if (idx < pts.length) {
+                    // Placed point - green
+                    circle.setAttribute('r', '2.5');
+                    circle.setAttribute('fill', '#10b981');
+                    circle.setAttribute('opacity', '0.9');
+                } else if (idx === pts.length) {
+                    // Current point - red pulsing
+                    circle.setAttribute('r', '4');
+                    circle.setAttribute('fill', '#ef4444');
+                    circle.setAttribute('opacity', '1');
+                    
+                    // Add pulsing animation
+                    const animate = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
+                    animate.setAttribute('attributeName', 'r');
+                    animate.setAttribute('values', '4;6;4');
+                    animate.setAttribute('dur', '1s');
+                    animate.setAttribute('repeatCount', 'indefinite');
+                    circle.appendChild(animate);
+
+                    // Add glow
+                    circle.setAttribute('filter', 'url(#glow)');
+                } else {
+                    // Future point - dim
+                    circle.setAttribute('r', '2');
+                    circle.setAttribute('fill', 'rgba(255, 255, 255, 0.2)');
+                }
+
+                group.appendChild(circle);
+            });
+        }
+
+        // ================================================================
+        // ====================== REQUEST DRAW =============================
+        // ================================================================
+        function requestDraw() {
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+            }
+            animationFrameId = requestAnimationFrame(draw);
+        }
+
+        // ================================================================
+        // ======================= DRAW FUNCTION ===========================
+        // ================================================================
+        function draw() {
+            const vp = document.getElementById('viewport');
+            const displayWidth = vp.clientWidth;
+            const displayHeight = vp.clientHeight;
+            
+            ctx.clearRect(0, 0, displayWidth, displayHeight);
+            
+            if (!img) return;
+
+            // Draw image
+            ctx.drawImage(img, offX, offY, img.width * scale, img.height * scale);
+
+            // Draw connecting lines between points (subtle)
+            if (pts.length > 1) {
+                ctx.strokeStyle = 'rgba(59, 130, 246, 0.15)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                
+                for (let i = 0; i < pts.length - 1; i++) {
+                    const p1 = pts[i];
+                    const p2 = pts[i + 1];
+                    const scrX1 = offX + p1.x * scale;
+                    const scrY1 = offY + p1.y * scale;
+                    const scrX2 = offX + p2.x * scale;
+                    const scrY2 = offY + p2.y * scale;
+                    
+                    ctx.moveTo(scrX1, scrY1);
+                    ctx.lineTo(scrX2, scrY2);
+                }
+                ctx.stroke();
+            }
+
+            // Draw placed points
+            pts.forEach((p, i) => {
+                const scrX = offX + p.x * scale;
+                const scrY = offY + p.y * scale;
+                
+                const isLast = i === pts.length - 1;
+                const radius = isLast ? 7 : 5;
+
+                // Outer glow for last point
+                if (isLast) {
+                    ctx.beginPath();
+                    ctx.arc(scrX, scrY, radius + 4, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(16, 185, 129, 0.3)';
+                    ctx.fill();
+                }
+
+                // Point circle
+                ctx.beginPath();
+                ctx.arc(scrX, scrY, radius, 0, Math.PI * 2);
+                ctx.fillStyle = isLast ? '#10b981' : '#3b82f6';
+                ctx.fill();
+                
+                // White border
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Number label
+                if (scale > 0.8) {
+                    ctx.fillStyle = '#fff';
+                    ctx.font = `bold ${Math.max(9, Math.min(12, 10 * scale))}px -apple-system, sans-serif`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    
+                    // Background for number
+                    const textWidth = ctx.measureText(i + 1).width;
+                    const labelY = scrY - radius - 8;
+                    
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                    ctx.beginPath();
+                    ctx.roundRect(scrX - textWidth/2 - 4, labelY - 7, textWidth + 8, 14, 4);
+                    ctx.fill();
+                    
+                    ctx.fillStyle = '#fff';
+                    ctx.fillText(i + 1, scrX, labelY);
+                }
+            });
+
+            // Draw target point (preview)
+            if (targetPt) {
+                const scrX = offX + targetPt.x * scale;
+                const scrY = offY + targetPt.y * scale;
+
+                // Outer ring
+                ctx.strokeStyle = '#3b82f6';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([4, 4]);
+                ctx.beginPath();
+                ctx.arc(scrX, scrY, 16, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Crosshair lines
+                ctx.strokeStyle = 'rgba(59, 130, 246, 0.8)';
+                ctx.lineWidth = 1.5;
+                
+                ctx.beginPath();
+                ctx.moveTo(scrX - 20, scrY);
+                ctx.lineTo(scrX - 8, scrY);
+                ctx.moveTo(scrX + 8, scrY);
+                ctx.lineTo(scrX + 20, scrY);
+                ctx.moveTo(scrX, scrY - 20);
+                ctx.lineTo(scrX, scrY - 8);
+                ctx.moveTo(scrX, scrY + 8);
+                ctx.lineTo(scrX, scrY + 20);
+                ctx.stroke();
+
+                // Center dot
+                ctx.beginPath();
+                ctx.arc(scrX, scrY, 4, 0, Math.PI * 2);
+                ctx.fillStyle = '#3b82f6';
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            }
+        }
+
+        // ================================================================
+        // ================== CALCULATE AND RENDER HARM ====================
+        // ================================================================
+        function calcAndRenderHARM() {
+            calculatedMetrics = calculateAllMetrics(pts);
+
+            // Calculate category scores
+            const categories = calculateCategories(calculatedMetrics);
+
+            // Calculate final score with HARM formula
+            const result = calculateHARMFormula(categories);
+
+            // Update UI
+            document.getElementById('res-score').innerText = result.finalScore;
+            
+            const tEl = document.getElementById('res-tier');
+            let tierClass = 't5';
+            let tierText = 'T5';
+            
+            if (result.finalScore >= 80) {
+                tierClass = 't1';
+                tierText = 'T1 — Model Tier';
+            } else if (result.finalScore >= 65) {
+                tierClass = 't2';
+                tierText = 'T2 — High Harmony';
+            } else if (result.finalScore >= 50) {
+                tierClass = 't3';
+                tierText = 'T3 — Average';
+            } else if (result.finalScore >= 35) {
+                tierClass = 't4';
+                tierText = 'T4 — Below Average';
+            }
+
+            tEl.innerHTML = `<span>${tierText}</span>`;
+            tEl.className = `tier-tag ${tierClass}`;
+
+            // Render categories
+            renderCategories(categories);
+
+            // Render metrics list
+            renderMetricsList();
+
+            // Show result screen
+            document.getElementById('result-screen').style.display = 'block';
+
+            // Save to history
+            saveToHistory(result.finalScore, tierText, categories, calculatedMetrics);
+
+            // Play success sound
+            sound.playSuccess();
+        }
+
+        // ================================================================
+        // ==================== RENDER CATEGORIES ==========================
+        // ================================================================
+        function renderCategories(categories) {
+            const container = document.getElementById('categories-grid');
+            
+            const categoryIcons = {
+                'Harmony': '⚖️',
+                'Angularity': '📐',
+                'Dimorphism': '👤',
+                'Misc': '📏'
+            };
+
+            const categoryWeights = {
+                'Harmony': 32,
+                'Misc': 26,
+                'Angularity': 22,
+                'Dimorphism': 20
+            };
+
+            let html = '';
+            for (const [name, data] of Object.entries(categories)) {
+                html += `
+                    <div class="category-card">
+                        <div class="category-icon">${categoryIcons[name] || '📊'}</div>
+                        <div class="category-name">${name}</div>
+                        <div class="category-score">${data.score.toFixed(0)}</div>
+                        <div class="category-weight">Вес: ${categoryWeights[name] || 0}%</div>
+                    </div>
+                `;
+            }
+            container.innerHTML = html;
+        }
+
+        // ================================================================
+        // =================== RENDER METRICS LIST =========================
+        // ================================================================
+        function renderMetricsList() {
+            let html = '';
+
+            calculatedMetrics.forEach((m, idx) => {
+                let pointerPos = 50 + ((m.val - m.ideal) / m.ideal) * 50;
+                pointerPos = Math.max(5, Math.min(95, pointerPos));
+
+                const tierCls = m.tier.toLowerCase();
+                const devNum = parseFloat(m.dev);
+                const devClass = devNum <= 3 ? 'good' : (devNum <= 8 ? 'warn' : 'bad');
+
+                html += `
+                    <div class="metric-card tier-T${m.tier.charAt(1)}" onclick="inspectMetric(${idx})">
+                        <div class="m-head">
+                            <span class="m-title">${m.name}</span>
+                            <span class="m-tier-badge ${tierCls}">${m.tier}</span>
+                        </div>
+                        <div class="m-vals">
+                            <span>Факт: <b>${m.displayVal}</b></span>
+                            <span>Идеал: <b>${m.displayIdeal}</b></span>
+                        </div>
+                        <div class="scale-wrapper">
+                            <div class="scale-bar"></div>
+                            <div class="scale-pointer" style="left:${pointerPos}%"></div>
+                        </div>
+                        <div style="text-align: center; margin-top: 6px;">
+                            <span class="m-deviation ${devClass}">Отклонение: ${m.dev}%</span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            document.getElementById('metrics-container').innerHTML = html;
+        }
+
+        // ================================================================
+        // ===================== INSPECT METRIC ============================
+        // ================================================================
+        const inspCvs = document.getElementById('insp-cvs');
+        const inspCtx = inspCvs.getContext('2d');
+
+        function inspectMetric(idx) {
+            const m = calculatedMetrics[idx];
+
+            document.getElementById('insp-title').innerText = m.name;
+            document.getElementById('insp-desc').innerText = 
+                `Измеряет ${m.name.replace(/^\d+\.\s*/, '')}. Отклонение от идеала: ${m.dev}%`;
+
+            // Update metrics display
+            const metricsHtml = `
+                <div class="insp-metric-item">
+                    <div class="insp-metric-label">Фактическое</div>
+                    <div class="insp-metric-value">${m.displayVal}</div>
+                </div>
+                <div class="insp-metric-item">
+                    <div class="insp-metric-label">Идеальное</div>
+                    <div class="insp-metric-value">${m.displayIdeal}</div>
+                </div>
+            `;
+            document.getElementById('insp-metrics').innerHTML = metricsHtml;
+
+            let pointerPos = 50 + ((m.val - m.ideal) / m.ideal) * 50;
+            pointerPos = Math.max(5, Math.min(95, pointerPos));
+            document.getElementById('insp-pointer').style.left = `${pointerPos}%`;
+
+            document.getElementById('inspector-modal').style.display = 'flex';
+
+            // Draw on inspector canvas after modal is visible
+            setTimeout(() => {
+                const vp = document.getElementById('insp-viewport');
+                const dpr = window.devicePixelRatio || 1;
+                
+                inspCvs.width = vp.clientWidth * dpr;
+                inspCvs.height = vp.clientHeight * dpr;
+                inspCvs.style.width = vp.clientWidth + 'px';
+                inspCvs.style.height = vp.clientHeight + 'px';
+                inspCtx.scale(dpr, dpr);
+
+                const displayWidth = vp.clientWidth;
+                const displayHeight = vp.clientHeight;
+
+                const sX = displayWidth / img.width;
+                const sY = displayHeight / img.height;
+                const iScale = Math.min(sX, sY);
+                const iOffX = (displayWidth - img.width * iScale) / 2;
+                const iOffY = (displayHeight - img.height * iScale) / 2;
+
+                inspCtx.clearRect(0, 0, displayWidth, displayHeight);
+                inspCtx.drawImage(img, iOffX, iOffY, img.width * iScale, img.height * iScale);
+
+                // Draw lines between relevant points
+                if (m.pts && m.pts.length > 1) {
+                    // Determine color based on tier
+                    let lineColor = '#3b82f6';
+                    let glowColor = 'rgba(59, 130, 246, 0.6)';
+                    
+                    if (m.tier === 'T1') {
+                        lineColor = '#10b981';
+                        glowColor = 'rgba(16, 185, 129, 0.6)';
+                    } else if (m.tier === 'T4' || m.tier === 'T5') {
+                        lineColor = '#ef4444';
+                        glowColor = 'rgba(239, 68, 68, 0.6)';
+                    } else if (m.tier === 'T3') {
+                        lineColor = '#f59e0b';
+                        glowColor = 'rgba(245, 158, 11, 0.6)';
+                    }
+
+                    // Draw glow
+                    inspCtx.shadowBlur = 15;
+                    inspCtx.shadowColor = glowColor;
+                    inspCtx.strokeStyle = lineColor;
+                    inspCtx.lineWidth = 3;
+                    inspCtx.lineCap = 'round';
+                    inspCtx.lineJoin = 'round';
+
+                    inspCtx.beginPath();
+                    const first = pts[m.pts[0]];
+                    if (first) {
+                        inspCtx.moveTo(iOffX + first.x * iScale, iOffY + first.y * iScale);
+
+                        for (let i = 1; i < m.pts.length; i++) {
+                            const p = pts[m.pts[i]];
+                            if (p) {
+                                inspCtx.lineTo(iOffX + p.x * iScale, iOffY + p.y * iScale);
+                            }
+                        }
+                        inspCtx.stroke();
+                    }
+                    inspCtx.shadowBlur = 0;
+
+                    // Draw distance label on the line
+                    if (m.pts.length === 2) {
+                        const p1 = pts[m.pts[0]];
+                        const p2 = pts[m.pts[1]];
+                        if (p1 && p2) {
+                            const midX = iOffX + (p1.x + p2.x) / 2 * iScale;
+                            const midY = iOffY + (p1.y + p2.y) / 2 * iScale;
+                            
+                            // Calculate distance
+                            const dist = Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
+                            
+                            // Draw label background
+                            const label = m.displayVal;
+                            inspCtx.font = 'bold 12px -apple-system, sans-serif';
+                            const textWidth = inspCtx.measureText(label).width;
+                            
+                            inspCtx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+                            inspCtx.beginPath();
+                            inspCtx.roundRect(midX - textWidth/2 - 6, midY - 18, textWidth + 12, 22, 6);
+                            inspCtx.fill();
+                            
+                            inspCtx.strokeStyle = lineColor;
+                            inspCtx.lineWidth = 1;
+                            inspCtx.stroke();
+                            
+                            // Draw label text
+                            inspCtx.fillStyle = '#fff';
+                            inspCtx.textAlign = 'center';
+                            inspCtx.textBaseline = 'middle';
+                            inspCtx.fillText(label, midX, midY - 7);
+                        }
+                    }
+                }
+
+                // Draw points
+                if (m.pts) {
+                    m.pts.forEach((ptIdx, i) => {
+                        const p = pts[ptIdx];
+                        if (!p) return;
+
+                        const scrX = iOffX + p.x * iScale;
+                        const scrY = iOffY + p.y * iScale;
+
+                        // Outer glow
+                        inspCtx.beginPath();
+                        inspCtx.arc(scrX, scrY, 10, 0, Math.PI * 2);
+                        inspCtx.fillStyle = 'rgba(59, 130, 246, 0.3)';
+                        inspCtx.fill();
+
+                        // Point
+                        inspCtx.beginPath();
+                        inspCtx.arc(scrX, scrY, 6, 0, Math.PI * 2);
+                        inspCtx.fillStyle = '#3b82f6';
+                        inspCtx.fill();
+                        inspCtx.strokeStyle = '#fff';
+                        inspCtx.lineWidth = 2;
+                        inspCtx.stroke();
+
+                        // Point number
+                        inspCtx.fillStyle = '#fff';
+                        inspCtx.font = 'bold 10px -apple-system, sans-serif';
+                        inspCtx.textAlign = 'center';
+                        inspCtx.textBaseline = 'middle';
+                        inspCtx.fillText(ptIdx + 1, scrX, scrY);
+                    });
+                }
+            }, 100);
+        }
+
+        document.getElementById('btn-close-insp').onclick = () => {
+            document.getElementById('inspector-modal').style.display = 'none';
+        };
+
+        // ================================================================
+        // ==================== HISTORY FUNCTIONALITY ======================
+        // ================================================================
+        function saveToHistory(score, tier, categories, metrics) {
+            try {
+                const history = JSON.parse(localStorage.getItem('harm_history') || '[]');
+                
+                history.push({
+                    id: Date.now(),
+                    date: new Date().toISOString(),
+                    score: score,
+                    tier: tier,
+                    categories: categories,
+                    metrics: metrics.map(m => ({
+                        name: m.name,
+                        val: m.val,
+                        ideal: m.ideal,
+                        tier: m.tier,
+                        dev: m.dev
+                    }))
+                });
+
+                // Keep only last 20 entries
+                localStorage.setItem('harm_history', JSON.stringify(history.slice(-20)));
+            } catch (e) {
+                console.warn('Failed to save history:', e);
+            }
+        }
+
+        function showHistory() {
+            let history = [];
+            try {
+                history = JSON.parse(localStorage.getItem('harm_history') || '[]');
+            } catch (e) {
+                history = [];
+            }
+            
+            const container = document.getElementById('history-container');
+
+            if (history.length === 0) {
+                container.innerHTML = `
+                    <div class="history-empty">
+                        <div class="history-empty-icon">📊</div>
+                        <div class="history-empty-text">
+                            История пуста.<br>
+                            Сделайте первый замер, чтобы начать отслеживать прогресс!
+                        </div>
+                    </div>
+                `;
+            } else {
+                let html = '';
+                const reversed = [...history].reverse();
+                
+                reversed.forEach((item, idx) => {
+                    const date = new Date(item.date);
+                    const dateStr = date.toLocaleDateString('ru-RU', {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric'
+                    });
+                    const timeStr = date.toLocaleTimeString('ru-RU', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+
+                    // Show comparison with previous
+                    let comparison = '';
+                    if (idx < reversed.length - 1) {
+                        const prevScore = reversed[idx + 1].score;
+                        const diff = item.score - prevScore;
+                        if (diff > 0) {
+                            comparison = `<span style="color: #10b981; font-size: 11px;">↑ +${diff}</span>`;
+                        } else if (diff < 0) {
+                            comparison = `<span style="color: #ef4444; font-size: 11px;">↓ ${diff}</span>`;
+                        } else {
+                            comparison = `<span style="color: #6b7280; font-size: 11px;">= 0</span>`;
+                        }
+                    }
+
+                    html += `
+                        <div class="history-item" onclick="viewHistoryItem(${item.id})">
+                            <div class="history-score-circle">${item.score}</div>
+                            <div class="history-info">
+                                <div class="history-date">${dateStr} в ${timeStr} ${comparison}</div>
+                                <div class="history-tier">${item.tier}</div>
+                            </div>
+                            <div class="history-arrow">›</div>
+                        </div>
+                    `;
+                });
+
+                // Clear history button
+                html += `
+                    <button onclick="clearHistory()" style="
+                        width: 100%;
+                        margin-top: 20px;
+                        padding: 14px;
+                        background: var(--panel-bg);
+                        border: 1px solid var(--panel-border);
+                        border-radius: var(--radius-md);
+                        color: var(--danger);
+                        font-weight: 600;
+                        cursor: pointer;
+                    ">🗑 Очистить историю</button>
+                `;
+
+                container.innerHTML = html;
+            }
+
+            document.getElementById('history-modal').style.display = 'block';
+        }
+
+        function viewHistoryItem(id) {
+            try {
+                const history = JSON.parse(localStorage.getItem('harm_history') || '[]');
+                const item = history.find(h => h.id === id);
+                
+                if (item) {
+                    toast.show(`Замер от ${new Date(item.date).toLocaleDateString('ru-RU')}: ${item.score} баллов`, 'info', 3000);
+                }
+            } catch (e) {
+                toast.show('Ошибка чтения записи', 'error');
+            }
+        }
+
+        function clearHistory() {
+            if (confirm('Очистить всю историю замеров? Это действие нельзя отменить.')) {
+                localStorage.removeItem('harm_history');
+                showHistory();
+                toast.show('История очищена', 'success');
+            }
+        }
+
+        document.getElementById('btn-history').onclick = showHistory;
+        document.getElementById('btn-close-history').onclick = () => {
+            document.getElementById('history-modal').style.display = 'none';
+        };
+
+        // ================================================================
+        // ================== CANVAS roundRect POLYFILL ====================
+        // ================================================================
+        if (!CanvasRenderingContext2D.prototype.roundRect) {
+            CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+                if (w < 2 * r) r = w / 2;
+                if (h < 2 * r) r = h / 2;
+                this.beginPath();
+                this.moveTo(x + r, y);
+                this.arcTo(x + w, y, x + w, y + h, r);
+                this.arcTo(x + w, y + h, x, y + h, r);
+                this.arcTo(x, y + h, x, y, r);
+                this.arcTo(x, y, x + w, y, r);
+                this.closePath();
+                return this;
+            };
+        }
+
+        // ================================================================
+        // ==================== WINDOW RESIZE HANDLER ======================
+        // ================================================================
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                if (img) {
+                    fitImage();
+                    draw();
+                }
+            }, 150);
+        });
+
+        // ================================================================
+        // ===================== INITIALIZE APP ============================
+        // ================================================================
+        updateUI();
+        
+        // Welcome toast
+        setTimeout(() => {
+            toast.show('Добро пожаловать в HARM 49 PRO!', 'info', 3000);
+        }, 500);
+
+        // Enable audio on first interaction
+        document.addEventListener('click', function enableAudio() {
+            sound.init();
+            sound.resume();
+            document.removeEventListener('click', enableAudio);
+        }, { once: true });
+
+    </script>
 </body>
-</html>
+                      </html>
