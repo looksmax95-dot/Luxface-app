@@ -207,8 +207,8 @@ h1 {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   transform: translate(-50%, -50%);
   pointer-events: none;
   z-index: 4;
@@ -219,12 +219,9 @@ h1 {
   content: "";
   position: absolute;
   background: rgba(255, 255, 255, 0.95);
-  box-shadow:
-    0 0 0 1px rgba(0, 0, 0, 0.85),
-    0 0 6px rgba(0, 0, 0, 0.7);
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.9));
 }
 
-/* Горизонтальная линия с разрывом в центре */
 .crosshair::before {
   left: 0;
   right: 0;
@@ -234,15 +231,14 @@ h1 {
   background: linear-gradient(
     to right,
     rgba(255,255,255,0.95) 0%,
-    rgba(255,255,255,0.95) 38%,
-    transparent 38%,
-    transparent 62%,
-    rgba(255,255,255,0.95) 62%,
+    rgba(255,255,255,0.95) 36%,
+    transparent 36%,
+    transparent 64%,
+    rgba(255,255,255,0.95) 64%,
     rgba(255,255,255,0.95) 100%
   );
 }
 
-/* Вертикальная линия с разрывом в центре */
 .crosshair::after {
   top: 0;
   bottom: 0;
@@ -252,26 +248,27 @@ h1 {
   background: linear-gradient(
     to bottom,
     rgba(255,255,255,0.95) 0%,
-    rgba(255,255,255,0.95) 38%,
-    transparent 38%,
-    transparent 62%,
-    rgba(255,255,255,0.95) 62%,
+    rgba(255,255,255,0.95) 36%,
+    transparent 36%,
+    transparent 64%,
+    rgba(255,255,255,0.95) 64%,
     rgba(255,255,255,0.95) 100%
   );
 }
 
-/* Центральная точка прицела */
-.crosshair .dot,
 .crosshair-dot {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 3px;
-  height: 3px;
+  width: 4px;
+  height: 4px;
   border-radius: 50%;
   background: #ff3b3b;
   transform: translate(-50%, -50%);
-  box-shadow: 0 0 4px rgba(0, 0, 0, 0.9);
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.9),
+    0 0 5px rgba(0, 0, 0, 0.9);
+  pointer-events: none;
 }
 
 /* ============ ЗУМ-КОНТРОЛЫ ============ */
@@ -322,7 +319,7 @@ h1 {
   position: absolute;
   top: 8px;
   left: 8px;
-  right: 56px; /* не перекрываем зум-контролы */
+  right: 56px;
   background: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
@@ -340,9 +337,9 @@ h1 {
   position: absolute;
   bottom: 8px;
   right: 8px;
-  width: 92px;
-  height: 118px;
-  background: rgba(0, 0, 0, 0.7);
+  width: 96px;
+  height: 124px;
+  background: rgba(20, 20, 20, 0.85);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   border-radius: 10px;
@@ -352,30 +349,10 @@ h1 {
   pointer-events: none;
 }
 
-#example-img {
+#example-canvas {
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  opacity: 0.95;
   display: block;
-}
-
-.example-dot {
-  position: absolute;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #ff3b3b;
-  border: 1px solid #fff;
-  transform: translate(-50%, -50%);
-  box-shadow: 0 0 5px rgba(255, 59, 59, 0.9);
-  animation: pulse 1.6s ease-in-out infinite;
-  pointer-events: none;
-}
-
-@keyframes pulse {
-  0%, 100% { transform: translate(-50%, -50%) scale(1);    opacity: 1;   }
-  50%      { transform: translate(-50%, -50%) scale(1.35); opacity: 0.7; }
 }
 
 /* ============ ИНСТРУКЦИЯ ============ */
@@ -435,7 +412,6 @@ h1 {
   color: var(--accent-text);
 }
 
-/* Отдельно disabled-стиль для кнопки place, чтобы не выглядела серой */
 #btn-place:disabled {
   background: #2a3a2a;
   color: rgba(255, 255, 255, 0.35);
@@ -524,12 +500,31 @@ h1 {
   justify-content: space-between;
   align-items: center;
   font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+  position: relative;
+}
+
+.metric-row:active {
+  transform: scale(0.99);
+  background: rgba(46, 166, 255, 0.12);
+}
+
+.metric-row::after {
+  content: "›";
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--hint);
+  font-size: 16px;
+  opacity: 0.5;
 }
 
 .metric-row .name {
   color: var(--hint);
   flex: 1;
-  padding-right: 8px;
+  padding-right: 18px;
 }
 
 .metric-row .value {
@@ -547,6 +542,166 @@ h1 {
   margin-left: 6px;
 }
 
+/* ============ МОДАЛКА МЕТРИКИ ============ */
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: modalFade 0.2s ease;
+}
+
+.modal[hidden] {
+  display: none;
+}
+
+@keyframes modalFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.modal-card {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  max-height: 92vh;
+  overflow-y: auto;
+  background: var(--bg-secondary);
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+  padding: 22px 18px calc(24px + env(safe-area-inset-bottom));
+  animation: modalSlide 0.25s ease;
+  z-index: 1;
+}
+
+@keyframes modalSlide {
+  from { transform: translateY(30px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  color: var(--text);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease;
+}
+
+.modal-close:active {
+  background: rgba(255, 92, 92, 0.25);
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  padding-right: 40px;
+  line-height: 1.3;
+}
+
+.modal-desc {
+  font-size: 13px;
+  color: var(--hint);
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+
+.modal-canvas-wrap {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  background: #000;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+#modal-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.modal-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.stat {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 10px;
+  padding: 10px 8px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stat-label {
+  font-size: 11px;
+  color: var(--hint);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-value {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.modal-score-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.modal-score-value {
+  font-size: 22px;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--accent), #7dd3fc);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.modal-score-bar {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.modal-score-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: var(--accent);
+  width: 0%;
+  transition: width 0.5s ease;
+}
+
 /* ============ СКРОЛЛБАР ============ */
 ::-webkit-scrollbar {
   width: 6px;
@@ -559,8 +714,11 @@ h1 {
 /* ============ МАЛЕНЬКИЕ ЭКРАНЫ ============ */
 @media (max-width: 360px) {
   #score-value { font-size: 52px; }
-  .example-box { width: 78px; height: 100px; }
+  .example-box { width: 82px; height: 106px; }
   .guide { padding: 14px; }
   .zoom-controls button { width: 34px; height: 34px; font-size: 18px; }
   .points-footer button { font-size: 12px; padding: 11px 4px; }
+  .modal-stats { gap: 6px; }
+  .stat { padding: 8px 4px; }
+  .stat-value { font-size: 13px; }
 }
