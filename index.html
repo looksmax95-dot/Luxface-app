@@ -52,7 +52,19 @@
 
       <div class="canvas-wrap">
         <canvas id="canvas"></canvas>
+
+        <!-- Прицел по центру canvas -->
+        <div id="crosshair" class="crosshair" aria-hidden="true"></div>
+
+        <!-- Управление зумом -->
+        <div class="zoom-controls">
+          <button id="btn-zoom-in"  type="button" aria-label="Приблизить">+</button>
+          <button id="btn-zoom-out" type="button" aria-label="Отдалить">−</button>
+          <button id="btn-zoom-reset" type="button" aria-label="Сбросить вид">⟲</button>
+        </div>
+
         <div id="hint-box" class="hint-box"></div>
+
         <div id="example-box" class="example-box">
           <img id="example-img" src="" alt="">
           <div id="example-dot" class="example-dot"></div>
@@ -63,6 +75,7 @@
 
       <div class="points-footer">
         <button id="btn-undo" type="button">← Назад</button>
+        <button id="btn-place" type="button">✓ Поставить точку</button>
         <button id="btn-next" type="button" disabled>Далее →</button>
       </div>
     </section>
