@@ -53,30 +53,30 @@
       <div class="canvas-wrap">
         <canvas id="canvas"></canvas>
 
-        <!-- Прицел по центру canvas -->
-        <div id="crosshair" class="crosshair" aria-hidden="true"></div>
+        <div id="crosshair" class="crosshair" aria-hidden="true">
+          <span class="crosshair-dot"></span>
+        </div>
 
-        <!-- Управление зумом -->
         <div class="zoom-controls">
-          <button id="btn-zoom-in"  type="button" aria-label="Приблизить">+</button>
-          <button id="btn-zoom-out" type="button" aria-label="Отдалить">−</button>
+          <button id="btn-zoom-in"    type="button" aria-label="Приблизить">+</button>
+          <button id="btn-zoom-out"   type="button" aria-label="Отдалить">−</button>
           <button id="btn-zoom-reset" type="button" aria-label="Сбросить вид">⟲</button>
         </div>
 
         <div id="hint-box" class="hint-box"></div>
 
+        <!-- Пример: рисуется на canvas, точки привязаны к координатам points.js -->
         <div id="example-box" class="example-box">
-          <img id="example-img" src="" alt="">
-          <div id="example-dot" class="example-dot"></div>
+          <canvas id="example-canvas"></canvas>
         </div>
       </div>
 
       <p id="point-instruction" class="point-instruction"></p>
 
       <div class="points-footer">
-        <button id="btn-undo" type="button">← Назад</button>
+        <button id="btn-undo"  type="button">← Назад</button>
         <button id="btn-place" type="button">✓ Поставить точку</button>
-        <button id="btn-next" type="button" disabled>Далее →</button>
+        <button id="btn-next"  type="button" disabled>Далее →</button>
       </div>
     </section>
 
@@ -97,10 +97,49 @@
       <button id="btn-restart" class="btn-primary" type="button">Пройти заново</button>
     </section>
 
+    <!-- МОДАЛКА МЕТРИКИ -->
+    <div id="metric-modal" class="modal" hidden>
+      <div class="modal-overlay" data-close="1"></div>
+      <div class="modal-card" role="dialog" aria-modal="true">
+        <button id="btn-modal-close" class="modal-close" type="button" aria-label="Закрыть">✕</button>
+
+        <h3 id="modal-title" class="modal-title">—</h3>
+        <p id="modal-desc" class="modal-desc"></p>
+
+        <div class="modal-canvas-wrap">
+          <canvas id="modal-canvas"></canvas>
+        </div>
+
+        <div class="modal-stats">
+          <div class="stat">
+            <span class="stat-label">Идеал</span>
+            <span id="modal-ideal" class="stat-value">—</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Ты</span>
+            <span id="modal-value" class="stat-value">—</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Допуск</span>
+            <span id="modal-tolerance" class="stat-value">—</span>
+          </div>
+        </div>
+
+        <div class="modal-score-row">
+          <span class="stat-label">Балл</span>
+          <span id="modal-score" class="modal-score-value">—</span>
+        </div>
+        <div class="modal-score-bar">
+          <div id="modal-score-fill" class="modal-score-fill"></div>
+        </div>
+      </div>
+    </div>
+
   </div>
 
-  <!-- Порядок важен: app.js зависит от points/metrics/scoring -->
+  <!-- Порядок важен: app.js зависит от points/example-face/metrics/scoring -->
   <script src="points.js"></script>
+  <script src="example-face.js"></script>
   <script src="metrics.js"></script>
   <script src="scoring.js"></script>
   <script src="app.js"></script>
