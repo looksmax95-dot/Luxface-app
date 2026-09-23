@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<!-- =====================================================================
+     FaceMetrics — TG Mini App: оценка геометрии лица (32 метрики, без нейросетей)
+     МОДУЛЬ 6/8: index.html
+     ---------------------------------------------------------------------
+     Одностраничник: экраны переключаются классом .active (роутер в app.js).
+     Экраны: scrWelcome -> scrUpload -> scrMark -> scrReview -> scrResults.
+     Canvas'ов два: markCanvas (разметка) и reviewCanvas (обзор) —
+     viewport'ы создаются раздельно в app.js из одного изображения.
+     Порядок скриптов ВАЖЕН: points -> photo -> metrics -> scoring ->
+     results -> app (app последний, читает все глобалы FM.*).
+     ===================================================================== -->
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <!-- user-scalable=no: жесты зума отдаём canvas'у, а не странице -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0f1115">
+  <title>FaceMetrics — оценка геометрии лица</title>
+  <link rel="stylesheet" href="css/style.css">
+  <!-- SDK Telegram Mini Apps; вне TG gracefully деградирует (window.Telegram undefined) -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+
+  <header id="hdr">
+    <button type="button" id="btnBack" class="hdr-back" hidden>‹</button>
+    <div id="hdrTitle" class="hdr-title">FaceMetrics</div>
+    <div id="hdrRight" class="hdr-right"></div>
+  </header>
+
+  <main id="app">
+
+    <!-- ============ S0: ПРИВЕТСТВИЕ ============ -->
+    <section class="screen active" id="scrWelcome">
+      <h1>Оценка геометрии лица</h1>
+      <p class="lead">32 метрики сообщества looksmaxxing (FWHR, canthal tilt, thirds и др.).
+        Без нейросетей: ты сам размечаешь 34 точки по прицелу — приложение считает
+        отношения и углы и сверяет с идеальными диапазонами.</p>
+      <div class="checklist">
+        <div class="chk-title">Требования к фото — иначе цифры соврут:</div>
+        <ul>
+          <li>фронтально, голова без наклона и поворота;</li>
+          <li>нейтральная мимика, глаза открыты, взгляд в камеру;</li>
+          <li>волосы убраны с лица, видны линия роста и челюсть;</li>
+          <li>камера на уровне глаз, расстояние ~1–1.5 м;</li>
+          <li>ровный свет, без теней на лице.</li>
+        </ul>
+      </div>
+      <button type="button" class="btn primary wide" id="btnStart">Начать разметку</button>
+      <div class="disclaimer">Развлекательный инструмент: метрики сообществ (credit @sjzso),
+        не медицина и не наука.</div>
+    </section>
+
+    <!-- ============ S1: ЗАГРУЗКА ФОТО ============ -->
+    <section class="screen" id="scrUpload">
+      <h1>Фото для разметки</h1>
+      <p class="lead">Сделай новое фото фронтальной камерой или загрузи готовое из галереи.
+        Фото обрабатывается только на устройстве и никуда не отправляется.</p>
+      <button type="button" class="btn primary wide" id="btnCamera">Сделать фото</button>
+      <button type="button" class="btn ghost wide" id="btnGallery">Выбрать из галереи</button>
+      <!-- capture="user" = фронтальная камера; accept ограничивает выбор картинками -->
+      <input type="file" id="inputCam" accept="image/*" capture="user" hidden>
+      <input type="file" id="inputGal" accept="image/*" hidden>
+      <div class="privacy">Приватность: изображение живёт в памяти вкладки до закрытия.</div>
+    </section>
+
+    <!-- ============ S2: РАЗМЕТКА (прицел) ============ -->
+    <section class="screen" id="scrMark">
+      <div class="mark-hud">
+        <div class="hud-line1">
+          <span id="hudStageTitle">Этап 1/7 · Осевая линия</span>
+          <span id="hudProgress">точка 1/5</span>
+        </div>
+        <div class="hud-line2">
+          <span id="hudZoom">зум ×1.0</span>
+          <span class="hud-hint">двигай фото пальцем, щипок — зум; точка встанет в центр прицела</span>
+        </div>
+      </div>
+      <div class="mark-canvas-wrap">
+        <canvas id="markCanvas"></canvas>
+      </div>
+      <div class="mark-card">
+        <div class="card-name" id="cardPointName">Линия роста волос (трихион)</div>
+        <div class="card-guide" id="cardPointGuide">Центр лба: граница кожи и волос…</div>
+        <div class="card-btns">
+          <button type="button" class="btn sq" id="btnZoomOut" aria-label="Отдалить">−</button>
+          <button type="button" class="btn sq" id="btnZoomIn" aria-label="Приблизить">+</button>
+          <button type="button" class="btn primary grow" id="btnPlace">Поставить точку</button>
+          <button type="button" class="btn sq" id="btnUndo" aria-label="Отменить точку">↺</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ S9: ОБЗОР РАЗМЕТКИ ============ -->
+    <section class="screen" id="scrReview">
+      <div class="mark-hud">
+        <div class="hud-line1"><span>Обзор разметки</span><span id="reviewCount">34/34</span></div>
+        <div class="hud-line2"><span class="hud-hint">тапни по любой точке, чтобы переставить её</span></div>
+      </div>
+      <div class="mark-canvas-wrap">
+        <canvas id="reviewCanvas"></canvas>
+      </div>
+      <div class="review-warns" id="reviewWarns" hidden></div>
+      <div class="card-btns pad">
+        <button type="button" class="btn ghost grow" id="btnReviewRedo">Начать разметку заново</button>
+        <button type="button" class="btn primary grow" id="btnReviewResults">К результатам</button>
+      </div>
+    </section>
+
+    <!-- ============ S10: РЕЗУЛЬТАТЫ ============ -->
+    <section class="screen" id="scrResults">
+      <div id="resultsBox"></div>
+    </section>
+
+  </main>
+
+  <!-- оверлей загрузки/декода изображения -->
+  <div id="loader" hidden><div class="spinner"></div><div class="loader-text">Обработка фото…</div></div>
+
+  <noscript>FaceMetrics требует включённого JavaScript.</noscript>
+
+  <!-- порядок зависимостей: данные -> viewport -> математика -> скоринг -> рендер -> роутер -->
+  <script src="js/points.js"></script>
+  <script src="js/photo.js"></script>
+  <script src="js/metrics.js"></script>
+  <script src="js/scoring.js"></script>
+  <script src="js/results.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
