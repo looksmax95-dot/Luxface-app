@@ -1,181 +1,431 @@
 /* =====================================================================
    FaceMetrics — TG Mini App: оценка геометрии лица (37 метрик, без нейросетей)
-   МОДУЛЬ 3/7: scoring.js
+   МОДУЛЬ 6/7: style.css
    ---------------------------------------------------------------------
-   Скоринг v3: ПОЛНЫЕ тиер-полосы из таблицы (T1-T5 на каждую метрику).
-   Вход: результат FM.metrics.computeAll(pts) — у каждой записи есть tiers.
-   Форматы полос, которые умеем парсить:
-     • [a, b]                  — одиночная полоса (T1: [1.90, 2.06]);
-     • [[a1,b1],[a2,b2]]       — двустороннее отклонение (T2: [[1.83,1.89],[2.07,2.13]]);
-     • ['<1.70', '>2.18']      — строковый T5 (открытые концы).
-   Особые случаи:
-     • «дырки» между полосами (Thirds: T1 до 3, T2 с 4) -> значение отдаём
-       БЛИЖАЙШЕЙ полосе, при равенстве расстояний — более строгой;
-     • односторонний идеал (Cheekbones T1 [81,100], T5 только '<66'):
-       значение ВЫШЕ всех полос и у T5 нет '>' -> это T1 (лучше идеала);
-       симметрично для односторонних внизу (b-set, T5 только '>1.50').
-   Скор метрики: T1=100, T2=80, T3=60, T4=40, T5=20.
-   Итог: средневзвешенное скоров -> 0..100, /10 и общий тиер
-   по порогам [88, 68, 48, 32].
+   Тёмная тема, mobile-first (S23 Ultra), без фреймворков.
+   v3: добавлен вьювер измерений (.viewer, .v-*), режимы mode-full/mode-split,
+   убраны мёртвые классы мини-бара (.mbar/.zone/.dot).
    ===================================================================== */
-(function (global) {
-  'use strict';
 
-  const FM = (global.FM = global.FM || {});
+:root {
+  --bg: #0f1115;
+  --panel: #151920;
+  --line: #1c2027;
+  --text: #e8ecf1;
+  --muted: #9aa3ad;
+  --dim: #6b7480;
+  --accent: #00ffaa;
+  --t1: #22c55e;
+  --t2: #a3e635;
+  --t3: #facc15;
+  --t4: #fb923c;
+  --t5: #ef4444;
+  --tn: #8b939d;
+}
 
-  const TIER_ORDER = ['T1', 'T2', 'T3', 'T4'];
-  const TIER_SCORE = { T1: 100, T2: 80, T3: 60, T4: 40, T5: 20 };
-  const TIER_LABELS = {
-    T1: 'Топ-диапазон', T2: 'Выше среднего', T3: 'Среднее',
-    T4: 'Ниже среднего', T5: 'Далеко от идеала'
-  };
-  const OVERALL_THRESHOLDS = [88, 68, 48, 32];
+[hidden] { display: none !important; }
 
-  /* ---------------- парсинг полос ---------------- */
-  function bandsOf(spec) {
-    if (!Array.isArray(spec)) return [];
-    if (typeof spec[0] === 'number') return [[spec[0], spec[1]]];
-    return spec.filter(function (b) { return Array.isArray(b); });
+* { box-sizing: border-box; }
+
+html { height: 100%; }
+
+body {
+  height: 100vh;
+  height: 100dvh;
+  margin: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+               "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button { font: inherit; }
+
+/* ================= ШАПКА ================= */
+#hdr {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 48px;
+  padding: 0 10px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+  position: relative;
+  z-index: 5;
+}
+.hdr-back {
+  width: 36px; height: 36px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 26px;
+  line-height: 1;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.hdr-back:active { background: var(--panel); }
+.hdr-title { flex: 1; font-weight: 700; font-size: 15px; }
+.hdr-right { font-size: 12px; color: var(--muted); }
+
+/* ================= ЭКРАНЫ ================= */
+#app { height: calc(100% - 48px); position: relative; }
+
+.screen { display: none; height: 100%; overflow-y: auto; padding: 16px; }
+.screen.active { display: flex; flex-direction: column; gap: 12px; }
+
+h1 { font-size: 22px; margin: 0; }
+.lead { color: var(--muted); font-size: 14px; line-height: 1.45; margin: 0; }
+.disclaimer, .privacy { font-size: 11px; color: var(--dim); line-height: 1.5; }
+
+.checklist {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+  font-size: 13px;
+}
+.chk-title { font-weight: 600; }
+.checklist ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: #b7bfc8;
+}
+
+/* ================= КНОПКИ ================= */
+.btn {
+  border: 1px solid #262c35;
+  background: #1a1f27;
+  color: var(--text);
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.btn.primary { background: var(--accent); color: #06251b; border-color: transparent; }
+.btn.ghost { background: transparent; }
+.btn.wide { width: 100%; }
+.btn.grow { flex: 1; min-width: 0; }
+.btn.sq { width: 48px; flex: 0 0 48px; padding: 12px 0; font-size: 20px; }
+.btn:active { transform: scale(0.97); }
+
+/* ================= РАЗМЕТКА / ОБЗОР ================= */
+#scrMark, #scrReview { padding: 0; overflow: hidden; }
+
+.mark-hud {
+  padding: 8px 12px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+  user-select: none;
+  -webkit-user-select: none;
+}
+.hud-line1 {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 13px;
+}
+.hud-line2 {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--dim);
+  margin-top: 2px;
+}
+#hudZoom { color: var(--accent); font-variant-numeric: tabular-nums; }
+.hud-hint { text-align: right; }
+
+.mark-canvas-wrap { position: relative; flex: 1; min-height: 0; background: var(--bg); }
+.mark-canvas-wrap canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;          /* все жесты — viewport'у photo.js */
+}
+
+.mark-card {
+  padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  background: var(--panel);
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.card-name { font-weight: 600; font-size: 15px; }
+.card-guide { font-size: 13px; color: var(--muted); line-height: 1.4; }
+.card-btns { display: flex; gap: 8px; }
+.card-btns.pad {
+  padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  background: var(--panel);
+  border-top: 1px solid var(--line);
+}
+
+.review-warns {
+  max-height: 26vh;
+  overflow-y: auto;
+  background: #241d10;
+  border: 1px solid #3a2f14;
+  border-radius: 12px;
+  padding: 8px 12px;
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.warn-item { color: #fcd34d; line-height: 1.35; }
+
+/* ================= РЕЗУЛЬТАТЫ ================= */
+.res-empty { padding: 24px; text-align: center; color: var(--muted); }
+
+.res-head {
+  text-align: center;
+  padding: 18px 12px;
+  border-radius: 16px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+}
+.res-score { font-size: 52px; font-weight: 800; line-height: 1; }
+.res-score span { font-size: 18px; font-weight: 600; color: var(--dim); }
+.res-tier { margin-top: 6px; font-weight: 700; font-size: 16px; }
+.res-meta { margin-top: 4px; font-size: 12px; color: var(--dim); }
+.res-head.t1 .res-tier { color: var(--t1); }
+.res-head.t2 .res-tier { color: var(--t2); }
+.res-head.t3 .res-tier { color: var(--t3); }
+.res-head.t4 .res-tier { color: var(--t4); }
+.res-head.t5 .res-tier { color: var(--t5); }
+
+.res-dist { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.dseg {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 4px;
+  text-align: center;
+}
+.dseg b { display: block; font-size: 11px; color: var(--dim); }
+.dseg span { font-size: 16px; font-weight: 700; }
+.dseg.t1 span { color: var(--t1); }
+.dseg.t2 span { color: var(--t2); }
+.dseg.t3 span { color: var(--t3); }
+.dseg.t4 span { color: var(--t4); }
+.dseg.t5 span { color: var(--t5); }
+
+.res-hint {
+  font-size: 12px;
+  color: var(--muted);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 12px;
+}
+
+.res-list { display: flex; flex-direction: column; gap: 8px; }
+
+.mrow {
+  display: grid;
+  grid-template-columns: 26px 1fr 34px;
+  gap: 10px;
+  align-items: center;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-left: 3px solid #3a414b;
+  border-radius: 12px;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+.mrow:active { transform: scale(0.985); background: #1a2028; }
+.mrow.t1 { border-left-color: var(--t1); }
+.mrow.t2 { border-left-color: var(--t2); }
+.mrow.t3 { border-left-color: var(--t3); }
+.mrow.t4 { border-left-color: var(--t4); }
+.mrow.t5 { border-left-color: var(--t5); }
+
+.mnum { color: var(--dim); font-size: 12px; text-align: right; }
+.mbody { min-width: 0; }
+.mname { font-size: 13px; font-weight: 600; }
+.mvals { font-size: 12px; color: #cfd6dd; margin-top: 2px; }
+.mideal { color: var(--dim); }
+.mdir { color: var(--muted); }
+
+.mtier { font-weight: 800; font-size: 14px; text-align: center; color: var(--tn); }
+.mrow.t1 .mtier { color: var(--t1); }
+.mrow.t2 .mtier { color: var(--t2); }
+.mrow.t3 .mtier { color: var(--t3); }
+.mrow.t4 .mtier { color: var(--t4); }
+.mrow.t5 .mtier { color: var(--t5); }
+
+.res-missing {
+  font-size: 12px;
+  color: #fbbf24;
+  background: #241d10;
+  border: 1px solid #3a2f14;
+  padding: 10px 12px;
+  border-radius: 10px;
+  line-height: 1.45;
+}
+.res-actions { display: flex; gap: 8px; }
+.res-disclaimer {
+  font-size: 11px;
+  color: var(--dim);
+  line-height: 1.5;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom));
+}
+
+/* ================= ВЬЮВЕР ИЗМЕРЕНИЙ ================= */
+.viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+
+.v-top { position: relative; flex: 1; min-height: 0; background: #000; }
+.v-top canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: pan-y;         /* вертикальный скролл списка не блокируем в split */
+}
+.viewer.mode-split .v-top { flex: 0 0 42vh; }
+
+.v-btn {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  border: 1px solid #2a3038;
+  background: rgba(15, 17, 21, 0.72);
+  color: var(--text);
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.v-btn:active { transform: scale(0.92); }
+.v-close { position: absolute; top: 10px; left: 10px; z-index: 3; }
+.v-mode  { position: absolute; top: 10px; right: 10px; z-index: 3; }
+
+.v-nav {
+  position: absolute;
+  left: 0; right: 0; bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  z-index: 3;
+}
+.v-counter {
+  font-size: 12px;
+  color: #cfd6dd;
+  background: rgba(15, 17, 21, 0.72);
+  padding: 4px 10px;
+  border-radius: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.v-caption {
+  padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+  background: var(--panel);
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.v-name { font-weight: 700; font-size: 14px; }
+.v-tier {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 800;
+  background: rgba(139, 147, 157, 0.15);
+  color: var(--tn);
+}
+.v-tier.t1 { background: rgba(34, 197, 94, 0.16); color: var(--t1); }
+.v-tier.t2 { background: rgba(163, 230, 53, 0.16); color: var(--t2); }
+.v-tier.t3 { background: rgba(250, 204, 21, 0.16); color: var(--t3); }
+.v-tier.t4 { background: rgba(251, 146, 60, 0.16); color: var(--t4); }
+.v-tier.t5 { background: rgba(239, 68, 68, 0.16); color: var(--t5); }
+.v-val { font-size: 13px; color: #cfd6dd; }
+.v-formula { font-size: 11px; color: var(--dim); line-height: 1.4; }
+
+.v-list {
+  display: none;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  flex-direction: column;
+  background: var(--bg);
+}
+.viewer.mode-split .v-list { display: flex; }
+
+.v-row {
+  display: grid;
+  grid-template-columns: 24px 1fr auto 34px;
+  gap: 8px;
+  align-items: center;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+  cursor: pointer;
+}
+.v-row:active { background: #1a2028; }
+.v-row.cur { background: #1a2028; box-shadow: inset 3px 0 0 var(--accent); }
+.v-n { color: var(--dim); text-align: right; }
+.v-nm { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.v-v { color: #cfd6dd; font-variant-numeric: tabular-nums; }
+.v-t { font-weight: 800; text-align: center; color: var(--tn); }
+.v-row.t1 .v-t { color: var(--t1); }
+.v-row.t2 .v-t { color: var(--t2); }
+.v-row.t3 .v-t { color: var(--t3); }
+.v-row.t4 .v-t { color: var(--t4); }
+.v-row.t5 .v-t { color: var(--t5); }
+
+/* ================= ЛОАДЕР ================= */
+#loader {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: rgba(10, 12, 15, 0.85);
+}
+.spinner {
+  width: 42px; height: 42px;
+  border-radius: 50%;
+  border: 3px solid #262c35;
+  border-top-color: var(--accent);
+  animation: spin 0.9s linear infinite;
+}
+.loader-text { font-size: 13px; color: var(--muted); }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ================= ПЛАНШЕТ / ДЕСКТОП (отладка) ================= */
+@media (min-width: 700px) {
+  #scrWelcome > *, #scrUpload > *, #scrResults > * {
+    width: 100%;
+    max-width: 640px;
+    margin-inline: auto;
   }
-  function t5Has(tiers, sign) {
-    const t5 = tiers && tiers.T5;
-    if (!Array.isArray(t5)) return false;
-    return t5.some(function (s) { return typeof s === 'string' && s.charAt(0) === sign; });
-  }
-
-  /* ---------------- определение тиера ---------------- */
-  function tierOf(m, v) {
-    const all = [];
-    TIER_ORDER.forEach(function (t) {
-      bandsOf(m.tiers[t]).forEach(function (b) { all.push({ t: t, a: b[0], b: b[1] }); });
-    });
-    if (!all.length) return 'T3';
-
-    for (let i = 0; i < all.length; i++) {
-      if (v >= all[i].a && v <= all[i].b) return all[i].t;
-    }
-    all.sort(function (x, y) { return x.a - y.a; });
-
-    if (v > all[all.length - 1].b) {          /* выше всех конечных полос */
-      return t5Has(m.tiers, '>') ? 'T5' : 'T1';
-    }
-    if (v < all[0].a) {                       /* ниже всех конечных полос */
-      return t5Has(m.tiers, '<') ? 'T5' : 'T1';
-    }
-
-    /* попали в дырку между полосами — к ближайшей, при равенстве к строгой */
-    let prev = null, next = null;
-    for (let i = 0; i < all.length; i++) {
-      if (all[i].b < v) prev = all[i];
-      if (all[i].a > v && !next) next = all[i];
-    }
-    if (!prev) return next ? next.t : 'T5';
-    if (!next) return prev.t;
-    return (v - prev.b) < (next.a - v) ? prev.t : next.t;
-  }
-
-  function dirOf(m, v, tier) {
-    const t1 = bandsOf(m.tiers.T1)[0];
-    if (!t1) return 'ok';
-    if (tier === 'T1') return 'ok';
-    return v < t1[0] ? 'low' : 'high';
-  }
-
-  /* ---------------- форматирование ---------------- */
-  function fmt(value, unit) {
-    if (value === null || value === undefined || !isFinite(value)) return '—';
-    if (unit === '%') return value.toFixed(1) + '%';
-    if (unit === '°') return value.toFixed(1) + '°';
-    return value.toFixed(3);
-  }
-  function idealStr(m, unit) {
-    const t1 = bandsOf(m.tiers ? m.tiers.T1 : m.ideal)[0];
-    if (!t1) return '—';
-    const openHigh = !t5Has(m.tiers, '>');
-    const openLow = !t5Has(m.tiers, '<');
-    if (openHigh && t1[1] >= 100) return '≥ ' + fmt(t1[0], unit);
-    if (openLow && t1[0] <= 0) return '≤ ' + fmt(t1[1], unit);
-    return fmt(t1[0], unit) + ' — ' + fmt(t1[1], unit);
-  }
-
-  /* ---------------- скоринг набора ---------------- */
-  function scoreAll(results, weights) {
-    weights = weights || {};
-    const items = [];
-    let sum = 0, wsum = 0, counted = 0, missing = 0;
-
-    for (let i = 0; i < results.length; i++) {
-      const m = results[i];
-      const w = (typeof weights[m.key] === 'number' && weights[m.key] > 0) ? weights[m.key] : 1;
-
-      if (m.value === null || m.value === undefined) {
-        missing++;
-        items.push({
-          n: m.n, key: m.key, name: m.name, unit: m.unit, tiers: m.tiers,
-          value: null, tier: null, score: null, dir: null, viz: m.viz,
-          missing: m.missing || []
-        });
-        continue;
-      }
-
-      const tier = tierOf(m, m.value);
-      const score = TIER_SCORE[tier];
-      counted++;
-      sum += score * w;
-      wsum += w;
-
-      items.push({
-        n: m.n, key: m.key, name: m.name, unit: m.unit, tiers: m.tiers,
-        value: m.value, tier: tier, score: score,
-        dir: dirOf(m, m.value, tier), viz: m.viz, missing: []
-      });
-    }
-
-    let overall = null;
-    if (wsum > 0 && counted > 0) {
-      const score = sum / wsum;
-      overall = {
-        score: score,
-        of10: Math.round(score) / 10,
-        tier: overallTier(score),
-        counted: counted,
-        missing: missing
-      };
-    }
-    return { items: items, overall: overall };
-  }
-
-  function overallTier(score) {
-    if (score >= OVERALL_THRESHOLDS[0]) return 'T1';
-    if (score >= OVERALL_THRESHOLDS[1]) return 'T2';
-    if (score >= OVERALL_THRESHOLDS[2]) return 'T3';
-    if (score >= OVERALL_THRESHOLDS[3]) return 'T4';
-    return 'T5';
-  }
-
-  function summaryText(scored) {
-    if (!scored.overall) return 'FaceMetrics: нет данных для оценки.';
-    const o = scored.overall;
-    const tiers = { T1: 0, T2: 0, T3: 0, T4: 0, T5: 0 };
-    scored.items.forEach(function (it) { if (it.tier) tiers[it.tier]++; });
-    return 'FaceMetrics: ' + o.of10.toFixed(1) + '/10 (' + o.tier + '). ' +
-      'T1:' + tiers.T1 + ' T2:' + tiers.T2 + ' T3:' + tiers.T3 +
-      ' T4:' + tiers.T4 + ' T5:' + tiers.T5 +
-      (o.missing ? ' | не посчитано: ' + o.missing : '');
-  }
-
-  FM.scoring = {
-    TIER_ORDER: TIER_ORDER,
-    TIER_SCORE: TIER_SCORE,
-    TIER_LABELS: TIER_LABELS,
-    OVERALL_THRESHOLDS: OVERALL_THRESHOLDS,
-    bandsOf: bandsOf,
-    tierOf: tierOf,
-    dirOf: dirOf,
-    fmt: fmt,
-    idealStr: idealStr,
-    overallTier: overallTier,
-    scoreAll: scoreAll,
-    summaryText: summaryText
-  };
-})(typeof window !== 'undefined' ? window : this);
+  .viewer { max-width: 560px; margin-inline: auto; border-inline: 1px solid var(--line); }
+}
