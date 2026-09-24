@@ -1,14 +1,18 @@
 <!DOCTYPE html>
 <!-- =====================================================================
-     FaceMetrics — TG Mini App: оценка геометрии лица (32 метрики, без нейросетей)
-     МОДУЛЬ 6/8: index.html
+     FaceMetrics — TG Mini App: оценка геометрии лица (37 метрик, без нейросетей)
+     МОДУЛЬ 5/7: index.html
      ---------------------------------------------------------------------
-     Одностраничник: экраны переключаются классом .active (роутер в app.js).
+     ВАЖНО: все файлы лежат В КОРНЕ репозитория, поэтому пути плоские:
+       style.css, points.js, photo.js, metrics.js, scoring.js,
+       results.js, app.js  — БЕЗ приставок js/ и css/.
+     Этот файл должен называться строго index.html (маленькая i),
+     иначе GitHub Pages не отдаст его как главную страницу.
      Экраны: scrWelcome -> scrUpload -> scrMark -> scrReview -> scrResults.
-     Canvas'ов два: markCanvas (разметка) и reviewCanvas (обзор) —
-     viewport'ы создаются раздельно в app.js из одного изображения.
-     Порядок скриптов ВАЖЕН: points -> photo -> metrics -> scoring ->
-     results -> app (app последний, читает все глобалы FM.*).
+     #viewerHost — оверлей вьювера измерений (монтируется из results.js,
+     поверх всех экранов, position:fixed в style.css).
+     Порядок скриптов важен: points -> photo -> metrics -> scoring ->
+     results -> app.
      ===================================================================== -->
 <html lang="ru">
 <head>
@@ -18,7 +22,7 @@
   <meta name="theme-color" content="#0f1115">
   <title>FaceMetrics — оценка геометрии лица</title>
   <link rel="stylesheet" href="style.css">
-  <!-- SDK Telegram Mini Apps; вне TG gracefully деградирует (window.Telegram undefined) -->
+  <!-- SDK Telegram Mini Apps; вне TG gracefully деградирует -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
@@ -34,9 +38,9 @@
     <!-- ============ S0: ПРИВЕТСТВИЕ ============ -->
     <section class="screen active" id="scrWelcome">
       <h1>Оценка геометрии лица</h1>
-      <p class="lead">32 метрики сообщества looksmaxxing (FWHR, canthal tilt, thirds и др.).
-        Без нейросетей: ты сам размечаешь 34 точки по прицелу — приложение считает
-        отношения и углы и сверяет с идеальными диапазонами.</p>
+      <p class="lead">37 метрик сообщества looksmaxxing (FWHR, canthal tilt, EME, thirds и др.).
+        Без нейросетей: ты сам размечаешь 36 точек по прицелу — приложение считает
+        отношения и углы и сверяет с идеальными диапазонами T1–T5.</p>
       <div class="checklist">
         <div class="chk-title">Требования к фото — иначе цифры соврут:</div>
         <ul>
@@ -59,7 +63,7 @@
         Фото обрабатывается только на устройстве и никуда не отправляется.</p>
       <button type="button" class="btn primary wide" id="btnCamera">Сделать фото</button>
       <button type="button" class="btn ghost wide" id="btnGallery">Выбрать из галереи</button>
-      <!-- capture="user" = фронтальная камера; accept ограничивает выбор картинками -->
+      <!-- capture="user" = фронтальная камера -->
       <input type="file" id="inputCam" accept="image/*" capture="user" hidden>
       <input type="file" id="inputGal" accept="image/*" hidden>
       <div class="privacy">Приватность: изображение живёт в памяти вкладки до закрытия.</div>
@@ -95,7 +99,7 @@
     <!-- ============ S9: ОБЗОР РАЗМЕТКИ ============ -->
     <section class="screen" id="scrReview">
       <div class="mark-hud">
-        <div class="hud-line1"><span>Обзор разметки</span><span id="reviewCount">34/34</span></div>
+        <div class="hud-line1"><span>Обзор разметки</span><span id="reviewCount">36/36</span></div>
         <div class="hud-line2"><span class="hud-hint">тапни по любой точке, чтобы переставить её</span></div>
       </div>
       <div class="mark-canvas-wrap">
@@ -114,6 +118,9 @@
     </section>
 
   </main>
+
+  <!-- оверлей вьювера измерений: results.js.openViewer монтирует сюда -->
+  <div id="viewerHost"></div>
 
   <!-- оверлей загрузки/декода изображения -->
   <div id="loader" hidden><div class="spinner"></div><div class="loader-text">Обработка фото…</div></div>
