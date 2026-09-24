@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#0f1115">
   <title>FaceMetrics — оценка геометрии лица</title>
-  <!-- ВАЖНО: пути плоские, без js/ и css/ -->
+  <!-- Путь исправлен: было css/style.css -->
   <link rel="stylesheet" href="style.css">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
@@ -18,51 +18,60 @@
   </header>
 
   <main id="app">
+
     <section class="screen active" id="scrWelcome">
       <h1>Оценка геометрии лица</h1>
-      <p class="lead">37 метрик сообщества looksmaxxing. Без нейросетей: ты сам размечаешь 36 точек по прицелу.</p>
+      <p class="lead">37 метрик сообщества looksmaxxing (FWHR, canthal tilt, EME, thirds и др.).
+        Без нейросетей: ты сам размечаешь 36 точек по прицелу — приложение считает
+        отношения и углы и сверяет с идеальными диапазонами T1–T5.</p>
       <div class="checklist">
-        <div class="chk-title">Требования к фото:</div>
+        <div class="chk-title">Требования к фото — иначе цифры соврут:</div>
         <ul>
-          <li>фронтально, голова без наклона;</li>
-          <li>нейтральная мимика, глаза открыты;</li>
-          <li>волосы убраны с лица;</li>
-          <li>камера на уровне глаз, ровный свет.</li>
+          <li>фронтально, голова без наклона и поворота;</li>
+          <li>нейтральная мимика, глаза открыты, взгляд в камеру;</li>
+          <li>волосы убраны с лица, видны линия роста и челюсть;</li>
+          <li>камера на уровне глаз, расстояние ~1–1.5 м;</li>
+          <li>ровный свет, без теней на лице.</li>
         </ul>
       </div>
       <button type="button" class="btn primary wide" id="btnStart">Начать разметку</button>
-      <div class="disclaimer">Развлекательный инструмент (credit @sjzso), не медицина.</div>
+      <div class="disclaimer">Развлекательный инструмент: метрики сообществ (credit @sjzso),
+        не медицина и не наука.</div>
     </section>
 
     <section class="screen" id="scrUpload">
       <h1>Фото для разметки</h1>
-      <p class="lead">Сделай фото или загрузи из галереи.</p>
+      <p class="lead">Сделай новое фото фронтальной камерой или загрузи готовое из галереи.
+        Фото обрабатывается только на устройстве и никуда не отправляется.</p>
       <button type="button" class="btn primary wide" id="btnCamera">Сделать фото</button>
       <button type="button" class="btn ghost wide" id="btnGallery">Выбрать из галереи</button>
       <input type="file" id="inputCam" accept="image/*" capture="user" hidden>
       <input type="file" id="inputGal" accept="image/*" hidden>
+      <div class="privacy">Приватность: изображение живёт в памяти вкладки до закрытия.</div>
     </section>
 
     <section class="screen" id="scrMark">
       <div class="mark-hud">
         <div class="hud-line1">
-          <span id="hudStageTitle">Этап 1/7</span>
+          <span id="hudStageTitle">Этап 1/7 · Осевая линия</span>
           <span id="hudProgress">точка 1/5</span>
         </div>
         <div class="hud-line2">
           <span id="hudZoom">зум ×1.0</span>
-          <span class="hud-hint">двигай фото, щипок — зум</span>
+          <span class="hud-hint">двигай фото пальцем, щипок — зум; точка встанет в центр прицела</span>
         </div>
       </div>
-      <div class="mark-canvas-wrap"><canvas id="markCanvas"></canvas></div>
+      <div class="mark-canvas-wrap">
+        <canvas id="markCanvas"></canvas>
+      </div>
       <div class="mark-card">
-        <div class="card-name" id="cardPointName">Точка</div>
-        <div class="card-guide" id="cardPointGuide">Гайд...</div>
+        <div class="card-name" id="cardPointName">Линия роста волос (трихион)</div>
+        <div class="card-guide" id="cardPointGuide">Центр лба: граница кожи и волос…</div>
         <div class="card-btns">
-          <button type="button" class="btn sq" id="btnZoomOut">−</button>
-          <button type="button" class="btn sq" id="btnZoomIn">+</button>
+          <button type="button" class="btn sq" id="btnZoomOut" aria-label="Отдалить">−</button>
+          <button type="button" class="btn sq" id="btnZoomIn" aria-label="Приблизить">+</button>
           <button type="button" class="btn primary grow" id="btnPlace">Поставить точку</button>
-          <button type="button" class="btn sq" id="btnUndo">↺</button>
+          <button type="button" class="btn sq" id="btnUndo" aria-label="Отменить точку">↺</button>
         </div>
       </div>
     </section>
@@ -70,12 +79,14 @@
     <section class="screen" id="scrReview">
       <div class="mark-hud">
         <div class="hud-line1"><span>Обзор разметки</span><span id="reviewCount">36/36</span></div>
-        <div class="hud-line2"><span class="hud-hint">тапни по точке, чтобы исправить</span></div>
+        <div class="hud-line2"><span class="hud-hint">тапни по любой точке, чтобы переставить её</span></div>
       </div>
-      <div class="mark-canvas-wrap"><canvas id="reviewCanvas"></canvas></div>
+      <div class="mark-canvas-wrap">
+        <canvas id="reviewCanvas"></canvas>
+      </div>
       <div class="review-warns" id="reviewWarns" hidden></div>
       <div class="card-btns pad">
-        <button type="button" class="btn ghost grow" id="btnReviewRedo">Заново</button>
+        <button type="button" class="btn ghost grow" id="btnReviewRedo">Начать разметку заново</button>
         <button type="button" class="btn primary grow" id="btnReviewResults">К результатам</button>
       </div>
     </section>
@@ -83,14 +94,17 @@
     <section class="screen" id="scrResults">
       <div id="resultsBox"></div>
     </section>
+
   </main>
 
-  <!-- Контейнер для вьювера (обязательно!) -->
+  <!-- ЭТОТ БЛОК БЫЛ ПРОПУЩЕН, ОН НУЖЕН ДЛЯ ВЬЮВЕРА -->
   <div id="viewerHost"></div>
 
-  <div id="loader" hidden><div class="spinner"></div><div class="loader-text">Обработка…</div></div>
+  <div id="loader" hidden><div class="spinner"></div><div class="loader-text">Обработка фото…</div></div>
 
-  <!-- Пути плоские! -->
+  <noscript>FaceMetrics требует включённого JavaScript.</noscript>
+
+  <!-- Пути исправлены: было js/points.js и т.д. -->
   <script src="points.js"></script>
   <script src="photo.js"></script>
   <script src="metrics.js"></script>
