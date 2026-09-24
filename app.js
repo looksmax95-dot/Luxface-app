@@ -1,18 +1,18 @@
 /* =====================================================================
-   FaceMetrics — TG Mini App: оценка геометрии лица (32 метрики, без нейросетей)
-   МОДУЛЬ 8/8: js/app.js
+   FaceMetrics — TG Mini App: оценка геометрии лица (37 метрик, без нейросетей)
+   МОДУЛЬ 7/7: app.js
    ---------------------------------------------------------------------
-   Роутер экранов + оркестрация всего пайплайна:
-     welcome -> upload -> mark (34 точки, 7 этапов) -> review -> results
-   Обязанности:
-     • TG SDK: ready/expand/цвета/BackButton (вне TG — деградирует тихо);
-     • загрузка фото (камера/галерея) + даунскейл до 1600px по большей стороне;
-     • разметка: порядок из FM.points.ORDER, авто-зум zoomHint, undo,
-       HUD (этап/точка/зум), постановка точки в центр прицела;
-     • обзор: линии+подписи, валидация FM.points.validate, тап по маркеру
-       = перестановка точки (режим editing);
-     • результаты: FM.metrics.computeAll -> FM.scoring.scoreAll ->
-       FM.results.render; последний итог в localStorage.
+   Роутер + оркестрация пайплайна v3:
+     welcome -> upload -> mark (36 точек, 7 этапов) -> review -> results
+                                                                  | тап по метрике
+                                                                  v
+                                                            viewer (оверлей)
+   Особенности v3:
+     • вьювер измерений: FM.results.openViewer поверх всего; TG BackButton
+       и кнопка «‹» СНАЧАЛА закрывают вьювер, потом листают экраны;
+     • результаты: FM.metrics.computeAll -> FM.scoring.scoreAll (полосы T1-T5)
+       -> FM.results.render с колбэком onOpenViewer;
+     • последний итог пишется в localStorage и показывается в шапке welcome.
    Зависимости: FM.points, FM.photo, FM.metrics, FM.scoring, FM.results.
    ===================================================================== */
 (function (global) {
@@ -23,12 +23,14 @@
 
   /* ---------------- состояние ---------------- */
   let screen = 'welcome';
-  let img = null;                 /* Image или Canvas после даунскейла */
+  let img = null;                  /* Image или Canvas после даунскейла */
   let markVp = null, reviewVp = null;
-  let points = {};                /* {id: {x,y}} в координатах изображения */
-  let orderIndex = 0;             /* индекс следующей точки в ORDER */
-  let editing = null;             /* id точки при перестановке из обзора */
-  let markTimer = null;           /* тикер HUD зума */
+  let points = {};                 /* {id:{x,y}} в координатах изображения */
+  let orderIndex = 0;              /* индекс следующей точки в ORDER (36) */
+  let editing = null;              /* id точки при перестановке из обзора */
+  let markTimer = null;
+  let viewerController = null;     /* активный вьювер измерений */
+  let lastScored = null;           /* последний посчитанный scored */
 
   const tg = (global.Telegram && global.Telegram.WebApp) ? global.Telegram.WebApp : null;
 
@@ -40,7 +42,18 @@
     results: 'Результаты'
   };
 
+  /* ---------------- синхронизация кнопки «назад» ---------------- */
+  function syncBack() {
+    const showBack = viewerController ? true : (screen !== 'welcome');
+    $('btnBack').hidden = !showBack;
+    if (tg) {
+      try { showBack ? tg.BackButton.show() : tg.BackButton.hide(); } catch (e) {}
+    }
+  }
+
   /* ---------------- роутер ---------------- */
+  function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
   function show(id) {
     screen = id;
     stopMarkTimer();
@@ -49,16 +62,13 @@
       screens[i].classList.toggle('active', screens[i].id === 'scr' + cap(id));
     }
     $('hdrTitle').textContent = TITLES[id] || 'FaceMetrics';
-    $('btnBack').hidden = (id === 'welcome');
-    if (tg) {
-      try { id === 'welcome' ? tg.BackButton.hide() : tg.BackButton.show(); } catch (e) {}
-    }
+    syncBack();
     if (id === 'mark') startMarkTimer();
     if (id === 'welcome') paintHdrRight();
   }
-  function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
 
   function goBack() {
+    if (viewerController) { viewerController.close(); return; }   /* вьювер приоритетнее */
     if (screen === 'upload') show('welcome');
     else if (screen === 'mark') {
       if (editing) { editing = null; goReview(); } else show('upload');
@@ -76,7 +86,7 @@
       if (tg.setHeaderColor) tg.setHeaderColor('#0f1115');
       if (tg.setBackgroundColor) tg.setBackgroundColor('#0f1115');
       tg.BackButton.onClick(goBack);
-    } catch (e) { /* вне TG или старая версия — не критично */ }
+    } catch (e) { /* вне TG — не критично */ }
   }
 
   /* ---------------- загрузка фото ---------------- */
@@ -103,9 +113,11 @@
       img = scaleDown(im, 1600);
       if (markVp) { markVp.destroy(); markVp = null; }
       if (reviewVp) { reviewVp.destroy(); reviewVp = null; }
+      if (viewerController) { viewerController.close(); }
       points = {};
       orderIndex = 0;
       editing = null;
+      lastScored = null;
       showLoader(false);
       enterMark();
     };
@@ -217,21 +229,37 @@
     }
   }
 
-  /* ---------------- результаты ---------------- */
+  /* ---------------- результаты + вьювер ---------------- */
   function goResults() {
     const raw = FM.metrics.computeAll(points);
-    const scored = FM.scoring.scoreAll(raw);
+    lastScored = FM.scoring.scoreAll(raw);
     show('results');
-    FM.results.render($('resultsBox'), scored, { onRetry: restartMark });
-    if (scored.overall) {
+    FM.results.render($('resultsBox'), lastScored, {
+      onRetry: restartMark,
+      onOpenViewer: openViewerAt
+    });
+    if (lastScored.overall) {
       try {
         localStorage.setItem('fmLast', JSON.stringify({
-          of10: scored.overall.of10,
-          tier: scored.overall.tier,
+          of10: lastScored.overall.of10,
+          tier: lastScored.overall.tier,
           date: new Date().toISOString().slice(0, 10)
         }));
       } catch (e) { /* приватный режим — пропускаем */ }
     }
+  }
+
+  function openViewerAt(idx) {
+    if (!lastScored || !img) return;
+    if (viewerController) viewerController.close();
+    viewerController = FM.results.openViewer($('viewerHost'), lastScored, points, img, {
+      startIndex: idx,
+      onClose: function () {
+        viewerController = null;
+        syncBack();
+      }
+    });
+    syncBack();
   }
 
   function restartMark() {
@@ -263,8 +291,8 @@
       loadFile(e.target.files && e.target.files[0]); e.target.value = '';
     });
 
-    $('btnZoomIn').addEventListener('click', function () { markVp && markVp.zoomBy(1.25); updateZoomHud(); });
-    $('btnZoomOut').addEventListener('click', function () { markVp && markVp.zoomBy(0.8); updateZoomHud(); });
+    $('btnZoomIn').addEventListener('click', function () { if (markVp) markVp.zoomBy(1.25); updateZoomHud(); });
+    $('btnZoomOut').addEventListener('click', function () { if (markVp) markVp.zoomBy(0.8); updateZoomHud(); });
     $('btnPlace').addEventListener('click', placePoint);
     $('btnUndo').addEventListener('click', undoPoint);
 
