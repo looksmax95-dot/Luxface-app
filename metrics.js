@@ -1,12 +1,13 @@
 /* =====================================================================
-   FaceMetrics — TG Mini App: оценка геометрии лица (37 метрик, без нейросетей)
+   FaceMetrics — TG Mini App: оценка геометрии лица (38 метрик, без нейросетей)
    МОДУЛЬ 2/7: metrics.js
    ---------------------------------------------------------------------
-   Все 37 метрик из таблицы с полными тиерами T1-T5.
+   Все 38 метрик из таблицы с полными тиерами T1-T5.
    Каждая метрика содержит:
      - calc(pts): функция вычисления значения
      - viz: описание визуализации (линии, углы, подписи)
      - tiers: полные диапазоны T1-T5 из xlsx
+   Изменения v3: добавлена метрика №38 CLWR (подбородок к рту).
    ===================================================================== */
 (function (global) {
   'use strict';
@@ -66,6 +67,9 @@
     });
   }
 
+  const CA = '#00ffaa';   /* цвет основной линии */
+  const CB = '#ff8844';   /* цвет вспомогательной линии */
+
   const ZW = p => D(p.ZY_L, p.ZY_R);
   const PUP_D = p => D(p.PUP_L, p.PUP_R);
   const EC_L = p => mid(p.EN_L, p.EX_L);
@@ -79,8 +83,8 @@
     ['ZY_L', 'ZY_R', 'GL', 'LS'],
     p => ZW(p) / D(p.GL, p.LS),
     { type: 'ratio', segs: [
-      { from: 'ZY_L', to: 'ZY_R', label: 'A', color: '#00ffaa' },
-      { from: 'GL', to: 'LS', label: 'B', color: '#ff8844' }
+      { from: 'ZY_L', to: 'ZY_R', label: 'A', color: CA },
+      { from: 'GL', to: 'LS', label: 'B', color: CB }
     ], formula: 'A ÷ B' });
 
   /* 2. tFWHR */
@@ -89,8 +93,8 @@
     ['TR', 'GN', 'ZY_L', 'ZY_R'],
     p => D(p.TR, p.GN) / ZW(p),
     { type: 'ratio', segs: [
-      { from: 'TR', to: 'GN', label: 'A', color: '#00ffaa' },
-      { from: 'ZY_L', to: 'ZY_R', label: 'B', color: '#ff8844' }
+      { from: 'TR', to: 'GN', label: 'A', color: CA },
+      { from: 'ZY_L', to: 'ZY_R', label: 'B', color: CB }
     ], formula: 'A ÷ B' });
 
   /* 3. MFR */
@@ -103,9 +107,9 @@
       return h > 0 ? ipd / h : 0;
     },
     { type: 'ratio', segs: [
-      { from: 'PUP_L', to: 'PUP_R', label: 'A (IPD)', color: '#00ffaa' },
-      { from: 'PUP_L', to: 'LS', label: 'B', color: '#ff8844' },
-      { from: 'PUP_R', to: 'LS', label: 'B', color: '#ff8844' }
+      { from: 'PUP_L', to: 'PUP_R', label: 'A (IPD)', color: CA },
+      { from: 'PUP_L', to: 'LS', label: 'B', color: CB },
+      { from: 'PUP_R', to: 'LS', label: 'B', color: CB }
     ], formula: 'A ÷ B (среднее)' });
 
   /* 4. Facial Thirds */
@@ -118,9 +122,9 @@
       return Math.max(...pcts.map(v => Math.abs(v - 100 / 3)));
     },
     { type: 'percent', segs: [
-      { from: 'TR', to: 'GL', label: 'верх', color: '#00ffaa' },
-      { from: 'GL', to: 'SN', label: 'середина', color: '#00ffaa' },
-      { from: 'SN', to: 'GN', label: 'низ', color: '#00ffaa' }
+      { from: 'TR', to: 'GL', label: 'верх', color: CA },
+      { from: 'GL', to: 'SN', label: 'середина', color: CA },
+      { from: 'SN', to: 'GN', label: 'низ', color: CA }
     ], formula: 'max отклонение от 33.3%' });
 
   /* 5. Lower Third */
@@ -129,8 +133,8 @@
     ['TR', 'SN', 'GN'],
     p => D(p.SN, p.GN) / D(p.TR, p.GN) * 100,
     { type: 'percent', segs: [
-      { from: 'SN', to: 'GN', label: 'A', color: '#00ffaa' },
-      { from: 'TR', to: 'GN', label: 'B (всё лицо)', color: '#ff8844' }
+      { from: 'SN', to: 'GN', label: 'A', color: CA },
+      { from: 'TR', to: 'GN', label: 'B (всё лицо)', color: CB }
     ], formula: '(A ÷ B) × 100' });
 
   /* 6. Bitemporal Width */
@@ -139,8 +143,8 @@
     ['BT_L', 'BT_R', 'ZY_L', 'ZY_R'],
     p => D(p.BT_L, p.BT_R) / ZW(p) * 100,
     { type: 'percent', segs: [
-      { from: 'BT_L', to: 'BT_R', label: 'A', color: '#00ffaa' },
-      { from: 'ZY_L', to: 'ZY_R', label: 'B', color: '#ff8844' }
+      { from: 'BT_L', to: 'BT_R', label: 'A', color: CA },
+      { from: 'ZY_L', to: 'ZY_R', label: 'B', color: CB }
     ], formula: '(A ÷ B) × 100' });
 
   /* 7. Jaw WHR */
@@ -149,8 +153,8 @@
     ['GO_L', 'GO_R', 'TR', 'GN'],
     p => D(p.GO_L, p.GO_R) / D(p.TR, p.GN),
     { type: 'ratio', segs: [
-      { from: 'GO_L', to: 'GO_R', label: 'A', color: '#00ffaa' },
-      { from: 'TR', to: 'GN', label: 'B', color: '#ff8844' }
+      { from: 'GO_L', to: 'GO_R', label: 'A', color: CA },
+      { from: 'TR', to: 'GN', label: 'B', color: CB }
     ], formula: 'A ÷ B' });
 
   /* 8. Mouth W / Jaw W */
@@ -159,8 +163,8 @@
     ['CH_L', 'CH_R', 'GO_L', 'GO_R'],
     p => D(p.CH_L, p.CH_R) / D(p.GO_L, p.GO_R),
     { type: 'ratio', segs: [
-      { from: 'CH_L', to: 'CH_R', label: 'A', color: '#00ffaa' },
-      { from: 'GO_L', to: 'GO_R', label: 'B', color: '#ff8844' }
+      { from: 'CH_L', to: 'CH_R', label: 'A', color: CA },
+      { from: 'GO_L', to: 'GO_R', label: 'B', color: CB }
     ], formula: 'A ÷ B' });
 
   /* 9. Canthal Tilt */
@@ -169,8 +173,8 @@
     ['EN_L', 'EX_L', 'EN_R', 'EX_R'],
     p => mean([tiltDeg(p.EN_L, p.EX_L), tiltDeg(p.EN_R, p.EX_R)]),
     { type: 'angle', rays: [
-      { from: 'EN_L', to: 'EX_L', label: 'левый', color: '#00ffaa' },
-      { from: 'EN_R', to: 'EX_R', label: 'правый', color: '#00ffaa' }
+      { from: 'EN_L', to: 'EX_L', label: 'левый', color: CA },
+      { from: 'EN_R', to: 'EX_R', label: 'правый', color: CA }
     ], formula: 'средний угол к горизонтали' });
 
   /* 10. ESR */
@@ -179,8 +183,8 @@
     ['PUP_L', 'PUP_R', 'ZY_L', 'ZY_R'],
     p => D(p.PUP_L, p.PUP_R) / ZW(p) * 100,
     { type: 'percent', segs: [
-      { from: 'PUP_L', to: 'PUP_R', label: 'A (IPD)', color: '#00ffaa' },
-      { from: 'ZY_L', to: 'ZY_R', label: 'B', color: '#ff8844' }
+      { from: 'PUP_L', to: 'PUP_R', label: 'A (IPD)', color: CA },
+      { from: 'ZY_L', to: 'ZY_R', label: 'B', color: CB }
     ], formula: '(A ÷ B) × 100' });
 
   /* 11. ES */
@@ -189,9 +193,9 @@
     ['EN_L', 'EN_R', 'EX_L', 'EX_R'],
     p => D(p.EN_L, p.EN_R) / mean([PFL(p, 'L'), PFL(p, 'R')]),
     { type: 'ratio', segs: [
-      { from: 'EN_L', to: 'EN_R', label: 'A (ICD)', color: '#00ffaa' },
-      { from: 'EN_L', to: 'EX_L', label: 'B (PFL)', color: '#ff8844' },
-      { from: 'EN_R', to: 'EX_R', label: 'B', color: '#ff8844' }
+      { from: 'EN_L', to: 'EN_R', label: 'A (ICD)', color: CA },
+      { from: 'EN_L', to: 'EX_L', label: 'B (PFL)', color: CB },
+      { from: 'EN_R', to: 'EX_R', label: 'B', color: CB }
     ], formula: 'A ÷ B (среднее)' });
 
   /* 12. Inner Canthal Distance */
@@ -200,8 +204,8 @@
     ['EN_L', 'EN_R', 'ZY_L', 'ZY_R'],
     p => D(p.EN_L, p.EN_R) / ZW(p) * 100,
     { type: 'percent', segs: [
-      { from: 'EN_L', to: 'EN_R', label: 'A', color: '#00ffaa' },
-      { from: 'ZY_L', to: 'ZY_R', label: 'B', color: '#ff8844' }
+      { from: 'EN_L', to: 'EN_R', label: 'A', color: CA },
+      { from: 'ZY_L', to: 'ZY_R', label: 'B', color: CB }
     ], formula: '(A ÷ B) × 100' });
 
   /* 13. Outer Canthal Distance */
@@ -210,8 +214,8 @@
     ['EX_L', 'EX_R', 'ZY_L', 'ZY_R'],
     p => D(p.EX_L, p.EX_R) / ZW(p),
     { type: 'ratio', segs: [
-      { from: 'EX_L', to: 'EX_R', label: 'A', color: '#00ffaa' },
-      { from: 'ZY_L', to: 'ZY_R', label: 'B', color: '#ff8844' }
+      { from: 'EX_L', to: 'EX_R', label: 'A', color: CA },
+      { from: 'ZY_L', to: 'ZY_R', label: 'B', color: CB }
     ], formula: 'A ÷ B' });
 
   /* 14. Medial Canthal Angle */
@@ -223,10 +227,10 @@
       angBetween(vec(p.EN_R, p.UL_R), vec(p.EN_R, p.LL_R))
     ]),
     { type: 'angle', rays: [
-      { from: 'EN_L', to: 'UL_L', label: 'левый верх', color: '#00ffaa' },
-      { from: 'EN_L', to: 'LL_L', label: 'левый низ', color: '#ff8844' },
-      { from: 'EN_R', to: 'UL_R', label: 'правый верх', color: '#00ffaa' },
-      { from: 'EN_R', to: 'LL_R', label: 'правый низ', color: '#ff8844' }
+      { from: 'EN_L', to: 'UL_L', label: 'левый верх', color: CA },
+      { from: 'EN_L', to: 'LL_L', label: 'левый низ', color: CB },
+      { from: 'EN_R', to: 'UL_R', label: 'правый верх', color: CA },
+      { from: 'EN_R', to: 'LL_R', label: 'правый низ', color: CB }
     ], formula: 'средний угол' });
 
   /* 15. PFL:PHL */
@@ -235,10 +239,10 @@
     ['EN_L', 'EX_L', 'UL_L', 'LL_L', 'EN_R', 'EX_R', 'UL_R', 'LL_R'],
     p => mean([PFL(p, 'L') / PHL(p, 'L'), PFL(p, 'R') / PHL(p, 'R')]),
     { type: 'ratio', segs: [
-      { from: 'EN_L', to: 'EX_L', label: 'A (PFL)', color: '#00ffaa' },
-      { from: 'UL_L', to: 'LL_L', label: 'B (PHL)', color: '#ff8844' },
-      { from: 'EN_R', to: 'EX_R', label: 'A', color: '#00ffaa' },
-      { from: 'UL_R', to: 'LL_R', label: 'B', color: '#ff8844' }
+      { from: 'EN_L', to: 'EX_L', label: 'A (PFL)', color: CA },
+      { from: 'UL_L', to: 'LL_L', label: 'B (PHL)', color: CB },
+      { from: 'EN_R', to: 'EX_R', label: 'A', color: CA },
+      { from: 'UL_R', to: 'LL_R', label: 'B', color: CB }
     ], formula: 'A ÷ B (среднее)' });
 
   /* 16. Eyebrows Tilt */
@@ -247,8 +251,8 @@
     ['BR_IN_L', 'BR_OUT_L', 'BR_IN_R', 'BR_OUT_R'],
     p => mean([tiltDeg(p.BR_IN_L, p.BR_OUT_L), tiltDeg(p.BR_IN_R, p.BR_OUT_R)]),
     { type: 'angle', rays: [
-      { from: 'BR_IN_L', to: 'BR_OUT_L', label: 'левая', color: '#00ffaa' },
-      { from: 'BR_IN_R', to: 'BR_OUT_R', label: 'правая', color: '#00ffaa' }
+      { from: 'BR_IN_L', to: 'BR_OUT_L', label: 'левая', color: CA },
+      { from: 'BR_IN_R', to: 'BR_OUT_R', label: 'правая', color: CA }
     ], formula: 'средний угол к горизонтали' });
 
   /* 17. Brow Height */
@@ -274,9 +278,9 @@
     ['EN_L', 'EX_L', 'EN_R', 'EX_R', 'ZY_L', 'ZY_R'],
     p => mean([PFL(p, 'L'), PFL(p, 'R')]) / ZW(p) * 100,
     { type: 'percent', segs: [
-      { from: 'EN_L', to: 'EX_L', label: 'A (PFL)', color: '#00ffaa' },
-      { from: 'EN_R', to: 'EX_R', label: 'A', color: '#00ffaa' },
-      { from: 'ZY_L', to: 'ZY_R', label: 'B', color: '#ff8844' }
+      { from: 'EN_L', to: 'EX_L', label: 'A (PFL)', color: CA },
+      { from: 'EN_R', to: 'EX_R', label: 'A', color: CA },
+      { from: 'ZY_L', to: 'ZY_R', label: 'B', color: CB }
     ], formula: '(A ÷ B) × 100' });
 
   /* 19. Brow to bizygo */
@@ -290,7 +294,7 @@
       return dist / ZW(p);
     },
     { type: 'ratio', segs: [
-      { from: 'ZY_L', to: 'ZY_R', label: 'B (скулы)', color: '#ff8844' }
+      { from: 'ZY_L', to: 'ZY_R', label: 'B (скулы)', color: CB }
     ], formula: 'расстояние бровь→скулы ÷ ширина скул' });
 
   /* 20. b-set */
@@ -311,8 +315,8 @@
     ['AL_L', 'AL_R', 'ZY_L', 'ZY_R'],
     p => D(p.AL_L, p.AL_R) / ZW(p),
     { type: 'ratio', segs: [
-      { from: 'AL_L', to: 'AL_R', label: 'A', color: '#00ffaa' },
-      { from: 'ZY_L', to: 'ZY_R', label: 'B', color: '#ff8844' }
+      { from: 'AL_L', to: 'AL_R', label: 'A', color: CA },
+      { from: 'ZY_L', to: 'ZY_R', label: 'B', color: CB }
     ], formula: 'A ÷ B' });
 
   /* 22. Nose Width to ICD */
@@ -321,8 +325,8 @@
     ['AL_L', 'AL_R', 'EN_L', 'EN_R'],
     p => D(p.AL_L, p.AL_R) / D(p.EN_L, p.EN_R),
     { type: 'ratio', segs: [
-      { from: 'AL_L', to: 'AL_R', label: 'A', color: '#00ffaa' },
-      { from: 'EN_L', to: 'EN_R', label: 'B (ICD)', color: '#ff8844' }
+      { from: 'AL_L', to: 'AL_R', label: 'A', color: CA },
+      { from: 'EN_L', to: 'EN_R', label: 'B (ICD)', color: CB }
     ], formula: 'A ÷ B' });
 
   /* 23. Nose Width to Height */
@@ -331,8 +335,8 @@
     ['AL_L', 'AL_R', 'N', 'SN'],
     p => D(p.AL_L, p.AL_R) / D(p.N, p.SN),
     { type: 'ratio', segs: [
-      { from: 'AL_L', to: 'AL_R', label: 'A', color: '#00ffaa' },
-      { from: 'N', to: 'SN', label: 'B', color: '#ff8844' }
+      { from: 'AL_L', to: 'AL_R', label: 'A', color: CA },
+      { from: 'N', to: 'SN', label: 'B', color: CB }
     ], formula: 'A ÷ B' });
 
   /* 24. Ipsilateral Alar Angle */
@@ -341,8 +345,8 @@
     ['AL_L', 'AL_R', 'PUP_L', 'PUP_R'],
     p => mean([alarToPupilAngle(p.AL_L, p.PUP_L), alarToPupilAngle(p.AL_R, p.PUP_R)]),
     { type: 'angle', rays: [
-      { from: 'AL_L', to: 'PUP_L', label: 'левый', color: '#00ffaa' },
-      { from: 'AL_R', to: 'PUP_R', label: 'правый', color: '#00ffaa' }
+      { from: 'AL_L', to: 'PUP_L', label: 'левый', color: CA },
+      { from: 'AL_R', to: 'PUP_R', label: 'правый', color: CA }
     ], formula: 'средний угол крыло→зрачок к горизонтали' });
 
   /* 25. Alar to Bridge */
@@ -351,8 +355,8 @@
     ['AL_L', 'AL_R', 'N', 'SN'],
     p => D(p.AL_L, p.AL_R) / D(p.N, p.SN),
     { type: 'ratio', segs: [
-      { from: 'AL_L', to: 'AL_R', label: 'A', color: '#00ffaa' },
-      { from: 'N', to: 'SN', label: 'B (переносица)', color: '#ff8844' }
+      { from: 'AL_L', to: 'AL_R', label: 'A', color: CA },
+      { from: 'N', to: 'SN', label: 'B (переносица)', color: CB }
     ], formula: 'A ÷ B' });
 
   /* 26. Mouth W / Nose H */
@@ -361,8 +365,8 @@
     ['CH_L', 'CH_R', 'N', 'SN'],
     p => D(p.CH_L, p.CH_R) / D(p.N, p.SN),
     { type: 'ratio', segs: [
-      { from: 'CH_L', to: 'CH_R', label: 'A', color: '#00ffaa' },
-      { from: 'N', to: 'SN', label: 'B', color: '#ff8844' }
+      { from: 'CH_L', to: 'CH_R', label: 'A', color: CA },
+      { from: 'N', to: 'SN', label: 'B', color: CB }
     ], formula: 'A ÷ B' });
 
   /* 27. Lip Proportions */
@@ -371,8 +375,8 @@
     ['LS', 'ST', 'LI'],
     p => D(p.ST, p.LI) / D(p.LS, p.ST),
     { type: 'ratio', segs: [
-      { from: 'ST', to: 'LI', label: 'A (нижняя)', color: '#00ffaa' },
-      { from: 'LS', to: 'ST', label: 'B (верхняя)', color: '#ff8844' }
+      { from: 'ST', to: 'LI', label: 'A (нижняя)', color: CA },
+      { from: 'LS', to: 'ST', label: 'B (верхняя)', color: CB }
     ], formula: 'A ÷ B' });
 
   /* 28. Mouth to Nose */
@@ -381,8 +385,8 @@
     ['CH_L', 'CH_R', 'AL_L', 'AL_R'],
     p => D(p.CH_L, p.CH_R) / D(p.AL_L, p.AL_R),
     { type: 'ratio', segs: [
-      { from: 'CH_L', to: 'CH_R', label: 'A', color: '#00ffaa' },
-      { from: 'AL_L', to: 'AL_R', label: 'B', color: '#ff8844' }
+      { from: 'CH_L', to: 'CH_R', label: 'A', color: CA },
+      { from: 'AL_L', to: 'AL_R', label: 'B', color: CB }
     ], formula: 'A ÷ B' });
 
   /* 29. EME */
@@ -391,8 +395,8 @@
     ['ST', 'PUP_L', 'PUP_R'],
     p => angBetween(vec(p.ST, p.PUP_L), vec(p.ST, p.PUP_R)),
     { type: 'angle', rays: [
-      { from: 'ST', to: 'PUP_L', label: 'левый', color: '#00ffaa' },
-      { from: 'ST', to: 'PUP_R', label: 'правый', color: '#00ffaa' }
+      { from: 'ST', to: 'PUP_L', label: 'левый', color: CA },
+      { from: 'ST', to: 'PUP_R', label: 'правый', color: CA }
     ], formula: 'угол при стомионе между зрачками' });
 
   /* 30. Jaw Width */
@@ -401,8 +405,8 @@
     ['GO_L', 'GO_R', 'ZY_L', 'ZY_R'],
     p => D(p.GO_L, p.GO_R) / ZW(p),
     { type: 'ratio', segs: [
-      { from: 'GO_L', to: 'GO_R', label: 'A', color: '#00ffaa' },
-      { from: 'ZY_L', to: 'ZY_R', label: 'B', color: '#ff8844' }
+      { from: 'GO_L', to: 'GO_R', label: 'A', color: CA },
+      { from: 'ZY_L', to: 'ZY_R', label: 'B', color: CB }
     ], formula: 'A ÷ B' });
 
   /* 31. Bigonial Width */
@@ -411,8 +415,8 @@
     ['GO_L', 'GO_R', 'ZY_L', 'ZY_R'],
     p => D(p.GO_L, p.GO_R) / ZW(p) * 100,
     { type: 'percent', segs: [
-      { from: 'GO_L', to: 'GO_R', label: 'A', color: '#00ffaa' },
-      { from: 'ZY_L', to: 'ZY_R', label: 'B', color: '#ff8844' }
+      { from: 'GO_L', to: 'GO_R', label: 'A', color: CA },
+      { from: 'ZY_L', to: 'ZY_R', label: 'B', color: CB }
     ], formula: '(A ÷ B) × 100' });
 
   /* 32. Neck Width */
@@ -421,8 +425,8 @@
     ['NK_L', 'NK_R', 'GO_L', 'GO_R'],
     p => D(p.NK_L, p.NK_R) / D(p.GO_L, p.GO_R) * 100,
     { type: 'percent', segs: [
-      { from: 'NK_L', to: 'NK_R', label: 'A', color: '#00ffaa' },
-      { from: 'GO_L', to: 'GO_R', label: 'B', color: '#ff8844' }
+      { from: 'NK_L', to: 'NK_R', label: 'A', color: CA },
+      { from: 'GO_L', to: 'GO_R', label: 'B', color: CB }
     ], formula: '(A ÷ B) × 100' });
 
   /* 33. Cheekbones Height */
@@ -436,7 +440,7 @@
       return den > 0 ? Math.abs(zy - p.LS.y) / den * 100 : 0;
     },
     { type: 'percent', segs: [
-      { from: 'ZY_L', to: 'ZY_R', label: 'скулы', color: '#00ffaa' },
+      { from: 'ZY_L', to: 'ZY_R', label: 'скулы', color: CA },
       { from: 'EN_L', to: 'EX_L', label: 'глаз', color: '#888888' },
       { from: 'EN_R', to: 'EX_R', label: 'глаз', color: '#888888' }
     ], formula: '(скулы→губы ÷ глаза→губы) × 100' });
@@ -447,8 +451,8 @@
     ['SN', 'GN', 'LS'],
     p => D(p.SN, p.GN) / D(p.SN, p.LS),
     { type: 'ratio', segs: [
-      { from: 'SN', to: 'GN', label: 'A (подбородок)', color: '#00ffaa' },
-      { from: 'SN', to: 'LS', label: 'B (фильтрум)', color: '#ff8844' }
+      { from: 'SN', to: 'GN', label: 'A (подбородок)', color: CA },
+      { from: 'SN', to: 'LS', label: 'B (фильтрум)', color: CB }
     ], formula: 'A ÷ B' });
 
   /* 35. Jaw Frontal Angle */
@@ -457,8 +461,8 @@
     ['GN', 'GO_L', 'GO_R'],
     p => mean([jawFrontalAngle(p.GO_L, p.GN), jawFrontalAngle(p.GO_R, p.GN)]),
     { type: 'angle', rays: [
-      { from: 'GO_L', to: 'GN', label: 'левый', color: '#00ffaa' },
-      { from: 'GO_R', to: 'GN', label: 'правый', color: '#00ffaa' }
+      { from: 'GO_L', to: 'GN', label: 'левый', color: CA },
+      { from: 'GO_R', to: 'GN', label: 'правый', color: CA }
     ], formula: 'средний угол угол челюсти→подбородок к горизонтали' });
 
   /* 36. IAA–JFA Deviation */
@@ -482,11 +486,21 @@
       return den > 0 ? Math.abs(zy - p.LS.y) / den * 100 : 0;
     },
     { type: 'percent', segs: [
-      { from: 'ZY_L', to: 'ZY_R', label: 'скулы', color: '#00ffaa' },
+      { from: 'ZY_L', to: 'ZY_R', label: 'скулы', color: CA },
       { from: 'EN_L', to: 'EX_L', label: 'глаз', color: '#888888' },
       { from: 'EN_R', to: 'EX_R', label: 'глаз', color: '#888888' }
     ], formula: '(скулы→губы ÷ глаза→губы) × 100',
     note: 'Альтернативное измерение высоты скул' });
+
+  /* 38. CLWR: ширина площадки подбородка / ширина рта */
+  def(38, 'CLWR', 'Подбородок к рту (CLWR)', 'ratio',
+    { T1: [0.700, 0.800], T2: [[0.630, 0.699], [0.801, 0.870]], T3: [[0.530, 0.629], [0.871, 0.950]], T4: [[0.420, 0.529], [0.951, 1.050]], T5: ['<0.420', '>1.050'] },
+    ['CHIN_L', 'CHIN_R', 'CH_L', 'CH_R'],
+    p => D(p.CHIN_L, p.CHIN_R) / D(p.CH_L, p.CH_R),
+    { type: 'ratio', segs: [
+      { from: 'CHIN_L', to: 'CHIN_R', label: 'A (подбородок)', color: CA },
+      { from: 'CH_L',   to: 'CH_R',   label: 'B (рот)',         color: CB }
+    ], formula: 'A ÷ B' });
 
   /* === Вычисление всех метрик === */
   function computeAll(pts) {
