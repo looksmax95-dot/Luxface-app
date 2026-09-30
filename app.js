@@ -1,19 +1,16 @@
 /* =====================================================================
-   FaceMetrics — TG Mini App: оценка геометрии лица (37 метрик, без нейросетей)
-   МОДУЛЬ 7/7: app.js
+   FaceMetrics — TG Mini App: оценка геометрии лица (38 метрик)
+   КОД 5/6: app.js (v4 — переключатель линий-подсказок на разметке)
    ---------------------------------------------------------------------
-   Роутер + оркестрация пайплайна v3:
-     welcome -> upload -> mark (36 точек, 7 этапов) -> review -> results
-                                                                  | тап по метрике
-                                                                  v
-                                                            viewer (оверлей)
-   Особенности v3:
-     • вьювер измерений: FM.results.openViewer поверх всего; TG BackButton
-       и кнопка «‹» СНАЧАЛА закрывают вьювер, потом листают экраны;
-     • результаты: FM.metrics.computeAll -> FM.scoring.scoreAll (полосы T1-T5)
-       -> FM.results.render с колбэком onOpenViewer;
-     • последний итог пишется в localStorage и показывается в шапке welcome.
-   Зависимости: FM.points, FM.photo, FM.metrics, FM.scoring, FM.results.
+   Роутер + оркестрация: welcome -> upload -> mark (38 точек) -> review
+   -> results -> viewer (оверлей). TG SDK деградирует тихо вне Telegram.
+   НОВОЕ v4:
+     • hintsOn + drawHints(): пунктирные линии от прицела к поставленным
+       точкам метрики, которую сейчас размечаешь (через FM.metrics.forPoint
+       и vp.setOverlay из photo.js v2);
+     • кнопка #btnHints в карточке разметки включает/выключает подсказки.
+   Кнопка защищена: если #btnHints ещё нет в DOM (старый index.html),
+   приложение НЕ падает — просто работает без подсказок.
    ===================================================================== */
 (function (global) {
   'use strict';
@@ -23,14 +20,15 @@
 
   /* ---------------- состояние ---------------- */
   let screen = 'welcome';
-  let img = null;                  /* Image или Canvas после даунскейла */
+  let img = null;
   let markVp = null, reviewVp = null;
-  let points = {};                 /* {id:{x,y}} в координатах изображения */
-  let orderIndex = 0;              /* индекс следующей точки в ORDER (36) */
-  let editing = null;              /* id точки при перестановке из обзора */
+  let points = {};
+  let orderIndex = 0;
+  let editing = null;
   let markTimer = null;
-  let viewerController = null;     /* активный вьювер измерений */
-  let lastScored = null;           /* последний посчитанный scored */
+  let viewerController = null;
+  let lastScored = null;
+  let hintsOn = true;                 /* линии-подсказки по умолчанию ВКЛ */
 
   const tg = (global.Telegram && global.Telegram.WebApp) ? global.Telegram.WebApp : null;
 
@@ -42,7 +40,7 @@
     results: 'Результаты'
   };
 
-  /* ---------------- синхронизация кнопки «назад» ---------------- */
+  /* ---------------- кнопка «назад» ---------------- */
   function syncBack() {
     const showBack = viewerController ? true : (screen !== 'welcome');
     $('btnBack').hidden = !showBack;
@@ -68,7 +66,7 @@
   }
 
   function goBack() {
-    if (viewerController) { viewerController.close(); return; }   /* вьювер приоритетнее */
+    if (viewerController) { viewerController.close(); return; }
     if (screen === 'upload') show('welcome');
     else if (screen === 'mark') {
       if (editing) { editing = null; goReview(); } else show('upload');
@@ -130,17 +128,60 @@
   }
   function showLoader(on) { $('loader').hidden = !on; }
 
-  /* ---------------- разметка ---------------- */
+  /* ---------------- ЛИНИИ-ПОДСКАЗКИ (оверлей) ---------------- */
   function currentId() { return editing || FM.points.ORDER[orderIndex]; }
 
+  function drawHints(o) {
+    if (!hintsOn || !FM.metrics) return;
+    const id = currentId();
+    if (!id) return;
+    const spec = FM.metrics.forPoint(id);
+    const ctx = o.ctx;
+    ctx.save();
+    ctx.globalAlpha = 0.85;
+    ctx.lineWidth = 1.5;
+
+    const line = function (otherId, color) {
+      const p = points[otherId];
+      if (!p) return;                              /* вторая точка ещё не стоит */
+      const s = o.S(p);
+      ctx.setLineDash([6, 4]);
+      ctx.strokeStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(s.x, s.y);
+      ctx.lineTo(o.center.x, o.center.y);          /* до прицела */
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, 3, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+    };
+
+    (spec.segs || []).forEach(function (sg) { line(sg.other, sg.color); });
+    (spec.rays || []).forEach(function (ry) { line(ry.other, ry.color); });
+    ctx.restore();
+  }
+
+  function updateHintsBtn() {
+    const b = $('btnHints');
+    if (!b) return;
+    b.textContent = hintsOn ? '👁 подсказки: ВКЛ' : '👁 подсказки: ВЫКЛ';
+    b.classList.toggle('primary', hintsOn);
+    b.classList.toggle('ghost', !hintsOn);
+  }
+
+  /* ---------------- разметка ---------------- */
   function enterMark() {
     show('mark');
     if (!markVp) {
       markVp = FM.photo.create($('markCanvas'), img);
       markVp.setPoints(points);
+      markVp.setOverlay(drawHints);                /* оверлей подсказок */
     }
     markVp.setReview(false);
     markVp.resize();
+    updateHintsBtn();
     refreshMarkPoint();
   }
 
@@ -216,7 +257,7 @@
     if (!reviewVp) return;
     const r = $('reviewCanvas').getBoundingClientRect();
     const x = e.clientX - r.left, y = e.clientY - r.top;
-    let best = null, bestD = 28;                       /* радиус попадания, px */
+    let best = null, bestD = 28;
     const ids = Object.keys(points);
     for (let i = 0; i < ids.length; i++) {
       const s = reviewVp.imageToScreen(points[ids[i]]);
@@ -295,6 +336,14 @@
     $('btnZoomOut').addEventListener('click', function () { if (markVp) markVp.zoomBy(0.8); updateZoomHud(); });
     $('btnPlace').addEventListener('click', placePoint);
     $('btnUndo').addEventListener('click', undoPoint);
+
+    /* НОВОЕ: переключатель подсказок (защищён от отсутствия в DOM) */
+    const hb = $('btnHints');
+    if (hb) hb.addEventListener('click', function () {
+      hintsOn = !hintsOn;
+      updateHintsBtn();
+      if (markVp) markVp.redraw();
+    });
 
     $('reviewCanvas').addEventListener('click', reviewTap);
     $('btnReviewRedo').addEventListener('click', restartMark);
