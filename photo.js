@@ -1,127 +1,78 @@
 /* =====================================================================
-   FaceMetrics — TG Mini App: оценка геометрии лица (32 метрики, без нейросетей)
-   МОДУЛЬ 2/8: js/photo.js
+   FaceMetrics — TG Mini App: оценка геометрии лица (38 метрик)
+   КОД 4/6: photo.js (v2 — хук setOverlay для линий-подсказок)
    ---------------------------------------------------------------------
-   Назначение: viewport изображения под прицелом.
-     • трансформация: screen = image * scale + t  (tx, ty);
-     • жесты: 1 палец = панорама, 2 пальца (pinch) = зум+панорама;
-       мышь/колесо — для отладки с десктопа;
-     • прицел НЕПОДВИЖЕН в центре canvas; зум якорится в центр,
-       поэтому цель под прицелом не «уезжает» при приближении;
-     • кламп панорамы: центр экрана всегда внутри границ фото —
-       поставить точку за пределами лица невозможно;
-     • отрисовка: фото, маркеры точек, линии обзора, прицел;
-       размеры маркеров/линий постоянны в ЭКРАННЫХ px (не масштабируются);
-     • плавный авто-зум до рекомендованного уровня точки (zoomHint).
-   API: FM.photo.create(canvas, img) -> viewport (см. конец файла).
-   Зависимости: нет. DOM: только переданный canvas.
+   Вьюпорт изображения на canvas: пан (1 палец), щипок-зум (2 пальца),
+   колесо мыши (отладка с десктопа), прицел в центре (режим разметки),
+   структурные линии (режим обзора), маркеры точек.
+   НОВОЕ: vp.setOverlay(fn) — fn вызывается в конце КАЖДОГО redraw и
+   получает { S, ctx, W, H, center }, где S = imageToScreen. Через него
+   app.js рисует линии-подсказки текущей метрики поверх фото — они не
+   стираются при пан/зуме, потому что перерисовываются каждый кадр.
+   Трансформация: screen = image * s + t. Зум ограничен [0.5×fit, 14×fit].
    ===================================================================== */
 (function (global) {
   'use strict';
 
   const FM = (global.FM = global.FM || {});
 
-  const MIN_ZOOM = 0.7;    /* относительно fit-масштаба */
-  const MAX_ZOOM = 14.0;
-  const MARKER_R = 5;      /* экранного px */
-  const CROSS_R = 14;
-
-  function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
-
   function create(canvas, img) {
     const ctx = canvas.getContext('2d');
-    const iw = img.naturalWidth || img.width;
-    const ih = img.naturalHeight || img.height;
+    let W = 300, H = 300, dpr = 1;
+    let s = 1, tx = 0, ty = 0;          /* масштаб и сдвиг */
+    let fitS = 1, fitted = false;       /* базовый масштаб «вписать» */
+    let points = {}, activeId = null, review = false, overlayFn = null;
 
-    /* --- состояние viewport --- */
-    let W = 0, H = 0, dpr = 1;          /* CSS-размеры canvas и плотность px */
-    let fitScale = 1;                   /* масштаб «всё лицо в кадре»        */
-    let scale = 1, tx = 0, ty = 0;      /* текущая трансформация             */
-    let pointsMap = {};                 /* ссылка на хранилище точек app.js  */
-    let activeId = null;                /* точка, которую ставим сейчас      */
-    let review = false;                 /* режим обзора: линии + подписи     */
-    let anim = null;                    /* {from,to,t0,dur} авто-зума        */
-    let destroyed = false;
+    const iw = () => (img.naturalWidth || img.width || 1);
+    const ih = () => (img.naturalHeight || img.height || 1);
 
-    /* ================= РАЗМЕР / МАСШТАБ ================= */
+    /* === трансформации === */
+    function imageToScreen(p) { return { x: p.x * s + tx, y: p.y * s + ty }; }
+    function screenToImage(x, y) { return { x: (x - tx) / s, y: (y - ty) / s }; }
+    function zoomLevel() { return s / fitS; }
+
+    function zoomBy(k, cx, cy) {
+      cx = (cx == null) ? W / 2 : cx;
+      cy = (cy == null) ? H / 2 : cy;
+      const ns = Math.min(Math.max(fitS * 0.5, s * k), fitS * 14);
+      const kk = ns / s;
+      tx = cx - (cx - tx) * kk;
+      ty = cy - (cy - ty) * kk;
+      s = ns;
+      redraw();
+    }
+
+    /* авто-зум к рекомендованному уровню точки (вокруг центра) */
+    function zoomHint(z) {
+      const target = fitS * z;
+      if (Math.abs(target - s) / target > 0.02) zoomBy(target / s);
+    }
+
     function resize() {
       dpr = global.devicePixelRatio || 1;
       W = canvas.clientWidth || 300;
       H = canvas.clientHeight || 300;
       canvas.width = Math.round(W * dpr);
       canvas.height = Math.round(H * dpr);
-      const prevFit = fitScale;
-      fitScale = Math.min(W / iw, H / ih);
-      if (prevFit > 0) {                 /* сохраняем относительный зум */
-        scale = scale / prevFit * fitScale;
+      const rel = fitted ? s / fitS : 1;
+      fitS = Math.min(W / iw(), H / ih());
+      if (!fitted) {
+        s = fitS;
+        tx = (W - iw() * s) / 2;
+        ty = (H - ih() * s) / 2;
+        fitted = true;
       } else {
-        scale = fitScale;
+        const ns = fitS * rel;
+        const k = ns / s;
+        tx = W / 2 - (W / 2 - tx) * k;
+        ty = H / 2 - (H / 2 - ty) * k;
+        s = ns;
       }
-      clampPan();
       redraw();
     }
 
-    function zoomLevel() { return scale / fitScale; }
-
-    function clampPan() {
-      scale = clamp(scale, fitScale * MIN_ZOOM, fitScale * MAX_ZOOM);
-      const cx = W / 2, cy = H / 2;      /* прицел всегда внутри фото */
-      tx = clamp(tx, cx - iw * scale, cx);
-      ty = clamp(ty, cy - ih * scale, cy);
-    }
-
-    /* ================= ПРЕОБРАЗОВАНИЯ ================= */
-    function imageToScreen(p) { return { x: p.x * scale + tx, y: p.y * scale + ty }; }
-    function screenToImage(x, y) { return { x: (x - tx) / scale, y: (y - ty) / scale }; }
-    function crosshairImagePoint() {
-      const p = screenToImage(W / 2, H / 2);
-      return { x: clamp(p.x, 0, iw), y: clamp(p.y, 0, ih) };
-    }
-
-    /* Зум с якорем: экранный пин (sx,sy) остаётся над той же точкой фото */
-    function zoomAt(sx, sy, newScale) {
-      const ns = clamp(newScale, fitScale * MIN_ZOOM, fitScale * MAX_ZOOM);
-      const ip = screenToImage(sx, sy);
-      scale = ns;
-      tx = sx - ip.x * scale;
-      ty = sy - ip.y * scale;
-      clampPan();
-    }
-
-    function zoomBy(f) {
-      stopAnim();
-      zoomAt(W / 2, H / 2, scale * f);   /* якорь = прицел */
-      redraw();
-    }
-
-    function panBy(dx, dy) {
-      stopAnim();
-      tx += dx; ty += dy;
-      clampPan();
-      redraw();
-    }
-
-    /* Плавный выход на рекомендованный зум точки (z из points.js) */
-    function zoomHint(z, dur) {
-      const target = clamp(fitScale * (z || 1), fitScale * MIN_ZOOM, fitScale * MAX_ZOOM);
-      if (Math.abs(target - scale) < 1e-6) return;
-      anim = { from: scale, to: target, t0: performance.now(), dur: dur || 260 };
-      requestAnimationFrame(stepAnim);
-    }
-    function stopAnim() { anim = null; }
-    function stepAnim(now) {
-      if (!anim || destroyed) return;
-      let p = (now - anim.t0) / anim.dur;
-      if (p >= 1) { p = 1; }
-      const e = 1 - Math.pow(1 - p, 3);  /* easeOutCubic */
-      zoomAt(W / 2, H / 2, anim.from + (anim.to - anim.from) * e);
-      redraw();
-      if (p < 1) { requestAnimationFrame(stepAnim); } else { anim = null; }
-    }
-
-    /* ================= ОТРИСОВКА ================= */
+    /* === отрисовка === */
     function redraw() {
-      if (destroyed) return;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, W, H);
       ctx.fillStyle = '#0f1115';
@@ -130,196 +81,171 @@
       /* фото */
       ctx.save();
       ctx.translate(tx, ty);
-      ctx.scale(scale, scale);
-      ctx.drawImage(img, 0, 0, iw, ih);
+      ctx.scale(s, s);
+      ctx.drawImage(img, 0, 0, iw(), ih());
       ctx.restore();
 
-      /* направляющие через прицел (помогают ловить горизонталь) */
-      ctx.strokeStyle = 'rgba(255,255,255,0.08)';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(0, H / 2); ctx.lineTo(W, H / 2);
-      ctx.moveTo(W / 2, 0); ctx.lineTo(W / 2, H);
-      ctx.stroke();
-
-      /* линии обзора */
-      if (review && FM.points) {
-        ctx.strokeStyle = 'rgba(0,255,170,0.55)';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        FM.points.REVIEW_LINES.forEach(function (ln) {
-          const a = pointsMap[ln[0]], b = pointsMap[ln[1]];
+      /* обзор: структурные линии между поставленными точками */
+      if (review && FM.points && FM.points.REVIEW_LINES) {
+        ctx.strokeStyle = 'rgba(0,255,170,0.5)';
+        ctx.lineWidth = 1.5;
+        FM.points.REVIEW_LINES.forEach(function (pr) {
+          const a = points[pr[0]], b = points[pr[1]];
           if (!a || !b) return;
-          const sa = imageToScreen(a), sb = imageToScreen(b);
-          ctx.moveTo(sa.x, sa.y);
-          ctx.lineTo(sb.x, sb.y);
+          const pa = imageToScreen(a), pb = imageToScreen(b);
+          ctx.beginPath();
+          ctx.moveTo(pa.x, pa.y);
+          ctx.lineTo(pb.x, pb.y);
+          ctx.stroke();
         });
-        ctx.stroke();
       }
 
-      /* маркеры поставленных точек */
-      const ids = Object.keys(pointsMap);
-      for (let i = 0; i < ids.length; i++) {
-        const id = ids[i];
-        const s = imageToScreen(pointsMap[id]);
+      /* маркеры точек (+ акцент на активной) */
+      Object.keys(points).forEach(function (id) {
+        const p = imageToScreen(points[id]);
         ctx.beginPath();
-        ctx.arc(s.x, s.y, MARKER_R, 0, Math.PI * 2);
-        ctx.fillStyle = (id === activeId) ? '#ffd75e' : '#ffffff';
+        ctx.arc(p.x, p.y, 3.5, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
         ctx.fill();
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 1.5;
         ctx.strokeStyle = '#0f1115';
         ctx.stroke();
-        if (review) {
-          ctx.font = '10px monospace';
-          ctx.fillStyle = 'rgba(0,255,170,0.9)';
-          ctx.fillText(id, s.x + MARKER_R + 3, s.y - MARKER_R - 2);
+        if (id === activeId) {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
+          ctx.strokeStyle = '#00ffaa';
+          ctx.lineWidth = 2;
+          ctx.stroke();
         }
+      });
+
+      /* прицел (только режим разметки) */
+      if (!review) {
+        const cx = W / 2, cy = H / 2;
+        ctx.strokeStyle = '#00ffaa';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 16, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(cx - 24, cy); ctx.lineTo(cx - 8, cy);
+        ctx.moveTo(cx + 8, cy);  ctx.lineTo(cx + 24, cy);
+        ctx.moveTo(cx, cy - 24); ctx.lineTo(cx, cy - 8);
+        ctx.moveTo(cx, cy + 8);  ctx.lineTo(cx, cy + 24);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(cx, cy, 1.5, 0, Math.PI * 2);
+        ctx.fillStyle = '#00ffaa';
+        ctx.fill();
       }
 
-      /* прицел поверх всего */
-      const cx = W / 2, cy = H / 2;
-      ctx.strokeStyle = '#00ffaa';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(cx, cy, CROSS_R, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(cx - CROSS_R - 8, cy); ctx.lineTo(cx - CROSS_R + 4, cy);
-      ctx.moveTo(cx + CROSS_R - 4, cy); ctx.lineTo(cx + CROSS_R + 8, cy);
-      ctx.moveTo(cx, cy - CROSS_R - 8); ctx.lineTo(cx, cy - CROSS_R + 4);
-      ctx.moveTo(cx, cy + CROSS_R - 4); ctx.lineTo(cx, cy + CROSS_R + 8);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.arc(cx, cy, 1.5, 0, Math.PI * 2);
-      ctx.fillStyle = '#00ffaa';
-      ctx.fill();
+      /* внешний оверлей (линии-подсказки) — поверх всего, каждый кадр */
+      if (typeof overlayFn === 'function') {
+        overlayFn({ S: imageToScreen, ctx: ctx, W: W, H: H, center: { x: W / 2, y: H / 2 } });
+      }
     }
 
-    /* ================= ЖЕСТЫ (touch) ================= */
-    let mode = 'none';                  /* 'pan' | 'pinch' */
-    let t0 = null;                      /* старт-панорама */
-    let pinch = null;                   /* старт-pinch */
+    /* === жесты === */
+    const tmap = {};
+    let pinch = null;
 
-    function touchPos(e) {
-      const r = canvas.getBoundingClientRect();
-      const out = [];
+    function store(e, rect) {
       for (let i = 0; i < e.touches.length; i++) {
-        out.push({ x: e.touches[i].clientX - r.left, y: e.touches[i].clientY - r.top });
+        const t = e.touches[i];
+        tmap[t.identifier] = { x: t.clientX - rect.left, y: t.clientY - rect.top };
       }
-      return out;
     }
 
-    function onStart(e) {
+    function onTouchStart(e) {
       e.preventDefault();
-      stopAnim();
-      const p = touchPos(e);
-      if (p.length === 1) {
-        mode = 'pan';
-        t0 = { x: p[0].x, y: p[0].y, tx: tx, ty: ty };
-      } else if (p.length >= 2) {
-        mode = 'pinch';
-        pinch = {
-          d0: Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) || 1,
-          m0: { x: (p[0].x + p[1].x) / 2, y: (p[0].y + p[1].y) / 2 },
-          s0: scale, t0x: tx, t0y: ty
-        };
+      const rect = canvas.getBoundingClientRect();
+      store(e, rect);
+      const ids = Object.keys(tmap);
+      if (ids.length === 2) {
+        const a = tmap[ids[0]], b = tmap[ids[1]];
+        pinch = { d: Math.hypot(b.x - a.x, b.y - a.y), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 };
       }
     }
 
-    function onMove(e) {
+    function onTouchMove(e) {
       e.preventDefault();
-      const p = touchPos(e);
-      if (mode === 'pan' && p.length === 1 && t0) {
-        tx = t0.tx + (p[0].x - t0.x);
-        ty = t0.ty + (p[0].y - t0.y);
-        clampPan();
-        redraw();
-      } else if (mode === 'pinch' && p.length >= 2 && pinch) {
-        const d = Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) || 1;
-        const m = { x: (p[0].x + p[1].x) / 2, y: (p[0].y + p[1].y) / 2 };
-        const ns = clamp(pinch.s0 * (d / pinch.d0), fitScale * MIN_ZOOM, fitScale * MAX_ZOOM);
-        /* точка фото под стартовым центром пальцев уходит под текущий центр */
-        const ipx = (pinch.m0.x - pinch.t0x) / pinch.s0;
-        const ipy = (pinch.m0.y - pinch.t0y) / pinch.s0;
-        scale = ns;
-        tx = m.x - ipx * scale;
-        ty = m.y - ipy * scale;
-        clampPan();
-        redraw();
+      const rect = canvas.getBoundingClientRect();
+      if (e.touches.length === 1 && !pinch) {
+        const t = e.touches[0];
+        const prev = tmap[t.identifier];
+        if (prev) {
+          const nx = t.clientX - rect.left, ny = t.clientY - rect.top;
+          tx += nx - prev.x;
+          ty += ny - prev.y;
+          tmap[t.identifier] = { x: nx, y: ny };
+          redraw();
+        }
+      } else if (e.touches.length >= 2) {
+        store(e, rect);
+        const ids = Object.keys(tmap);
+        const a = tmap[ids[0]], b = tmap[ids[1]];
+        const d = Math.hypot(b.x - a.x, b.y - a.y);
+        const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+        if (pinch && pinch.d > 0) {
+          const k = d / pinch.d;
+          const ns = Math.min(Math.max(fitS * 0.5, s * k), fitS * 14);
+          const kk = ns / s;
+          /* точка под старой серединой щипка уезжает в новую середину */
+          tx = mx - (pinch.mx - tx) * kk;
+          ty = my - (pinch.my - ty) * kk;
+          s = ns;
+          redraw();
+        }
+        pinch = { d: d, mx: mx, my: my };
       }
     }
 
-    function onEnd(e) {
-      if (e.touches.length === 0) { mode = 'none'; t0 = null; pinch = null; }
-      else if (e.touches.length === 1) {
-        const r = canvas.getBoundingClientRect();
-        mode = 'pan';
-        t0 = { x: e.touches[0].clientX - r.left, y: e.touches[0].clientY - r.top, tx: tx, ty: ty };
-        pinch = null;
-      }
-    }
-
-    /* ================= ЖЕСТЫ (мышь, отладка) ================= */
-    let mouse = null;
-    function onMouseDown(e) {
+    function onTouchEnd(e) {
       e.preventDefault();
-      stopAnim();
-      mouse = { x: e.offsetX, y: e.offsetY, tx: tx, ty: ty };
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        delete tmap[e.changedTouches[i].identifier];
+      }
+      if (Object.keys(tmap).length < 2) pinch = null;
     }
-    function onMouseMove(e) {
-      if (!mouse) return;
-      tx = mouse.tx + (e.offsetX - mouse.x);
-      ty = mouse.ty + (e.offsetY - mouse.y);
-      clampPan();
-      redraw();
-    }
-    function onMouseUp() { mouse = null; }
+
     function onWheel(e) {
       e.preventDefault();
-      stopAnim();
-      zoomAt(e.offsetX, e.offsetY, scale * (e.deltaY < 0 ? 1.15 : 0.87));
-      redraw();
+      const rect = canvas.getBoundingClientRect();
+      zoomBy(e.deltaY < 0 ? 1.15 : 0.87, e.clientX - rect.left, e.clientY - rect.top);
     }
 
-    canvas.addEventListener('touchstart', onStart, { passive: false });
-    canvas.addEventListener('touchmove', onMove, { passive: false });
-    canvas.addEventListener('touchend', onEnd);
-    canvas.addEventListener('touchcancel', onEnd);
-    canvas.addEventListener('mousedown', onMouseDown);
-    global.addEventListener('mousemove', onMouseMove);
-    global.addEventListener('mouseup', onMouseUp);
+    canvas.addEventListener('touchstart', onTouchStart, { passive: false });
+    canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+    canvas.addEventListener('touchend', onTouchEnd, { passive: false });
+    canvas.addEventListener('touchcancel', onTouchEnd, { passive: false });
     canvas.addEventListener('wheel', onWheel, { passive: false });
 
-    /* ================= ПУБЛИЧНЫЙ VIEWPORT ================= */
+    function destroy() {
+      canvas.removeEventListener('touchstart', onTouchStart);
+      canvas.removeEventListener('touchmove', onTouchMove);
+      canvas.removeEventListener('touchend', onTouchEnd);
+      canvas.removeEventListener('touchcancel', onTouchEnd);
+      canvas.removeEventListener('wheel', onWheel);
+    }
+
     const vp = {
       resize: resize,
       redraw: redraw,
       zoomBy: zoomBy,
       zoomHint: zoomHint,
-      panBy: panBy,
       zoomLevel: zoomLevel,
       imageToScreen: imageToScreen,
       screenToImage: screenToImage,
-      crosshairImagePoint: crosshairImagePoint,
-      setPoints: function (m) { pointsMap = m || {}; redraw(); },
+      crosshairImagePoint: function () { return screenToImage(W / 2, H / 2); },
+      setPoints: function (p) { points = p || {}; redraw(); },
       setActive: function (id) { activeId = id; redraw(); },
-      setReview: function (on) { review = !!on; redraw(); },
-      imageSize: function () { return { w: iw, h: ih }; },
-      destroy: function () {
-        destroyed = true;
-        stopAnim();
-        canvas.removeEventListener('touchstart', onStart);
-        canvas.removeEventListener('touchmove', onMove);
-        canvas.removeEventListener('touchend', onEnd);
-        canvas.removeEventListener('touchcancel', onEnd);
-        canvas.removeEventListener('mousedown', onMouseDown);
-        global.removeEventListener('mousemove', onMouseMove);
-        global.removeEventListener('mouseup', onMouseUp);
-        canvas.removeEventListener('wheel', onWheel);
-      }
+      setReview: function (b) { review = !!b; redraw(); },
+      setOverlay: function (fn) { overlayFn = fn; redraw(); },
+      imageSize: function () { return { w: iw(), h: ih() }; },
+      destroy: destroy
     };
 
-    resize();                            /* первичная подгонка под canvas */
+    resize();
     return vp;
   }
 
