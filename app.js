@@ -277,8 +277,10 @@
     lastScored = FM.scoring.scoreAll(raw);
     show('results');
     FM.results.render($('resultsBox'), lastScored, {
-      onRetry: restartMark,
+      points: points
+       onRetry: restartMark,
       onOpenViewer: openViewerAt
+     onOpenGlobalMorph: function(idealPoints) {
     });
     if (lastScored.overall) {
       try {
@@ -296,7 +298,8 @@
     if (viewerController) viewerController.close();
     viewerController = FM.results.openViewer($('viewerHost'), lastScored, points, img, {
       startIndex: idx,
-      onClose: function () {
+      idealPoints: idealPoints,
+       onClose: function () {
         viewerController = null;
         syncBack();
       }
