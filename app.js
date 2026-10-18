@@ -277,7 +277,7 @@
     lastScored = FM.scoring.scoreAll(raw);
     show('results');
     FM.results.render($('resultsBox'), lastScored, {
-      points: points
+      points: points,
        onRetry: restartMark,
       onOpenViewer: openViewerAt
      onOpenGlobalMorph: function(idealPoints) {
