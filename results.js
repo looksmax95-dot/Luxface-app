@@ -212,10 +212,23 @@
   function render(container, scored, opts) {
     opts = opts || {};
     if (!container) return;
+
+    // ОТЛАДКА: проверяем, дошли ли до нас точки
+    if (!opts.points || Object.keys(opts.points).length < 38) {
+      console.warn('ВНИМАНИЕ: Передано точек:', opts.points ? Object.keys(opts.points).length : 0);
+    }
+
+    // ЕСЛИ ОЦЕНКА НЕ ПОСЧИТАЛАСЬ (значит, точек реально меньше 38)
     if (!scored || !scored.overall) {
-      container.innerHTML = '<div class="res-empty">Не удалось посчитать оценку: разметка неполная.</div>';
+      container.innerHTML =
+        '<div class="res-empty">' +
+          '⚠️ Не удалось посчитать оценку: разметка неполная.<br><br>' +
+          'Ты поставил ' + (opts.points ? Object.keys(opts.points).length : 0) + ' из 38 точек.<br>' +
+          'Вернись назад и расставь <b>все 38 точек</b>, иначе магии не будет!' +
+        '</div>';
       return;
     }
+
     const o = scored.overall;
     const tcss = TIER_CSS[o.tier] || 'tn';
     const label = FM.scoring.TIER_LABELS[o.tier] || '';
@@ -251,12 +264,12 @@
     const retryBtn = container.querySelector('#fmRetry');
     if (retryBtn && typeof opts.onRetry === 'function') retryBtn.addEventListener('click', opts.onRetry);
 
-    // --- НОВАЯ КНОПКА МОРФА (с защитой от ошибок) ---
+    // --- КНОПКА ГЛОБАЛЬНОГО МОРФА ---
     const morphBtn = container.querySelector('#fmGlobalMorph');
     if (morphBtn) {
       morphBtn.addEventListener('click', function () {
         if (!opts.points) {
-          alert('Ошибка: точки не переданы. Проверь app.js');
+          alert('Ошибка: точки не переданы.');
           return;
         }
         morphBtn.textContent = '⏳ Вычисляю идеал...';
@@ -267,11 +280,9 @@
             if (res && res.points) {
               if (typeof opts.onOpenGlobalMorph === 'function') {
                 opts.onOpenGlobalMorph(res.points);
-              } else {
-                alert('Функция onOpenGlobalMorph не найдена в app.js');
               }
             } else {
-              alert('Не удалось построить глобальный идеал для этой разметки.');
+              alert('Не удалось построить глобальный идеал.');
             }
           } catch (e) {
             console.error('Morph error:', e);
