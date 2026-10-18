@@ -272,34 +272,49 @@
 
   /* ---------------- результаты + вьювер ---------------- */
   function goResults() {
+    // 1. Считаем метрики по расставленным точкам
     const raw = FM.metrics.computeAll(points);
-    window.__fmPoints = points; // TEMP: для бенча морфа
+
+    // 2. Оцениваем
     lastScored = FM.scoring.scoreAll(raw);
+
+    // 3. Переходим на экран
     show('results');
+
+    // 4. ОТЛАДКА: смотрим в консоль, сколько точек мы реально передаем
+    console.log('DEBUG: Точек размечено:', Object.keys(points).length, 'из 38');
+    console.log('DEBUG: Результат скоринга:', lastScored);
+
+    // 5. Рендерим экран результатов (ВАЖНО: передаем points!)
     FM.results.render($('resultsBox'), lastScored, {
-      points: points,
-       onRetry: restartMark,
-      onOpenViewer: openViewerAt
-     onOpenGlobalMorph: function(idealPoints) {
+      points: points, // <-- ЭТО КРИТИЧЕСКИ ВАЖНО ДЛЯ МОРФА
+      onRetry: restartMark,
+      onOpenViewer: openViewerAt,
+      onOpenGlobalMorph: function(idealPoints) {
+        openViewerAt(0, idealPoints);
+      }
     });
-    if (lastScored.overall) {
+
+    // 6. Сохраняем в память
+    if (lastScored && lastScored.overall) {
       try {
         localStorage.setItem('fmLast', JSON.stringify({
           of10: lastScored.overall.of10,
           tier: lastScored.overall.tier,
           date: new Date().toISOString().slice(0, 10)
         }));
-      } catch (e) { /* приватный режим — пропускаем */ }
+      } catch (e) {}
     }
   }
 
-  function openViewerAt(idx) {
+  function openViewerAt(idx, idealPoints) {
     if (!lastScored || !img) return;
     if (viewerController) viewerController.close();
+
     viewerController = FM.results.openViewer($('viewerHost'), lastScored, points, img, {
       startIndex: idx,
-      idealPoints: idealPoints,
-       onClose: function () {
+      idealPoints: idealPoints || null, // <-- ПЕРЕДАЕМ ИДЕАЛЬНЫЕ ТОЧКИ ДЛЯ МОРФА
+      onClose: function () {
         viewerController = null;
         syncBack();
       }
@@ -333,7 +348,7 @@
       loadFile(e.target.files && e.target.files[0]); e.target.value = '';
     });
     $('inputGal').addEventListener('change', function (e) {
-      loadFile(e.target.files && e.target.files[0]); e.target.value = '';
+      loadFile(e.target.files && e.target.files[0]); e.target.value = ''; 
     });
 
     $('btnZoomIn').addEventListener('click', function () { if (markVp) markVp.zoomBy(1.25); updateZoomHud(); });
