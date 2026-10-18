@@ -273,6 +273,7 @@
   /* ---------------- результаты + вьювер ---------------- */
   function goResults() {
     const raw = FM.metrics.computeAll(points);
+     window.__fmPoints = points; // TEMP: для бенча морфа
     lastScored = FM.scoring.scoreAll(raw);
     show('results');
     FM.results.render($('resultsBox'), lastScored, {
