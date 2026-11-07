@@ -85,8 +85,8 @@
 
   /* 1 */ def(1, 'FWHR', 'Ширина лица к высоте верха (FWHR)', 'ratio',
     { T1: [1.90, 2.06], T2: [[1.83, 1.89], [2.07, 2.13]], T3: [[1.80, 1.82], [2.14, 2.16]], T4: [[1.70, 1.79], [2.17, 2.18]], T5: ['<1.70', '>2.18'] },
-    ['ZY_L', 'ZY_R', 'GL', 'LS'],
-    p => ZW(p) / D(p.GL, p.LS),
+    ['ZY_L', 'ZY_R', 'N', 'LS'],
+    p => ZW(p) / D(p.N, p.LS),
     { type: 'ratio', segs: [
       { from: 'ZY_L', to: 'ZY_R', label: 'A', color: CA },
       { from: 'GL', to: 'LS', label: 'B', color: CB }], formula: 'A ÷ B' });
@@ -99,10 +99,11 @@
       { from: 'TR', to: 'GN', label: 'A', color: CA },
       { from: 'ZY_L', to: 'ZY_R', label: 'B', color: CB }], formula: 'A ÷ B' });
 
-  /* 3 */ def(3, 'MFR', 'Средняя зона (MFR)', 'ratio',
+/* 3 */ def(3, 'MFR', 'Средняя зона (MFR)', 'ratio',
     { T1: [0.93, 1.01], T2: [[0.90, 0.92], [1.02, 1.04]], T3: [[0.88, 0.89], [1.05, 1.06]], T4: [[0.85, 0.87], [1.07, 1.09]], T5: ['<0.85', '>1.09'] },
     ['PUP_L', 'PUP_R', 'LS'],
     p => {
+      // Высота средней зоны: от линии зрачков до верхней границы губы
       const h = mean([Math.abs(p.PUP_L.y - p.LS.y), Math.abs(p.PUP_R.y - p.LS.y)]);
       return h > 0 ? IPD(p) / h : 0;
     },
@@ -284,10 +285,10 @@
       { from: 'N', to: 'SN', label: 'B', color: CB }],
       formula: 'A ÷ B', note: 'кончик на анфас ≈ основание носа' });
 
-  /* 24 */ def(24, 'IAA', 'Угол крыла носа', '°',
+  /* 24 */ def(24, 'IAA', 'Угол крыла носа (Ipsilateral Angle)', '°',
     { T1: [84, 95], T2: [[82, 83], [96, 97]], T3: [[79, 81], [98, 100]], T4: [[77, 78], [101, 102]], T5: ['<77', '>102'] },
-    ['AL_L', 'AL_R', 'PUP_L', 'PUP_R'],
-    p => iaaOf(p),
+    ['SN', 'EX_L', 'EX_R'],
+    p => angBetween(vec(p.SN, p.EX_L), vec(p.SN, p.EX_R)),
     { type: 'angle', rays: [
       { from: 'AL_L', to: 'PUP_L', label: 'левый', color: CA },
       { from: 'AL_R', to: 'PUP_R', label: 'правый', color: CA }], formula: 'крыло→зрачок к горизонтали' });
@@ -367,10 +368,10 @@
 
   /* 34 */ def(34, 'ChinPhiltrum', 'Подбородок к фильтруму', 'ratio',
     { T1: [2.05, 2.55], T2: [[1.87, 2.04], [2.56, 2.73]], T3: [[1.75, 1.86], [2.74, 2.85]], T4: [[1.55, 1.74], [2.86, 3.20]], T5: ['<1.55', '>3.20'] },
-    ['SN', 'GN', 'LS'],
-    p => D(p.SN, p.GN) / D(p.SN, p.LS),
+    ['SN', 'LS', 'LI', 'GN'],
+    p => D(p.LI, p.GN) / D(p.SN, p.LS),
     { type: 'ratio', segs: [
-      { from: 'SN', to: 'GN', label: 'A (подбородок)', color: CA },
+      { from: 'LI', to: 'GN', label: 'A (подбородок)', color: CA },
       { from: 'SN', to: 'LS', label: 'B (фильтрум)', color: CB }], formula: 'A ÷ B' });
 
   /* 35 */ def(35, 'JFA', 'Фронтальный угол челюсти', '°',
